@@ -1,9 +1,10 @@
 
-
 .. include:: notebooks/readme.rst
 
+
 Navigation
-----------
+==========
+        
 
 .. toctree::
    :maxdepth: 2
@@ -11,21 +12,15 @@ Navigation
 
    notebooks/01-brython
 
+.. only:: html
 
-.. toctree::
-   :glob:
-   :maxdepth: 2
-   :name: mastertoc3
-   :caption: Bootstrap
+    Docstrings
+    ==========
 
-   notebooks/bootstrap/*
+    * :ref:`genindex`
+    * :ref:`modindex`
+    * :ref:`search`
 
-
-Indices and tables
-------------------
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
-    
+..
+  .. include:: notebooks/footer.rst
+        
