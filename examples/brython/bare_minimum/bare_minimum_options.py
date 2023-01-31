@@ -2,9 +2,8 @@ from radiant.framework.server import RadiantAPI, RadiantServer
 from browser import document, html
 import logging
 
+
 ########################################################################
-
-
 class BareMinimum(RadiantAPI):
 
     # ----------------------------------------------------------------------
@@ -17,15 +16,13 @@ class BareMinimum(RadiantAPI):
             'second page', href='/multipage'
         )
 
-        logging.warning('HOLA')
-
 
 if __name__ == '__main__':
     RadiantServer(
         'BareMinimum',
         host='localhost',
         port=5000,
-        brython_version='3.10.3',
+        brython_version='3.10.5',
         debug_level=0,
         pages=([r'^/multipage$', 'second_page.Second'],),
     )

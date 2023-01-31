@@ -1,6 +1,6 @@
 #!bryhton
 
-from radiant.framework.server import RadiantAPI
+from radiant.framework.server import RadiantAPI, RadiantServer
 from browser import document, html
 import logging
 from mdc.MDCTab import MDCTabBar
@@ -15,12 +15,7 @@ class BareMinimum(RadiantAPI):
         super().__init__(*args, **kwargs)
         document.select_one('body') <= html.H1('Hello World')
 
-        # <i class = "fa-solid fa-right" > < / i >
-
-        document.select_one('body') <= html.I(Class='fas fa-arrow-right')
-
         logging.warning('HOLA')
-
         tabbar = MDCTabBar(
             {'text': 'Python', 'id': 'python'},
             {'text': 'Pinguino', 'id': 'pinguino'},
@@ -34,4 +29,12 @@ class BareMinimum(RadiantAPI):
 
 
 if __name__ == '__main__':
-    BareMinimum()
+    RadiantServer(
+        'BareMinimum',
+        host='localhost',
+        port=5000,
+        brython_version='3.10.5',
+        debug_level=0,
+        pages=([r'^/multipage$', 'second_page.Second'],),
+        modules=['mdc'],
+    )
