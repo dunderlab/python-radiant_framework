@@ -1,6 +1,6 @@
 #!brython
 
-from radiant.server import RadiantAPI, pyscript, pyscript_globals, pyscript_init
+from radiant.framework.server import RadiantAPI, pyscript, pyscript_globals, pyscript_init
 from browser import document, html
 import bootstrap as bs
 import logging

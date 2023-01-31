@@ -15,10 +15,7 @@ class BareMinimum(RadiantAPI):
 
 
 if __name__ == '__main__':
-    import os
-    # local_path = os.path.realpath(__file__)
-    # BareMinimum()
 
     RadiantServer('BareMinimum',
-                  local_path=os.path.realpath(__file__),
+                  modules=['mdc']
                   )

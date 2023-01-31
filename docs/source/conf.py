@@ -27,7 +27,6 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 
-
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
@@ -67,7 +66,7 @@ html_favicon = '_static/favico.ico'
 def setup(app):
     app.add_js_file("static/brython/brython-3.10.5/brython.js")
     app.add_js_file("static/brython/brython-3.10.5/brython_stdlib.js")
-    app.add_js_file("static/brython/brython-3.10.5/load_brython.js")
+    app.add_js_file("static/brython/load_brython.js")
 
     # app.add_js_file("material-components-web/material-components-web.min.js")
     app.add_css_file("static/fonts/material-design-icons-3.0.1/iconfont/material-icons.css")

@@ -1,4 +1,4 @@
-from radiant.server import RadiantServer
+from radiant.framework.server import RadiantServer
 import settings
 
 

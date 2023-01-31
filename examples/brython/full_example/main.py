@@ -1,4 +1,4 @@
-from radiant.server import RadiantAPI, RadiantServer
+from radiant.framework.server import RadiantAPI, RadiantServer
 from radiant.sound import Tone
 
 from browser import document, html

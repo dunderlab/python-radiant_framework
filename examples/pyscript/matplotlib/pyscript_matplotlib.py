@@ -2,7 +2,7 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
-from radiant.server import RadiantAPI
+from radiant.framework.server import RadiantAPI
 import js
 
 

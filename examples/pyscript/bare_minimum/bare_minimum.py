@@ -1,6 +1,6 @@
 #!pyscript
 
-from radiant.server import RadiantAPI
+from radiant.framework.server import RadiantAPI
 
 
 ########################################################################
