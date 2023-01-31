@@ -3,11 +3,14 @@ from . import RadiantAPI, RadiantServer, RadiantHandler, pyscript, PyScriptAPI, 
 
 
 class fake:
+    def __init__(self, *args, **kwargs):
+        """"""
+
     def __getattr__(self, attr):
         return fake
 
 
-brython = ['browser', 'browser.template', 'js', 'bootstrap']
+brython = ['browser', 'browser.template', 'js', 'bootstrap', 'md', 'material_symbols']
 for module in brython:
     sys.modules[f"{module}"] = fake()
 
