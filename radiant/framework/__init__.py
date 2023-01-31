@@ -34,12 +34,14 @@ PATH = Union[str, pathlib.Path]
 URL = str
 DEFAULT_IP = 'localhost'
 DEFAULT_PORT = '5000'
-DEFAULT_BRYTHON_VERSION = '3.10.7'
+DEFAULT_BRYTHON_VERSION = '3.11.1'
 DEFAULT_BRYTHON_DEBUG = 0
 DEFAULT_PYSCRIPT_VERSION = '2022.06.1'
 AUTO_PYSCRIPT = False
 
 MAIN = os.path.join(sys.path[0], 'main.py')
+if not os.path.exists(MAIN):
+    MAIN = sys.argv[0]
 
 PYSCRIPT_FUNCTIONS = os.path.join(os.path.dirname(MAIN), 'pyscript_fn.py')
 if os.path.exists(PYSCRIPT_FUNCTIONS):
@@ -284,6 +286,7 @@ def make_app(
     static_app: bool = False,
     templates_path: PATH = None,
     # pyscript=False,
+    modules: Optional[list] = [],
 ):
     """
     Parameters
@@ -366,6 +369,7 @@ def make_app(
             'radiant_mode_pyscript': radiant_mode_pyscript,
             'requirements': requirements,
             'static_app': static_app,
+            'modules': modules,
         }
     )
 
@@ -455,6 +459,7 @@ def RadiantServer(
     callbacks: Optional[tuple] = (),
     static_app: Optional[bool] = False,
     templates_path: PATH = None,
+    modules: Optional[list] = [],
     **kwargs,
 ):
     """Python implementation for move `class_` into a Bython environment.
@@ -507,6 +512,7 @@ def RadiantServer(
         static_app=static_app,
         templates_path=templates_path,
         # pyscript=pyscript,
+        modules=modules,
     )
     http_server = HTTPServer(
         application,
