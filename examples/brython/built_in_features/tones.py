@@ -1,5 +1,5 @@
-from radiant.framework.server import RadiantAPI
-from radiant.sound import Tone, note_values
+from radiant.framework.server import RadiantAPI, RadiantServer
+from radiant.framework.sound import Tone, note_values
 
 from browser import document, html
 
@@ -39,6 +39,7 @@ class MainApp(RadiantAPI):
 
 
 if __name__ == '__main__':
-    MainApp()
-
-
+    RadiantServer('MainApp',
+                  brython_version='3.10.5',
+                  modules=['mdc']
+                  )

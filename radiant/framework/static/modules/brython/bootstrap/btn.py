@@ -30,6 +30,7 @@ class Button(Base):
 
                 **kwargs):
         self.element = self.render(locals(), kwargs)
+
         return self.element
 
     # ----------------------------------------------------------------------

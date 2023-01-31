@@ -1,7 +1,6 @@
 from browser import html, window
 from typing import Callable, Literal
 
-
 ACCENTS = Literal['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'light', 'dark', 'link']
 
 
@@ -48,7 +47,7 @@ class Base:
     @classmethod
     def render(cls, locals_, kwargs, attach_now=True):
         """"""
-        context = locals_.copy()
+        context = {k: locals_[k] for k in locals_}
         if 'self' in context:
             context.pop('self')
         if 'kwargs' in context:

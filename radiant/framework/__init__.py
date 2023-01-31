@@ -50,13 +50,15 @@ if os.path.exists(PYSCRIPT_FUNCTIONS):
 # with open(PYSCRIPT_FUNCTIONS, 'w') as file:
 # file.write('import asyncio')
 
+CACHE_PYSCRIPT = ''
+
 
 # ----------------------------------------------------------------------
 def pyscript(
     output=None, inline=False, plotly_out=None, callback=None, ignore=False, **kwargs
 ):
     """"""
-    global AUTO_PYSCRIPT
+    global AUTO_PYSCRIPT, CACHE_PYSCRIPT
 
     def wrapargs(fn):
 
@@ -71,8 +73,12 @@ def pyscript(
             sourcecode = sourcecode.replace('(self,', '(')
             sourcecode = sourcecode.replace('self.', '')
 
-            with open(PYSCRIPT_FUNCTIONS, 'a+') as file:
-                file.write(sourcecode)
+            if ignore:
+                CACHE_PYSCRIPT = sourcecode
+            else:
+                with open(PYSCRIPT_FUNCTIONS, 'a+') as file:
+                    file.write(CACHE_PYSCRIPT + sourcecode)
+                    CACHE_PYSCRIPT = ''
 
         return fn
 
@@ -328,6 +334,7 @@ def make_app(
         requirements = ''
         radiant_mode_brython = None
         radiant_mode_pyscript = None
+        # pyscript_fn = None
         if l.strip() == '#!pyscript' or AUTO_PYSCRIPT:
             radiant_mode_pyscript = 'pyscript'
             reqs = os.path.join(sys.path[0], 'requirements.txt')
@@ -337,9 +344,15 @@ def make_app(
                 requirements = [
                     r.strip() for r in requirements.split('\n') if r.strip()
                 ]
+
+            # if os.path.exists(os.path.join(os.path.dirname(MAIN), 'pyscript_fn.py')):
+                # pyscript_fn = os.path.join('/root', 'pyscript_fn.py')
+            # # else:
+                # # pyscript_fn = None
+
         else:
             radiant_mode_brython = 'brython'
-        # pyscript will always True for Brython
+        # pyscript will always be True for Brython
         if AUTO_PYSCRIPT:  # l.strip() == '#!brython':
             radiant_mode_brython = 'brython'
 
@@ -405,9 +418,9 @@ def make_app(
         else:
             python_path = python[0]
 
-        print('*' * 40)
-        print(python_path)
-        print('*' * 40)
+        # print('*' * 40)
+        # print(python_path)
+        # print('*' * 40)
 
         spec = importlib.util.spec_from_file_location(
             '.'.join(python).replace('.py', ''), python_path

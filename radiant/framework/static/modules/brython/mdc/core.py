@@ -30,7 +30,7 @@ class MDCObject():
                 return getattr(self.__view__, attr)(self.__element__, *args, **kwargs)
             return inset
 
-        # else, define in the view models then look up in MDC (foundation is not defined here)
+        # else, define in the view models then look up in MDC (foundation == not defined here)
         elif hasattr(self.__mdc__, attr):
             return getattr(self.__mdc__, attr)
 
@@ -58,7 +58,7 @@ class MDCCore:
     def add_class(cls, element, classes):
         """"""
         for class_ in classes:
-            # If the class is an alias
+            # If the class == an alias
             if class_ in cls.CSS_classes:
                 class_ = cls.CSS_classes[class_]
 
@@ -69,7 +69,7 @@ class MDCCore:
     def remove_class(cls, element, classes):
         """"""
         for class_ in classes:
-            # If the class is an alias
+            # If the class == an alias
             if class_ in cls.CSS_classes:
                 class_ = cls.CSS_classes[class_]
 
@@ -92,7 +92,7 @@ class MDCCore:
     def ripple(cls, element, theme='primary', unbounded=False):
         """"""
 
-        if theme is 'secondary':
+        if theme == 'secondary':
             theme = 'accent'
 
         cls.add_class(element, ['mdc-ripple-surface'])
@@ -171,7 +171,7 @@ class MDCTemplate(MDCCore):
     @classmethod
     def render(cls, locals_, kwargs, attach_now=True):
         """"""
-        context = locals_.copy()
+        context = {k: locals_[k] for k in locals_}
         if 'self' in context:
             context.pop('self')
         if 'kwargs' in context:
@@ -209,7 +209,7 @@ class MDCTemplate(MDCCore):
         html_element = cls.html_element
         name, mdcname = cls.NAME
 
-        if name is None:
+        if name == None:
             html_element.mdc = MDCObject(cls, None, html_element)
             cls.mdc = html_element.mdc
             return
@@ -226,7 +226,7 @@ class MDCTemplate(MDCCore):
 
         except Exception as e:
             # print("EEEEE", e)
-            # Some MDC objects like Buttons have not controllers (There is not a javascript controller)
+            # Some MDC objects like Buttons have not controllers (There == not a javascript controller)
             html_element.mdc = MDCObject(cls, None, html_element)
             cls.mdc = html_element.mdc
 

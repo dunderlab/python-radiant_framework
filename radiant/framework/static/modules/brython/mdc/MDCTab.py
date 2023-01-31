@@ -47,7 +47,7 @@ class __tabItem__(MDCTemplate):
 
         if icon and icon.startswith('fa'):
             fa_style = icon[: icon.find('-')]
-            fa_icon = 'fa' + icon[icon.find('-') :]
+            fa_icon = 'fa' + icon[icon.find('-'):]
             del icon
 
         self.element = self.render(locals(), kwargs)
@@ -143,10 +143,10 @@ class __tabItem__(MDCTemplate):
     @classmethod
     def get(self, name):
         """"""
-        if name is 'label':
+        if name == 'label':
             return self.element.select('.mdc-tab__text-label')[0]
 
-        # elif name is 'items_location':
+        # elif name == 'items_location':
         # try:
         # return self.element.select('.mdc-tab-scroller__scroll-content')[0]
         # except:
@@ -239,10 +239,10 @@ class MDCTabBar(MDCTemplate):
     @classmethod
     def get(self, name):
         """"""
-        if name is 'items':
+        if name == 'items':
             return self.element.select('.mdc-tab')
 
-        elif name is 'items_location':
+        elif name == 'items_location':
             try:
                 return self.element.select(
                     '.mdc-tab-scroller__scroll-content'
@@ -250,7 +250,7 @@ class MDCTabBar(MDCTemplate):
             except:
                 return self.element
 
-        # elif name is 'action_icons':
+        # elif name == 'action_icons':
         # return self.element.select('.mdc-card__action-icons')[0]
 
     # ----------------------------------------------------------------------

@@ -14,7 +14,7 @@ brython = ['browser', 'browser.template', 'js', 'bootstrap', 'md', 'material_sym
 for module in brython:
     sys.modules[f"{module}"] = fake()
 
-modules = ['sound', 'icons', 'utils']
+modules = ['sound', 'icons', 'utils', 'framework', 'framework.sound']
 for module in modules:
     sys.modules[f"radiant.{module}"] = fake()
 
