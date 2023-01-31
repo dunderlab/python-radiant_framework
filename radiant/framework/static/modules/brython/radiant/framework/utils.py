@@ -276,12 +276,13 @@ class WebSocket:
 # ----------------------------------------------------------------------
 def autoinit():
     """"""
-    window.mdc.autoInit()
-    try:
-        [window.mdc.slider.MDCSlider.attachTo(
-            slider) for slider in document.select('.mdc-slider')]
-    except:
-        pass
+    if hasattr(window, 'mdc'):
+        window.mdc.autoInit()
+        try:
+            [window.mdc.slider.MDCSlider.attachTo(
+                slider) for slider in document.select('.mdc-slider')]
+        except:
+            pass
 
 
 # ----------------------------------------------------------------------
