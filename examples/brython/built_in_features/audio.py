@@ -37,37 +37,26 @@ class MainApp(RadiantAPI):
         pause_button.bind('click', audio.pause)
         parent <= pause_button
 
-        pause_button = MDCButton("Stop", raised=True)
-        pause_button.bind('click', audio.stop)
-        parent <= pause_button
+        stop_button = MDCButton("Stop", raised=True)
+        stop_button.bind('click', audio.stop)
+        parent <= stop_button
 
-        pause_button = MDCButton("Audio-1", raised=True)
-        pause_button.bind(
+        audio1_button = MDCButton("Audio-1", raised=True)
+        audio1_button.bind(
             'click', lambda *args: audio.load('mixkit-sports-rock-78.mp3')
         )
-        parent <= pause_button
+        parent <= audio1_button
 
-        pause_button = MDCButton("Audio-2", raised=True)
-        pause_button.bind(
+        audio2_button = MDCButton("Audio-2", raised=True)
+        audio2_button.bind(
             'click', lambda *args: audio.load('mixkit-daredevil-80.mp3')
         )
-        parent <= pause_button
+        parent <= audio2_button
 
-        pause_button = MDCButton("0%", raised=True)
-        pause_button.bind('click', lambda *args: audio.set_gain(0))
-        parent <= pause_button
-
-        pause_button = MDCButton("25%", raised=True)
-        pause_button.bind('click', lambda *args: audio.set_gain(0.25))
-        parent <= pause_button
-
-        pause_button = MDCButton("50%", raised=True)
-        pause_button.bind('click', lambda *args: audio.set_gain(0.5))
-        parent <= pause_button
-
-        pause_button = MDCButton("100%", raised=True)
-        pause_button.bind('click', lambda *args: audio.set_gain(1))
-        parent <= pause_button
+        for volume in [0, 25, 50, 100]:
+            volume_button = MDCButton(f"Volume {volume}%", raised=True)
+            volume_button.bind('click', lambda evt, volume=volume: audio.set_gain(volume / 100))
+            parent <= volume_button
 
         document <= parent
 
