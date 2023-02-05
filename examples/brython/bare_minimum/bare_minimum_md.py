@@ -8,12 +8,6 @@ from browser import document, html
 import md
 
 
-# Configure Material Symbols
-# https://fonts.google.com/icons?icon.set=Material+Symbols
-from material_symbols import configure, ms
-configure('outlined', 0, 100, 0, 48)
-
-
 ########################################################################
 class BareMinimum(RadiantAPI):
 
@@ -30,16 +24,11 @@ class BareMinimum(RadiantAPI):
         body <= md.outlined_button(label='Oulined')
         body <= md.text_button(label='Text')
         body <= md.tonal_button(label='Tonal')
-        body <= html.BR()
-
-        body <= ms('favorite', style='outlined', size=48)
 
 
 if __name__ == '__main__':
-
     RadiantServer('BareMinimum',
-                  modules=[
-                      'md',  # to enable Material 3
-                      'material_symbols',  # to enable Material Symbols
-                  ],
+                  brython_version='3.10.5',
+                  modules=['md',  # to enable Material 3
+                           ],
                   )

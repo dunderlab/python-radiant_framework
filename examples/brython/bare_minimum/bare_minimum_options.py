@@ -1,6 +1,5 @@
 from radiant.framework.server import RadiantAPI, RadiantServer
 from browser import document, html
-import logging
 
 
 ########################################################################
@@ -24,5 +23,5 @@ if __name__ == '__main__':
         port=5000,
         brython_version='3.10.5',
         debug_level=0,
-        pages=([r'^/multipage$', 'second_page.Second'],),
+        pages=([r'^/multipage$', '_second_page.Second'],),
     )
