@@ -28,9 +28,6 @@
         <link rel="stylesheet" type="text/css" href="/static/material-components-web/material-components-web.min.css">
         <link rel="stylesheet" type="text/css" href="/theme.css">
 
-        <!--Material Icons-->
-        <link type="text/css" rel="stylesheet" href="/static/fonts/material-design-icons-3.0.1/iconfont/material-icons.css">
-
         <!--Fonts-->
         <link type="text/css" rel="stylesheet" href="/static/fonts/roboto-android/roboto.css">
         <link type="text/css" rel="stylesheet" href="/static/fonts/roboto-android/roboto-mono.css">
@@ -39,7 +36,8 @@
 
     {% if 'md' in modules %}
         <!--MD-->
-        <script type="module" src="/static/material-web/material-1.0.0-pre.1.js"></script>
+        <!--<script type="module" src="/static/material-web/material-1.0.0-pre.1.js"></script>-->
+        <script type="module" src="/static/material-web/material-git.js"></script>
 
         <!--Fonts-->
         <link type="text/css" rel="stylesheet" href="/static/fonts/roboto-android/roboto.css">
@@ -47,8 +45,13 @@
     {% end %}
 
     {% if 'material_symbols' in modules %}
-        <!--Fonts-->
+        <!--Material Symbols-->
         <link type="text/css" rel="stylesheet" href="/static/fonts/material-symbols/material_symbols.css">
+    {% end %}
+
+    {% if 'material_icons' in modules %}
+        <!--Material Icons-->
+        <link type="text/css" rel="stylesheet" href="/static/fonts/material-design-icons-3.0.1/iconfont/material-icons.css">
     {% end %}
 
     {% if 'bootstrap' in modules %}
