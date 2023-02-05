@@ -1,5 +1,5 @@
 import sys
-from . import RadiantAPI, RadiantServer, RadiantHandler, pyscript, PyScriptAPI, pyscript_globals, pyscript_init, delay
+from . import RadiantAPI, RadiantServer, PythonHandler, RadiantHandler, pyscript, PyScriptAPI, pyscript_globals, pyscript_init, delay
 
 
 class fake:
@@ -7,7 +7,11 @@ class fake:
         """"""
 
     def __getattr__(self, attr):
-        return fake
+        print(attr)
+        if attr in globals():
+            return globals()[attr]
+        else:
+            return fake
 
 
 brython = ['browser', 'browser.template', 'js', 'bootstrap', 'md', 'material_symbols']
