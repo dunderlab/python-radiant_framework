@@ -4,7 +4,16 @@ Material-Web
 ============
 
 """
+from browser import html
+from functools import cache
 
-from .button import *
-from .checkbox import *
-from .icon import *
+maketag = cache(html.maketag)
+
+
+def __getattr__(attr):
+    """"""
+    def element(*args, **kwargs):
+        tag = maketag(f'md-{attr.replace("_", "-")}')
+        return tag(*args, **kwargs)
+    return element
+

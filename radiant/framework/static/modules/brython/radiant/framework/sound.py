@@ -242,7 +242,8 @@ class Audio:
     def play(self, gain=0.5, *args, **kwargs):
         """"""
         self.audio.play()
-        self.audio.volume = gain
+        if isinstance(gain, float):
+            self.audio.volume = gain
 
     # ----------------------------------------------------------------------
     def pause(self, *args, **kwargs):

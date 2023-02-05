@@ -1,5 +1,5 @@
 from radiant.framework.server import RadiantAPI, RadiantServer
-from radiant.sound import Tone
+from radiant.framework.sound import Tone
 
 from browser import document, html
 from submodule import submodule_fn
@@ -8,7 +8,7 @@ from mdc.MDCButton import MDCButton
 from mdc.MDCComponent import MDCComponent
 from mdc.MDCFormField import MDCForm
 
-import numpy
+# import numpy
 
 
 # from mdc.MDCCard import MDCCard
@@ -75,11 +75,12 @@ class MainApp(RadiantAPI):
 if __name__ == '__main__':
     RadiantServer(
         'MainApp',
+        modules=['mdc'],
         python=('python_foo.py', 'MyClass'),
         handlers=([r'^/ws', ('ws_handler.py', 'WSHandler'), {}],),
         template='custom_template.html',
         mock_imports=['numpy'],
-        brython_version='3.9.5',
+        brython_version='3.10.5',
         debug_level=0,
         pages=([r'^/multipage$', 'second_page.Second'],),
         theme='custom_theme.xml',

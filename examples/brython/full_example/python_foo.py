@@ -1,9 +1,8 @@
-from radiant import PythonHandler
+from radiant.framework import PythonHandler
 import math
 
+
 ########################################################################
-
-
 class MyClass(PythonHandler):
     """"""
 
@@ -17,3 +16,9 @@ class MyClass(PythonHandler):
     def pitagoras(self, a, b):
         """"""
         return math.sqrt(a**2 + b**2)
+
+    # ----------------------------------------------------------------------
+
+    def test(self):
+        """"""
+        return True
