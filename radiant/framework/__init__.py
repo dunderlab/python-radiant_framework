@@ -61,6 +61,7 @@ def pyscript(
     global AUTO_PYSCRIPT, CACHE_PYSCRIPT
 
     def wrapargs(fn):
+        global CACHE_PYSCRIPT
 
         if not inline:
             sourcecode = f'\n\n# {"-" * 70}\n'
@@ -107,8 +108,11 @@ def delay(fn):
 # ----------------------------------------------------------------------
 def _get_source_code(fn):
     """"""
-    with open(PYSCRIPT_FUNCTIONS, 'r') as file:
-        content = file.read()
+    if os.path.exists(PYSCRIPT_FUNCTIONS):
+        with open(PYSCRIPT_FUNCTIONS, 'r') as file:
+            content = file.read()
+    else:
+        content = ''
     sourcecode = '\n'.join(
         inspect.getsource(fn).replace('\n        ', '\n').split('\n')[2:]
     )

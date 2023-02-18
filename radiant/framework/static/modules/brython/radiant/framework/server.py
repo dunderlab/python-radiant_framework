@@ -39,6 +39,7 @@ def pyscript(output=None, inline=False, plotly_out=None, callback=None, id=None)
                 out = html.DIV(id=output_id)
                 document.select_one('body') <= out
             else:
+                out = document.select_one(f'#{output}')
                 if plotly_out is None:
                     output_id = output
                 elif output is None:
@@ -61,12 +62,14 @@ def pyscript(output=None, inline=False, plotly_out=None, callback=None, id=None)
             # source += f'\n\n{rndr}\n\n'
 
             if plotly_out:
+                print("Plotly OUT")
                 if inline:
                     source += f'\n\nrender_plotly_fig__({fn.__name__}(None, *{args[1:]}, **{kwargs}), "{output_id}")'
                 else:
                     source += f'\n\nrender_plotly_fig__({fn.__name__}(*{args[1:]}, **{kwargs}), "{output_id}")'
 
             else:
+                print("Plotly NOUT")
                 if inline:
                     if args[1:]:
                         source += f'\n\n{fn.__name__}(None, *{args[1:]}, **{kwargs})'
@@ -141,7 +144,6 @@ def delay(t):
 # ----------------------------------------------------------------------
 def pyscript_init(fn):
     """"""
-
     timer.set_timeout(fn, 100)
     return None
 
@@ -167,6 +169,7 @@ def on_callback(element, fn, callback, out, n):
         P = 0
 
     else:
+        print(element, out)
         print(f'waiting... {element.text}, {out.text}')
         timer.set_timeout(lambda: on_callback(element, fn, callback, out, n), 10)
 

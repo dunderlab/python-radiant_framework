@@ -1,6 +1,6 @@
 #!brython
 
-from radiant.framework.server import RadiantAPI, pyscript, pyscript_globals, pyscript_init
+from radiant.framework.server import RadiantAPI, RadiantServer, pyscript, pyscript_globals, pyscript_init
 from browser import document, html
 import bootstrap as bs
 import logging
@@ -106,7 +106,6 @@ class BareMinimum(RadiantAPI):
         return json.dumps({'A': 100})
 
     # ----------------------------------------------------------------------
-
     @pyscript(callback='callback')
     def test_callback(self):
         """"""
@@ -123,12 +122,15 @@ class BareMinimum(RadiantAPI):
         logging.warning('CALLBACK')
         logging.warning(f'{args}, {kwargs}')
 
-    # ----------------------------------------------------------------------
-    @pyscript_init
-    def asdf(self):
-        """"""
-        test_callback_inline()
+    # # ----------------------------------------------------------------------
+    # @pyscript_init
+    # def asdf():
+        # """"""
+        # test_callback_inline()
 
 
 if __name__ == '__main__':
-    BareMinimum()
+    RadiantServer('BareMinimum',
+                  brython_version='3.11.1',
+                  modules=['bootstrap'],
+                  )

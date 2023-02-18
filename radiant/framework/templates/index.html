@@ -34,9 +34,18 @@
     {% end %}
 
 
+
     {% if 'md' in modules %}
         <!--MD-->
-        <!--<script type="module" src="/static/material-web/material-1.0.0-pre.1.js"></script>-->
+        <script type="module" src="/static/material-web/material-1.0.0-pre.2.js"></script>
+
+        <!--Fonts-->
+        <link type="text/css" rel="stylesheet" href="/static/fonts/roboto-android/roboto.css">
+        <link type="text/css" rel="stylesheet" href="/static/fonts/roboto-android/roboto-mono.css">
+    {% end %}
+
+    {% if 'md_git' in modules %}
+        <!--MD-->
         <script type="module" src="/static/material-web/material-git.js"></script>
 
         <!--Fonts-->

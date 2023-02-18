@@ -19,7 +19,6 @@ help:
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-
 buildapi:
 	rm -f source/_modules/*
-	sphinx-apidoc -fMeET -o source/_modules ../radiant/framework
+	sphinx-apidoc -fMeETl -o source/_modules ../radiant
