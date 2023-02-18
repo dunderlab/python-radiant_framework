@@ -5,22 +5,10 @@
   <head>
     <meta charset="utf-8">
 
-    {% if radiant_mode_brython=='brython' %}
-        <!--Brython-->
-        <script type="text/javascript" src="/static/brython/brython-{{brython_version}}/brython.js"></script>
-        <script type="text/javascript" src="/static/brython/brython-{{brython_version}}/brython_stdlib.js"></script>
-    {% end %}
-    {% if  radiant_mode_pyscript=='pyscript' %}
-        <!--PyScript-->
-        <!--<link rel="stylesheet" href="/static/pyscript/pyscript-{{pyscript_version}}/pyscript.css" />-->
-        <script defer src="/static/pyscript/pyscript-{{pyscript_version}}/pyscript.js"></script>
-        <!--<style>-->
-        <!--#pyscript-loading-label {-->
-            <!--display: none;-->
-        <!--}-->
-        <!--</style>-->
+    <!--Brython-->
+    <script type="text/javascript" src="/static/brython/brython-{{brython_version}}/brython.js"></script>
+    <script type="text/javascript" src="/static/brython/brython-{{brython_version}}/brython_stdlib.js"></script>
 
-    {% end %}
 
     {% if 'mdc' in modules %}
         <!--MDC-->
@@ -32,7 +20,6 @@
         <link type="text/css" rel="stylesheet" href="/static/fonts/roboto-android/roboto.css">
         <link type="text/css" rel="stylesheet" href="/static/fonts/roboto-android/roboto-mono.css">
     {% end %}
-
 
 
     {% if 'md' in modules %}
@@ -87,8 +74,6 @@
 
     {% block html_head %}{% end %}
 
-    {% if radiant_mode_brython=='brython' %}
-
     <script type="text/python">
 import sys
 
@@ -120,42 +105,13 @@ argvs = {{argv}}
 autoinit()
 
     </script>
-    {% end %}
-
-    {% if  radiant_mode_pyscript=='pyscript' %}
-      <py-env>
-      {% for req in requirements %}
-      - {{req}}
-      {% end %}
-      </py-env>
-    {% end %}
 
     </head>
 
 
-    {% if radiant_mode_brython=='brython' %}
-        <body onload="brython({{debug_level}})">
-            {% block html_body %}{% end %}
-            {% if  radiant_mode_pyscript=='pyscript' %}
-                {% if pyscript_fn %}
-                    <py-script src="{{pyscript_fn}}"></py-script>
-                {% end %}
-                <py-script src="/static/modules/pyscript/server.py"></py-script>
-            {% end %}
-        </body>
+    <body onload="brython({{debug_level}})">
+        {% block html_body %}{% end %}
+    </body>
 
-
-    {% elif  radiant_mode_pyscript=='pyscript' %}
-        <body>
-            {% block html_body %}{% end %}
-            {% if not radiant_mode_brython=='brython' %}
-                {% if pyscript_fn %}
-                    <py-script src="{{pyscript_fn}}"></py-script>
-                {% end %}
-                <py-script src="/static/modules/pyscript/server.py"></py-script>
-                <py-script src="{{file_path}}"></py-script>
-            {% end %}
-        </body>
-    {% end %}
 
 </html>

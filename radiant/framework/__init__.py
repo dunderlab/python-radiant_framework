@@ -36,124 +36,11 @@ DEFAULT_IP = 'localhost'
 DEFAULT_PORT = '5000'
 DEFAULT_BRYTHON_VERSION = '3.11.1'
 DEFAULT_BRYTHON_DEBUG = 0
-DEFAULT_PYSCRIPT_VERSION = '2022.06.1'
 AUTO_PYSCRIPT = False
 
 MAIN = os.path.join(sys.path[0], 'main.py')
 if not os.path.exists(MAIN):
     MAIN = sys.argv[0]
-
-PYSCRIPT_FUNCTIONS = os.path.join(os.path.dirname(MAIN), 'pyscript_fn.py')
-if os.path.exists(PYSCRIPT_FUNCTIONS):
-    os.remove(PYSCRIPT_FUNCTIONS)
-
-# with open(PYSCRIPT_FUNCTIONS, 'w') as file:
-# file.write('import asyncio')
-
-CACHE_PYSCRIPT = ''
-
-
-# ----------------------------------------------------------------------
-def pyscript(
-    output=None, inline=False, plotly_out=None, callback=None, ignore=False, **kwargs
-):
-    """"""
-    global AUTO_PYSCRIPT, CACHE_PYSCRIPT
-
-    def wrapargs(fn):
-        global CACHE_PYSCRIPT
-
-        if not inline:
-            sourcecode = f'\n\n# {"-" * 70}\n'
-            sourcecode += '\n'.join(
-                inspect.getsource(fn).replace('\n    ', '\n').split('\n')[1:]
-            )
-
-            sourcecode = sourcecode.replace('(self)', '()')
-            sourcecode = sourcecode.replace('(self, ', '(')
-            sourcecode = sourcecode.replace('(self,', '(')
-            sourcecode = sourcecode.replace('self.', '')
-
-            if ignore:
-                CACHE_PYSCRIPT = sourcecode
-            else:
-                with open(PYSCRIPT_FUNCTIONS, 'a+') as file:
-                    file.write(CACHE_PYSCRIPT + sourcecode)
-                    CACHE_PYSCRIPT = ''
-
-        return fn
-
-    if not ignore:
-        AUTO_PYSCRIPT = True
-    return wrapargs
-
-
-# # ----------------------------------------------------------------------
-# def brython_serializer(fn):
-    # """"""
-    # def inset(*args, **kwargs):
-        # return json.dumps(fn)
-    # return inset
-
-# ----------------------------------------------------------------------
-def delay(fn):
-    """"""
-
-    def wrap(t):
-        return None
-
-    return wrap
-
-
-# ----------------------------------------------------------------------
-def _get_source_code(fn):
-    """"""
-    if os.path.exists(PYSCRIPT_FUNCTIONS):
-        with open(PYSCRIPT_FUNCTIONS, 'r') as file:
-            content = file.read()
-    else:
-        content = ''
-    sourcecode = '\n'.join(
-        inspect.getsource(fn).replace('\n        ', '\n').split('\n')[2:]
-    )
-    return content, sourcecode
-
-
-# ----------------------------------------------------------------------
-def pyscript_globals(fn):
-    """"""
-    content, sourcecode = _get_source_code(fn)
-    with open(PYSCRIPT_FUNCTIONS, 'w') as file:
-        file.write(sourcecode + content)
-
-
-# ----------------------------------------------------------------------
-def pyscript_init(fn):
-    """"""
-    content, sourcecode = _get_source_code(fn)
-    with open(PYSCRIPT_FUNCTIONS, 'w') as file:
-        file.write(content + sourcecode)
-
-
-########################################################################
-class PyScriptAPI:
-    """"""
-
-    # ----------------------------------------------------------------------
-    @pyscript(ignore=True)
-    def render_plotly_fig__(self, fig, chart):
-        import json
-        import plotly
-        import js
-
-        graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-        js.Plotly.newPlot(chart, js.JSON.parse(graphJSON), {})
-
-    # # ----------------------------------------------------------------------
-    # @pyscript()
-    # def brython_serializer(self, data):
-    # """"""
-    # return json.dumps(data)
 
 
 ########################################################################
@@ -231,18 +118,6 @@ class ThemeHandler(RequestHandler):
         return theme_css
 
 
-# ########################################################################
-# class ManifestHandler(RequestHandler):
-
-# # ----------------------------------------------------------------------
-# def get(self):
-
-# with open('/home/yeison/Development/BCI-Framework/brython-radiant/examples/pwa/manifest.json', 'r') as file:
-# content = file.read()
-
-# self.write(content)
-
-
 ########################################################################
 class RadiantHandler(RequestHandler):
 
@@ -282,7 +157,6 @@ def make_app(
     class_: str,
     /,
     brython_version: str,
-    pyscript_version: str,
     debug_level: int,
     pages: Tuple[str],
     template: PATH = os.path.join(os.path.dirname(__file__), 'templates', 'index.html'),
@@ -295,7 +169,6 @@ def make_app(
     autoreload: bool = False,
     static_app: bool = False,
     templates_path: PATH = None,
-    # pyscript=False,
     modules: Optional[list] = [],
 ):
     """
@@ -333,38 +206,6 @@ def make_app(
     if templates_path:
         settings['template_path'] = templates_path
 
-    with open(MAIN, 'r') as f:
-        l = f.readline()
-        requirements = ''
-        radiant_mode_brython = None
-        radiant_mode_pyscript = None
-        # pyscript_fn = None
-        if l.strip() == '#!pyscript' or AUTO_PYSCRIPT:
-            radiant_mode_pyscript = 'pyscript'
-            reqs = os.path.join(sys.path[0], 'requirements.txt')
-            if os.path.exists(reqs):
-                with open(reqs, 'r') as r:
-                    requirements = r.read()
-                requirements = [
-                    r.strip() for r in requirements.split('\n') if r.strip()
-                ]
-
-            # if os.path.exists(os.path.join(os.path.dirname(MAIN), 'pyscript_fn.py')):
-                # pyscript_fn = os.path.join('/root', 'pyscript_fn.py')
-            # # else:
-                # # pyscript_fn = None
-
-        else:
-            radiant_mode_brython = 'brython'
-        # pyscript will always be True for Brython
-        if AUTO_PYSCRIPT:  # l.strip() == '#!brython':
-            radiant_mode_brython = 'brython'
-
-        if os.path.exists(os.path.join(os.path.dirname(MAIN), 'pyscript_fn.py')):
-            pyscript_fn = os.path.join('/root', 'pyscript_fn.py')
-        else:
-            pyscript_fn = None
-
     environ.update(
         {
             'class_': class_,
@@ -372,7 +213,6 @@ def make_app(
             'module': os.path.split(sys.path[0])[-1],
             'file': os.path.split(MAIN)[-1].replace('.py', ''),
             'file_path': os.path.join('/root', os.path.split(MAIN)[-1]),
-            'pyscript_fn': pyscript_fn,
             'theme': theme,
             'argv': [MAIN],
             # 'argv': sys.argv,
@@ -380,11 +220,7 @@ def make_app(
             'mock_imports': mock_imports,
             'path': path,
             'brython_version': brython_version,
-            'pyscript_version': pyscript_version,
             'debug_level': debug_level,
-            'radiant_mode_brython': radiant_mode_brython,
-            'radiant_mode_pyscript': radiant_mode_pyscript,
-            'requirements': requirements,
             'static_app': static_app,
             'modules': modules,
         }
@@ -463,7 +299,6 @@ def RadiantServer(
     pages: Tuple[str] = (),
     # pyscript=False,
     brython_version: str = DEFAULT_BRYTHON_VERSION,
-    pyscript_version: str = DEFAULT_PYSCRIPT_VERSION,
     debug_level: int = DEFAULT_BRYTHON_DEBUG,
     template: PATH = os.path.join(os.path.dirname(__file__), 'templates', 'index.html'),
     environ: dict = {},
@@ -523,12 +358,10 @@ def RadiantServer(
         mock_imports=mock_imports,
         path=path,
         brython_version=brython_version,
-        pyscript_version=pyscript_version,
         pages=pages,
         debug_level=debug_level,
         static_app=static_app,
         templates_path=templates_path,
-        # pyscript=pyscript,
         modules=modules,
     )
     http_server = HTTPServer(
