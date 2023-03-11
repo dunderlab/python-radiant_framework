@@ -1,0 +1,26 @@
+div.brython-out {
+    text-align: center;
+    padding: 15px;
+    border: 1px solid #eee;
+    /*margin-top: -16px;*/
+    border-radius: 0px 0px 2px 2px;
+    width: -moz-available;
+    width: -webkit-fill-available;
+    display: inline-flex;
+    margin-bottom: 15px;
+}
+
+div.brython-out *{
+    margin: 0 auto;
+    /*display: inline-flex;*/
+}
+
+md-icon[rounded] {
+  --md-icon-font: 'Material Symbols Rounded';
+}
+md-icon[sharp] {
+  --md-icon-font: 'Material Symbols Sharp';
+}
+md-icon[filled] {
+  --md-icon-font-variation-settings: 'FILL' 1;
+}

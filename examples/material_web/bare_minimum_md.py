@@ -5,13 +5,13 @@ from browser import document, html
 
 # Material 3
 # https://m3.material.io/develop/web
-import md
+import material_3 as md
 
 
 # Configure Material Symbols
 # https://fonts.google.com/icons?icon.set=Material+Symbols
-from material_symbols import configure, ms
-configure('outlined', 0, 100, 0, 48)
+# from material_symbols import configure
+# configure('outlined', 0, 100, 0, 48)
 
 
 ########################################################################
@@ -22,8 +22,45 @@ class BareMinimum(RadiantAPI):
         """"""
         super().__init__(*args, **kwargs)
         body = document.select_one('body')
+        container = document.select_one('body')
+
+        section = html.SECTION()
+        section <= html.P('Lorem ipsum...')
+        section <= html.BR()
+        section <= md.divider()
+        section <= html.BR()
+        section <= html.P('Lorem ipsum...')
+
+        container <= section
 
         body <= html.H1('Radiant-Framework: Material 3')
+
+        body <= md.icon('settings')
+        body <= md.icon('check_box')
+        body <= md.icon('house')
+
+        body <= md.icon('settings', filled=True)
+        body <= md.icon('check_box', filled=True)
+        body <= md.icon('house', filled=True)
+        body <= html.BR()
+
+        body <= md.icon('settings', rounded=True)
+        body <= md.icon('check_box', rounded=True)
+        body <= md.icon('house', rounded=True)
+
+        body <= md.icon('settings', filled=True, rounded=True)
+        body <= md.icon('check_box', filled=True, rounded=True)
+        body <= md.icon('house', filled=True, rounded=True)
+        body <= html.BR()
+
+        body <= md.icon('settings', rounded=True, sharp=True)
+        body <= md.icon('check_box', rounded=True, sharp=True)
+        body <= md.icon('house', rounded=True, sharp=True)
+
+        body <= md.icon('settings', filled=True, rounded=True, sharp=True)
+        body <= md.icon('check_box', filled=True, rounded=True, sharp=True)
+        body <= md.icon('house', filled=True, rounded=True, sharp=True)
+        body <= html.BR()
 
         body <= md.elevated_button(label='Elevated')
         body <= md.filled_button(label='Filled')
@@ -95,9 +132,9 @@ class BareMinimum(RadiantAPI):
 if __name__ == '__main__':
 
     RadiantServer('BareMinimum',
-                  brython_version='3.10.5',
+                  brython_version='3.11.1',
                   modules=[
-                      'md',  # to enable Material 3
+                      'md_git',  # to enable Material 3
                       'material_symbols',  # to enable Material Symbols
                       'material_icons',  # to enable Material Icon
                   ],

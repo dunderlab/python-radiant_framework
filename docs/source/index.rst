@@ -2,25 +2,43 @@
 .. include:: notebooks/readme.rst
 
 
-Navigation
-==========
+Documentation Overview
+======================
         
 
 .. toctree::
    :maxdepth: 2
    :name: mastertoc
 
-   notebooks/01-brython
+   notebooks/01-radiant
+   notebooks/02-websockets
+   notebooks/03-python_api
 
-.. only:: html
 
-    Docstrings
-    ==========
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :name: mastertoc3
+   :caption: Material 3
 
-    * :ref:`genindex`
-    * :ref:`modindex`
-    * :ref:`search`
+   notebooks/material3/*
 
-..
-  .. include:: notebooks/footer.rst
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :name: mastertoc3
+   :caption: Bootstrap
+
+   notebooks/bootstrap/*
+
+    
+
+
+
+
+.. container:: dunderlab-footer
+
+    .. include:: notebooks/footer.rst
+        
         

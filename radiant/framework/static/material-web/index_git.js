@@ -73,6 +73,7 @@ import './ripple/directive.js';
 import './ripple/ripple.js';
 import './segmentedbutton/outlined-segmented-button.js';
 import './segmentedbuttonset/outlined-segmented-button-set.js';
+import './slider/slider.js';
 import './switch/switch.js';
 import './testing/tokens.js';
 import './testing/events.js';

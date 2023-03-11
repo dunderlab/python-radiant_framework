@@ -7,14 +7,13 @@ class fake:
         """"""
 
     def __getattr__(self, attr):
-        print(attr)
         if attr in globals():
             return globals()[attr]
         else:
             return fake
 
 
-brython = ['browser', 'browser.template', 'js', 'bootstrap', 'md', 'material_symbols']
+brython = ['browser', 'browser.template', 'js', 'bootstrap', 'material_3', 'material_symbols']
 for module in brython:
     sys.modules[f"{module}"] = fake()
 

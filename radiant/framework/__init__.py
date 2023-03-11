@@ -258,10 +258,6 @@ def make_app(
         else:
             python_path = python[0]
 
-        # print('*' * 40)
-        # print(python_path)
-        # print('*' * 40)
-
         spec = importlib.util.spec_from_file_location(
             '.'.join(python).replace('.py', ''), python_path
         )

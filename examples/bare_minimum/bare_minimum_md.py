@@ -5,7 +5,7 @@ from browser import document, html
 
 # Material 3
 # https://m3.material.io/develop/web
-import md
+import material_3 as md
 
 
 ########################################################################

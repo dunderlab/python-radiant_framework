@@ -1,22 +1,37 @@
 Radiant Framework
 =================
 
-A Brython/PyScript Framework for Web Apps development.
+A Brython Framework for Web Apps development.
 
 |GitHub top language| |PyPI - License| |PyPI| |PyPI - Status| |PyPI -
 Python Version| |GitHub last commit| |CodeFactor Grade| |Documentation
 Status|
 
-Radiant is a `Brython <https://brython.info/>`__ and
-`PyScript <https://pyscript.net/>`__ framework for the quick development
-of web apps using *Python* syntax, so there is no need to care about (if
-you don’t want) HTML, CSS, or JavaScript. This is basically a set of
-scripts that allows the same file run from *Python* and
-*Brython*/*PyScript*, when is running under *Python* a
-`Tornado <https://www.tornadoweb.org/>`__ server is created and
-configure the local path for serving static files, at the same time a
-custom HTML template is configured at runtime to import the same script,
-this time under *Brython*/*PyScript*.
+Radiant is a web framework that is built on top of
+`Brython <https://brython.info/>`__, which is an implementation of
+*Python* in the browser. This means that you can write your web
+applications using *Python* syntax, rather than having to deal with
+HTML, CSS, or JavaScript.
+
+Radiant allows you to write your application code once, and have it run
+both in the browser and on the server. When running on the server,
+Radiant uses the `Tornado <https://www.tornadoweb.org/>`__ web server to
+serve up your application. It also sets up the local path for serving
+static files, which means that you can include images, stylesheets, and
+other assets in your application.
+
+When your application is run in the browser, Radiant uses Brython to
+execute your *Python* code. This allows you to write your code once, and
+have it run seamlessly in both environments. Radiant also provides a
+custom HTML template that is configured at runtime to import the same
+script that you wrote for the server-side code.
+
+Overall, Radiant is a powerful tool for developers who want to build web
+applications using *Python*. It allows you to write your code once, and
+have it run both on the server and in the browser. This can help
+streamline your development process, and allow you to focus on writing
+high-quality code, rather than worrying about the details of web
+development.
 
 .. |GitHub top language| image:: https://img.shields.io/github/languages/top/un-gcpds/brython-radiant?
 .. |PyPI - License| image:: https://img.shields.io/pypi/l/radiant?
@@ -28,21 +43,32 @@ this time under *Brython*/*PyScript*.
 .. |Documentation Status| image:: https://readthedocs.org/projects/radiant/badge/?version=latest
    :target: https://radiant-framework.readthedocs.io/en/latest/?badge=latest
 
-Instalation
------------
+Installation
+------------
+
+To install Radiant, you can use ``pip``, the Python package manager:
 
 .. code:: ipython3
 
     pip install radiant
 
-Brython: bare minimum
----------------------
+Bare minimum
+------------
+
+To help you get started with Radiant, let’s walk through a bare minimum
+example. This example will show you how to create a simple web page that
+displays some text. We’ll use the Radiant framework to create the page
+and run it on a local server. This is a great way to get a feel for how
+Radiant works, and to start exploring its features.
+
+To follow along with this example, you’ll need to have Radiant installed
+on your system. If you haven’t done this yet, please see the
+`Installation <#installation>`__ section for instructions on how to
+install Radiant. Once you have Radiant installed, you’re ready to go!
 
 .. code:: ipython3
 
-    #!bryhton
-    
-    from radiant.server import RadiantAPI
+    from radiant.framework.server import RadiantAPI
     from browser import document, html
     
     
@@ -57,102 +83,3 @@ Brython: bare minimum
     if __name__ == '__main__':
         BareMinimum()
 
-PyScript: bare minimum
-----------------------
-
-This example use a ``requirements.txt`` file to install dependencies.
-
-.. code:: ipython3
-
-    #requirements.txt
-    
-    numpy
-    matplotlib
-
-.. code:: ipython3
-
-    #!pyscript
-    
-    import numpy as np
-    from matplotlib import pyplot as plt
-    from radiant.server import RadiantAPI
-    import js
-    
-    
-    class BareMinimum(RadiantAPI):
-    
-        def __init__(self):
-            print('Radiant-Framework')
-            self.plot()
-    
-        def plot(self):
-            """"""
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            x = np.linspace(0, 10, 1000)
-            y = np.sin(x)
-            ax.plot(x, y)
-            js.document.body.prepend(self.fig2img(fig))
-    
-    
-    if __name__ == '__main__':
-        BareMinimum()
-
-Brython + PyScript
-------------------
-
-.. code:: ipython3
-
-    #!brython
-    
-    from radiant.server import RadiantAPI, pyscript
-    from browser import document, html
-    
-    
-    class BareMinimum(RadiantAPI):
-    
-        def __init__(self, *args, **kwargs):
-            """"""
-            super().__init__(*args, **kwargs)
-            document.select_one('body') <= html.H1('Radiant-Framework')
-    
-            document.select_one('body') <= html.DIV(id='mpl')
-            self.plot_sin(f=5)  # will render on #mpl every time
-    
-            document.select_one('body') <= self.plot_sinc(f=1)  
-    
-            
-        # will render on #mpl every time
-        @pyscript(output='mpl')
-        def plot_sin(self, f=10):
-            """"""
-            import numpy as np
-            from matplotlib import pyplot as plt
-    
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            x = np.linspace(0, 1, 1000)
-            y = np.sin(2 * np.pi * f * x)
-            ax.plot(x, y)
-    
-            return fig
-    
-        
-        # will return the image object
-        @pyscript()
-        def plot_sinc(self, f):
-            """"""
-            import numpy as np
-            from matplotlib import pyplot as plt
-    
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            x = np.linspace(0, 10, 1000)
-            y = np.sin(2 * np.pi * f * x)
-            ax.plot(x, y, color='C1')
-    
-            return fig
-    
-    
-    if __name__ == '__main__':
-        BareMinimum()
