@@ -1,5 +1,8 @@
 #!/usr/bin/bash
 
+npm install
+npm install rollup @rollup/plugin-node-resolve
+npm run build
 rm -f index_git.js
 echo "Generating index_git.js"
 find * -mindepth 1 -maxdepth 1 -name "*.js" ! -name "*_test.js" -exec sh -c '

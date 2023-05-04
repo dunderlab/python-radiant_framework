@@ -62,11 +62,11 @@ class BareMinimum(RadiantAPI):
         body <= md.icon('house', filled=True, rounded=True, sharp=True)
         body <= html.BR()
 
-        body <= md.elevated_button(label='Elevated')
-        body <= md.filled_button(label='Filled')
-        body <= md.outlined_button(label='Oulined')
-        body <= md.text_button(label='Text')
-        body <= md.tonal_button(label='Tonal')
+        body <= md.elevated_button('Elevated')
+        body <= md.filled_button('Filled')
+        body <= md.outlined_button('Oulined')
+        body <= md.text_button('Text')
+        body <= md.tonal_button('Tonal')
         body <= html.BR()
 
         body <= html.P('Lorem ipsum...')
@@ -83,20 +83,20 @@ class BareMinimum(RadiantAPI):
         body <= md.checkbox(checked=True)
         body <= html.BR()
 
-        body <= md.fab(icon="add")
-        body <= md.fab_extended(label='Fab Extended', icon="search")
-        body <= html.BR()
+        # body <= md.fab(icon="add")
+        # body <= md.fab_extended(label='Fab Extended', icon="search")
+        # body <= html.BR()
 
-        menu_button = md.menu_button()
-        menu = md.menu(slot='menu')
-        menu <= md.menu_item(headline="Item 1")
-        menu <= md.menu_item(headline="Item 2")
-        menu <= md.menu_item(headline="Item 3")
-        menu <= md.menu_item(headline="Item 4")
-        menu_button <= md.standard_icon_button(slot="button", icon="more_vert")
-        menu_button <= menu
-        body <= menu_button
-        body <= html.BR()
+        # menu_button = md.menu_button()
+        # menu = md.menu(slot='menu')
+        # menu <= md.menu_item(headline="Item 1")
+        # menu <= md.menu_item(headline="Item 2")
+        # menu <= md.menu_item(headline="Item 3")
+        # menu <= md.menu_item(headline="Item 4")
+        # menu_button <= md.standard_icon_button(slot="button", icon="more_vert")
+        # menu_button <= menu
+        # body <= menu_button
+        # body <= html.BR()
 
         navigation_bar = md.navigation_bar()
         tab1 = md.navigation_tab(label="Home")
@@ -108,6 +108,39 @@ class BareMinimum(RadiantAPI):
         navigation_bar <= tab1
         navigation_bar <= tab2
         body <= navigation_bar
+        body <= html.BR()
+
+        # <md-standard-icon-button>check</md-standard-icon-button>
+        # <md-filled-icon-button>check</md-filled-icon-button>
+        # <md-filled-tonal-icon-button>check</md-filled-tonal-icon-button>
+        # <md-outlined-icon-button>check</md-outlined-icon-button>
+
+        body <= md.standard_icon_button('check')
+        body <= md.filled_icon_button('check')
+        body <= md.filled_tonal_icon_button('check')
+        body <= md.outlined_icon_button('check')
+        body <= html.BR()
+
+        toggle_btn = md.standard_icon_button(toggle=True)
+        toggle_btn <= html.SPAN('close')
+        toggle_btn <= html.SPAN('check', slot="selectedIcon")
+        body <= toggle_btn
+
+        toggle_btn = md.filled_icon_button(toggle=True)
+        toggle_btn <= html.SPAN('close')
+        toggle_btn <= html.SPAN('check', slot="selectedIcon")
+        body <= toggle_btn
+
+        toggle_btn = md.filled_tonal_icon_button(toggle=True)
+        toggle_btn <= html.SPAN('close')
+        toggle_btn <= html.SPAN('check', slot="selectedIcon")
+        body <= toggle_btn
+
+        toggle_btn = md.outlined_icon_button(toggle=True)
+        toggle_btn <= html.SPAN('close')
+        toggle_btn <= html.SPAN('check', slot="selectedIcon")
+        body <= toggle_btn
+
         body <= html.BR()
 
         sb = md.outlined_segmented_button_set(multiselect=True)
@@ -125,8 +158,32 @@ class BareMinimum(RadiantAPI):
         body <= md.switch()
         body <= html.BR()
 
-        md.outlined_text_field(label="Label text for outlined text field", supportingText="Supporting text can be here")
-        md.filled_text_field(label="Label text for outlined text field")
+        body <= md.outlined_text_field(label="Label text for outlined text field", supportingText="Supporting text can be here")
+        body <= html.BR()
+        body <= md.filled_text_field(label="Label text for outlined text field")
+
+        body <= html.BR()
+        body <= md.linear_progress(progress="0.5")
+        body <= html.BR()
+        body <= md.linear_progress(indeterminate=True)
+        body <= html.BR()
+
+        body <= html.BR()
+        body <= md.circular_progress(progress="0.75")
+        body <= md.circular_progress(indeterminate=True)
+
+        body <= html.BR()
+
+        surface = html.DIV()
+        surface.style = {
+            'position': 'relative',
+            'border-radius': '16px',
+            'height': '64px',
+            'width': '64px',
+        }
+        surface.style.setProperty('--md-elevation-level', '3')
+        surface <= md.elevation()
+        body <= surface
 
 
 if __name__ == '__main__':
@@ -135,6 +192,7 @@ if __name__ == '__main__':
                   brython_version='3.11.1',
                   modules=[
                       'md_git',  # to enable Material 3
+                      # 'md',  # to enable Material 3
                       'material_symbols',  # to enable Material Symbols
                       'material_icons',  # to enable Material Icon
                   ],
