@@ -1,3 +1,0 @@
-title:Documentation;;workdir:docs/build/html;;command:python -m http.server 8800;;
-title:Notebooks;;workdir:docs/source/notebooks;;command:jupyter-lab;;
-title:Compile;;workdir:docs;;command:make clean buildapi html;;

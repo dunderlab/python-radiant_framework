@@ -6,8 +6,10 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
 
 setup(
     name='radiant-framework',
-    version='0.1a2',
+    version='0.1a5',
     packages=['radiant.framework'],
+    # packages=find_packages(where="radiant.framework"),
+    # packages=find_packages(),
     author='Yeison Cardona',
     author_email='yencardonaal@unal.edu.co',
     maintainer='Yeison Cardona',
@@ -20,7 +22,7 @@ setup(
     ],
     include_package_data=True,
     license='BSD-2-Clause',
-    description="Brython Framework",
+    description="Radiant Framework",
     long_description=README,
     long_description_content_type='text/markdown',
     python_requires='>=3.8',

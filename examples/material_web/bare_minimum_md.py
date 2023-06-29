@@ -1,5 +1,3 @@
-#!bryhton
-
 from radiant.framework.server import RadiantAPI, RadiantServer
 from browser import document, html
 
@@ -102,7 +100,8 @@ class BareMinimum(RadiantAPI):
         tab1 = md.navigation_tab(label="Home")
         tab1 <= md.icon('home', slot="activeIcon")
         tab1 <= md.icon('home', slot="inactiveIcon")
-        tab2 = md.navigation_tab(label="Settings", badgeValue="New", showBadge="true")
+        tab2 = md.navigation_tab(
+            label="Settings", badgeValue="New", showBadge="true")
         tab2 <= md.icon('settings', slot="activeIcon")
         tab2 <= md.icon('settings', slot="inactiveIcon")
         navigation_bar <= tab1
@@ -158,9 +157,11 @@ class BareMinimum(RadiantAPI):
         body <= md.switch()
         body <= html.BR()
 
-        body <= md.outlined_text_field(label="Label text for outlined text field", supportingText="Supporting text can be here")
+        body <= md.outlined_text_field(
+            label="Label text for outlined text field", supportingText="Supporting text can be here")
         body <= html.BR()
-        body <= md.filled_text_field(label="Label text for outlined text field")
+        body <= md.filled_text_field(
+            label="Label text for outlined text field")
 
         body <= html.BR()
         body <= md.linear_progress(progress="0.5")
@@ -189,6 +190,7 @@ class BareMinimum(RadiantAPI):
 if __name__ == '__main__':
 
     RadiantServer('BareMinimum',
+                  port='5001',
                   brython_version='3.11.1',
                   modules=[
                       'md_git',  # to enable Material 3
@@ -196,4 +198,6 @@ if __name__ == '__main__':
                       'material_symbols',  # to enable Material Symbols
                       'material_icons',  # to enable Material Icon
                   ],
+                  environ={'HOLA': 'Mundo', }
                   )
+
