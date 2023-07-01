@@ -86,6 +86,23 @@ class PythonHandler(RequestHandler):
 
 
 ########################################################################
+class JSONHandler(RequestHandler):
+
+    # ----------------------------------------------------------------------
+    def initialize(self, **kwargs):
+        self.json_data = kwargs
+
+    # ----------------------------------------------------------------------
+    def get(self):
+        self.write(self.json_data)
+
+    # ----------------------------------------------------------------------
+    def test(self):
+        """"""
+        return True
+
+
+########################################################################
 class ThemeHandler(RequestHandler):
 
     # ----------------------------------------------------------------------
@@ -114,7 +131,8 @@ class ThemeHandler(RequestHandler):
             )
 
         tree = ElementTree.parse(theme)
-        theme_css = {child.attrib['name']: child.text for child in tree.getroot()}
+        theme_css = {child.attrib['name']
+            : child.text for child in tree.getroot()}
         return theme_css
 
 
@@ -138,12 +156,14 @@ class RadiantHandler(RequestHandler):
             )
             if os.path.exists('static'):
                 shutil.rmtree('static')
-            shutil.copytree(os.path.join(os.path.dirname(__file__), 'static'), 'static')
+            shutil.copytree(os.path.join(
+                os.path.dirname(__file__), 'static'), 'static')
 
             with open('index.html', 'wb') as file:
                 file.write(html)
 
-        self.render(f"{os.path.realpath(variables['template'])}", **variables)
+        self.render(
+            f"{os.path.realpath(variables['template'])}", **variables)
 
     # ----------------------------------------------------------------------
     def set_default_headers(self):
@@ -159,10 +179,12 @@ def make_app(
     brython_version: str,
     debug_level: int,
     pages: Tuple[str],
-    template: PATH = os.path.join(os.path.dirname(__file__), 'templates', 'index.html'),
+    template: PATH = os.path.join(os.path.dirname(
+        __file__), 'templates', 'index.html'),
     environ: dict = {},
     mock_imports: Tuple[str] = [],
-    handlers: Tuple[URL, Union[List[Union[PATH, str]], RequestHandler], dict] = (),
+    handlers: Tuple[URL, Union[List[Union[PATH, str]],
+                               RequestHandler], dict] = (),
     python: Tuple[PATH, str] = (),
     theme: PATH = None,
     path: PATH = None,
@@ -233,7 +255,8 @@ def make_app(
     app += [
         url(r'^/theme.css$', ThemeHandler),
         url(r'^/root/(.*)', StaticFileHandler, {'path': sys.path[0]}),
-        # url(r'^/manifest.json$', ManifestHandler),
+        url(r'^/environ.json$', JSONHandler, environ),
+        #url(r'^/manifest.json$', ManifestHandler),
     ]
 
     if isinstance(pages, str):
@@ -273,7 +296,8 @@ def make_app(
             )
             foo = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(foo)
-            app.append(url(handler[0], getattr(foo, handler[1][1]), handler[2]))
+            app.append(url(handler[0], getattr(
+                foo, handler[1][1]), handler[2]))
         else:
             app.append(url(*handler))
 
@@ -296,10 +320,12 @@ def RadiantServer(
     # pyscript=False,
     brython_version: str = DEFAULT_BRYTHON_VERSION,
     debug_level: int = DEFAULT_BRYTHON_DEBUG,
-    template: PATH = os.path.join(os.path.dirname(__file__), 'templates', 'index.html'),
+    template: PATH = os.path.join(os.path.dirname(
+        __file__), 'templates', 'index.html'),
     environ: dict = {},
     mock_imports: Tuple[str] = [],
-    handlers: Tuple[URL, Union[List[Union[PATH, str]], RequestHandler], dict] = (),
+    handlers: Tuple[URL, Union[List[Union[PATH, str]],
+                               RequestHandler], dict] = (),
     python: Tuple[PATH, str] = (),
     theme: Optional[PATH] = None,
     path: Optional[PATH] = None,

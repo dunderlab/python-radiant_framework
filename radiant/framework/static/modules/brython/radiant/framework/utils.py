@@ -10,6 +10,24 @@ import json
 
 
 ########################################################################
+class Environ_:
+    """"""
+
+    # ----------------------------------------------------------------------
+    def __init__(self):
+        """"""
+        self.environ = json.load(open('/environ.json'))
+
+    # ----------------------------------------------------------------------
+    def __getattr__(self, value):
+        """"""
+        return self.environ.get(value, None)
+
+
+Environ = Environ_()
+
+
+########################################################################
 class LocalInterpreter:
     """AndroidMain
 
@@ -32,8 +50,8 @@ class LocalInterpreter:
 
         if url is None:
             # try:
-                # self.url_ = '/'
-                # self.test()
+            # self.url_ = '/'
+            # self.test()
             # except:
             self.url_ = '/python_handler'
             self.test()
@@ -179,12 +197,12 @@ class WebSocket:
         # self.token = token
 
         # if csrftoken:
-            # self.csrftoken = csrftoken
+        # self.csrftoken = csrftoken
 
         # elif hasattr(window, 'csrftoken'):
-            # self.csrftoken = window.csrftoken
+        # self.csrftoken = window.csrftoken
         # else:
-            # self.csrftoken = None
+        # self.csrftoken = None
 
         # self.append_slash = append_slash
 
@@ -197,9 +215,9 @@ class WebSocket:
     # def get(self, endpoint, pk=None, data=None):
         # """"""
         # if pk:
-            # return self.__request__('GET', f'{self.url_}/{endpoint}/{pk}', data)
+        # return self.__request__('GET', f'{self.url_}/{endpoint}/{pk}', data)
         # else:
-            # return self.__request__('GET', f'{self.url_}/{endpoint}', data)
+        # return self.__request__('GET', f'{self.url_}/{endpoint}', data)
 
     # # ----------------------------------------------------------------------
     # def delete(self, endpoint, pk, data=None):
@@ -227,23 +245,23 @@ class WebSocket:
         # req = ajax.ajax()
 
         # if self.append_slash:
-            # url = f'{url.strip("/")}/'
+        # url = f'{url.strip("/")}/'
 
         # req.open(method, url, False)
 
         # req.setRequestHeader('content-type', 'application/json')
 
         # if self.token:
-            # req.set_header('Authorization', f"JWT {self.token}")
+        # req.set_header('Authorization', f"JWT {self.token}")
 
         # if self.csrftoken:
-            # req.setRequestHeader('X-CSRFToken', self.csrftoken)
+        # req.setRequestHeader('X-CSRFToken', self.csrftoken)
 
         # if data:
-            # data = json.dumps(data)
-            # req.send(data)
+        # data = json.dumps(data)
+        # req.send(data)
         # else:
-            # req.send()
+        # req.send()
 
         # data = json.loads(req.text)
         # return data

@@ -1,7 +1,7 @@
 import os
 
 from browser import html, document, timer
-from .utils import LocalInterpreter
+from .utils import LocalInterpreter, Environ
 import inspect
 from string import ascii_lowercase
 import random
@@ -99,7 +99,8 @@ def pyscript(output=None, inline=False, plotly_out=None, callback=None, id=None)
             if (output is None) and (plotly_out is None):
                 print('%' * 70)
                 print(f'%%%%Hidding out: {output_id}')
-                document.select_one(f'#{output_id}').style = {'display': 'none', }
+                document.select_one(f'#{output_id}').style = {
+                    'display': 'none', }
                 out.style = {'display': 'none', }
                 out.class_name += ' RADIANT-HIDE'
                 py_script.style = {'display': 'none', }
@@ -171,7 +172,8 @@ def on_callback(element, fn, callback, out, n):
     else:
         print(element, out)
         print(f'waiting... {element.text}, {out.text}')
-        timer.set_timeout(lambda: on_callback(element, fn, callback, out, n), 10)
+        timer.set_timeout(lambda: on_callback(
+            element, fn, callback, out, n), 10)
 
 
 ########################################################################

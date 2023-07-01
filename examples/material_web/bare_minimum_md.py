@@ -1,4 +1,4 @@
-from radiant.framework.server import RadiantAPI, RadiantServer
+from radiant.framework.server import RadiantAPI, RadiantServer, Environ
 from browser import document, html
 
 # Material 3
@@ -186,11 +186,13 @@ class BareMinimum(RadiantAPI):
         surface <= md.elevation()
         body <= surface
 
+        print(Environ.modules)
+
 
 if __name__ == '__main__':
 
     RadiantServer('BareMinimum',
-                  port='5001',
+                  port='5005',
                   brython_version='3.11.1',
                   modules=[
                       'md_git',  # to enable Material 3
