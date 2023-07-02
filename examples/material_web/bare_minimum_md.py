@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
     RadiantServer('BareMinimum',
                   port='5005',
-                  brython_version='3.11.1',
+                  brython_version='3.11.2',
                   modules=[
                       'md_git',  # to enable Material 3
                       # 'md',  # to enable Material 3

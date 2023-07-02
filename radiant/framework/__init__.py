@@ -34,9 +34,8 @@ PATH = Union[str, pathlib.Path]
 URL = str
 DEFAULT_IP = 'localhost'
 DEFAULT_PORT = '5000'
-DEFAULT_BRYTHON_VERSION = '3.11.1'
+DEFAULT_BRYTHON_VERSION = '3.11.2'
 DEFAULT_BRYTHON_DEBUG = 0
-AUTO_PYSCRIPT = False
 
 MAIN = os.path.join(sys.path[0], 'main.py')
 if not os.path.exists(MAIN):
@@ -131,8 +130,7 @@ class ThemeHandler(RequestHandler):
             )
 
         tree = ElementTree.parse(theme)
-        theme_css = {child.attrib['name']
-            : child.text for child in tree.getroot()}
+        theme_css = {child.attrib['name']: child.text for child in tree.getroot()}
         return theme_css
 
 
@@ -317,7 +315,6 @@ def RadiantServer(
     host: str = DEFAULT_IP,
     port: str = DEFAULT_PORT,
     pages: Tuple[str] = (),
-    # pyscript=False,
     brython_version: str = DEFAULT_BRYTHON_VERSION,
     debug_level: int = DEFAULT_BRYTHON_DEBUG,
     template: PATH = os.path.join(os.path.dirname(
@@ -388,10 +385,6 @@ def RadiantServer(
     )
     http_server = HTTPServer(
         application,
-        # ssl_options={
-        # 'certfile': 'host.crt',
-        # 'keyfile': 'host.key',
-        # },
     )
     http_server.listen(port, host)
 
@@ -404,7 +397,6 @@ def RadiantServer(
             foo = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(foo)
             getattr(foo, handler[1])()
-            # app.append(url(handler[0], getattr(foo, handler[1][1]), handler[2]))
         else:
             handler()
 
