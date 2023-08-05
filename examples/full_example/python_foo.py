@@ -1,4 +1,4 @@
-from radiant.framework import PythonHandler
+from radiant.framework.server import PythonHandler
 import math
 
 

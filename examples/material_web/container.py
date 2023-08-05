@@ -1,11 +1,6 @@
-#!bryhton
-
 from radiant.framework.server import RadiantAPI, RadiantServer
 from browser import document, html
-
-# Material 2
-# https://m2.material.io/develop/web
-from mdc.MDCButton import MDCButton
+import material_3 as md
 
 
 ########################################################################
@@ -15,19 +10,25 @@ class BareMinimum(RadiantAPI):
     def __init__(self, *args, **kwargs):
         """"""
         super().__init__(*args, **kwargs)
-        body = document.select_one('body')
 
-        body <= html.H1('Radiant-Framework: Material 2')
 
-        body <= MDCButton('Text', raised=True)
-        body <= MDCButton('Outlined', outlined=True)
-        body <= MDCButton('Unelevated', unelevated=True)
+        self.body <= html.H1('Hola')
+
+
+
+
 
 
 if __name__ == '__main__':
 
     RadiantServer('BareMinimum',
-                  brython_version='3.10.5',
-                  modules=['mdc'],
-                  port=5003,
+                  port='5005',
+                  brython_version='3.11.2',
+                  modules=[
+                      'md_git',  # to enable Material 3
+                      # 'md',  # to enable Material 3
+                      'material_symbols',  # to enable Material Symbols
+                      'material_icons',  # to enable Material Icon
+                  ],
                   )
+

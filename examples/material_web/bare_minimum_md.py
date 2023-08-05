@@ -1,4 +1,7 @@
-from radiant.framework.server import RadiantAPI, RadiantServer, Environ
+from radiant.framework.server import RadiantAPI, RadiantServer
+from radiant.framework.utils import environ
+
+
 from browser import document, html
 
 # Material 3
@@ -19,6 +22,9 @@ class BareMinimum(RadiantAPI):
     def __init__(self, *args, **kwargs):
         """"""
         super().__init__(*args, **kwargs)
+
+        # self.add_css_file('css/theme.css')
+
         body = document.select_one('body')
         container = document.select_one('body')
 
@@ -95,6 +101,14 @@ class BareMinimum(RadiantAPI):
         # menu_button <= menu
         # body <= menu_button
         # body <= html.BR()
+
+        md_list = md.list()
+        self.body <= md_list
+        md_list <= md.list_item(headline='Item 1', active=True)
+        md_list <= md.list_item(headline='Item 2', active=False)
+        md_list <= md.list_item(headline='Item 3', active=False)
+        md_list <= md.list_item(headline='Item 4', active=False)
+        body <= html.BR()
 
         navigation_bar = md.navigation_bar()
         tab1 = md.navigation_tab(label="Home")
@@ -186,7 +200,8 @@ class BareMinimum(RadiantAPI):
         surface <= md.elevation()
         body <= surface
 
-        print(Environ.modules)
+        print(environ('modules'))
+        print(environ.modules)
 
 
 if __name__ == '__main__':

@@ -19,12 +19,18 @@ class Environ_:
         self.environ = json.load(open('/environ.json'))
 
     # ----------------------------------------------------------------------
+    def __call__(self, value, default=None):
+        """"""
+        return self.environ.get(value, default)
+
+    # ----------------------------------------------------------------------
+
     def __getattr__(self, value):
         """"""
         return self.environ.get(value, None)
 
 
-Environ = Environ_()
+environ = Environ_()
 
 
 ########################################################################
@@ -35,7 +41,7 @@ class LocalInterpreter:
     """
 
     # ----------------------------------------------------------------------
-    def __init__(self, url=None, csrftoken=None):
+    def __init__(self, url=None, csrftoken=None, endpoint='/python_handler'):
         """Constructor"""
 
         self.url_ = url
@@ -53,7 +59,7 @@ class LocalInterpreter:
             # self.url_ = '/'
             # self.test()
             # except:
-            self.url_ = '/python_handler'
+            self.url_ = endpoint
             self.test()
 
     # ----------------------------------------------------------------------
@@ -313,6 +319,20 @@ def autoiframe(id_, parent):
     timer.set_timeout(lambda: autoiframe(id_, parent), 500)
 
 
+# class fake:
+    # def __getattr__(self, attr):
+        # return None
+
+
 class fake:
+    def __init__(self, *args, **kwargs):
+        """"""
+
     def __getattr__(self, attr):
-        return None
+        if attr in globals():
+            return globals()[attr]
+        else:
+            return fake
+
+
+run_script = fake()

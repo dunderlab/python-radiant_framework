@@ -1,5 +1,5 @@
 {% autoescape None %}
-
+<!DOCTYPE html>
 <html>
 
   <head>
@@ -91,12 +91,15 @@ import sys
 sys.path.append('/root/')
 sys.path.append('/static/modules/brython')
 
+{% if mock_imports %}
 from radiant.framework.utils import fake
 {% for module in mock_imports %}
 sys.modules["{{module}}"] = fake()
 {% end %}
-    </script>
+{% end %}
 
+
+    </script>
 
     <script type="text/python">
 {% if path %}
@@ -110,7 +113,7 @@ from {{file}} import {{class_}}
 argvs = {{argv}}
 
 {% block module_init %}
-{{class_}}(None, {{python_}})
+module = {{class_}}(None, {{python_}})
 {% end %}
 
 autoinit()
@@ -118,9 +121,12 @@ autoinit()
     </script>
 
     </head>
-
-
     <body onload="brython({{debug_level}})">
         {% block html_body %}{% end %}
     </body>
+
+    <div id="radiant-placeholder--templates" style="display: none;">
+
+    </div>
+
 </html>
