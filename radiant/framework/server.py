@@ -152,13 +152,20 @@ class RadiantHandler(RequestHandler):
             html = self.render_string(
                 f"{os.path.realpath(variables['template'])}", **variables
             )
-            if os.path.exists('static'):
-                shutil.rmtree('static')
-            shutil.copytree(os.path.join(
-                os.path.dirname(__file__), 'static'), 'static')
 
-            with open('index.html', 'wb') as file:
+            parent_dir = f"{variables['class_']}_static"
+
+            if os.path.exists(parent_dir):
+                shutil.rmtree(parent_dir)
+
+            shutil.copytree(os.path.dirname(MAIN), os.path.join(parent_dir, 'root'))
+            shutil.copytree(os.path.join(os.path.dirname(__file__), 'static'), os.path.join(parent_dir, 'static'))
+
+            with open(os.path.join(parent_dir, 'index.html'), 'wb') as file:
                 file.write(html)
+
+            with open(os.path.join(parent_dir, 'environ.json'), 'w') as file:
+                json.dump(self.initial_arguments, file)
 
         self.render(
             f"{os.path.realpath(variables['template'])}", **variables)

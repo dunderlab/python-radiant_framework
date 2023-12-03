@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--Brython-->
+<script type="text/javascript" src="/static/brython/brython-3.11.2/brython.js"></script>
+<script type="text/javascript" src="/static/brython/brython-3.11.2/brython_stdlib.js"></script>
+
+
+
+
+
+
+<!--Fonts-->
+<link type="text/css" rel="stylesheet" href="/static/fonts/fontawesome/css/all.min.css">
+<style>
+.RADIANT-HIDE {
+display: none !important;
+}
+</style>
+
+<script type="text/python">
+import sys
+sys.path.append('/root/')
+sys.path.append('/static/modules/brython')
+
+</script>
+<script type="text/python">
+
+from radiant.framework.utils import autoinit
+from templates import StaticApp
+argvs = ["/home/yeison/Development/PythonDev/Radiant/python-radiant_framework/examples/templates/templates.py"]
+
+module = StaticApp(None, ())
+
+autoinit()
+</script>
+</head>
+<body onload="brython(0)">
+HOLA
+</body>
+<div id="radiant-placeholder--templates" style="display: none;">
+</div>
+</html>
