@@ -30,9 +30,6 @@ class RadiantAPI:
     # ----------------------------------------------------------------------
     def __init__(self, class_, python=[[None, None, None]], **kwargs):
         """"""
-
-        print('#' * 10)
-        print(python)
         for module, class_, endpoint in python:
             if module and module != 'None':
                 setattr(self, class_, LocalInterpreter(endpoint=endpoint))
@@ -54,6 +51,10 @@ class RadiantAPI:
         # document.addEventListener('load', callback)
         # logging.warning('#' * 30)
         # logging.warning('#' * 30)
+
+    # ----------------------------------------------------------------------
+    def map_value(self, x, in_min, in_max, out_min, out_max):
+        return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 
 # ----------------------------------------------------------------------

@@ -153,7 +153,10 @@ class RadiantHandler(RequestHandler):
                 f"{os.path.realpath(variables['template'])}", **variables
             )
 
-            parent_dir = f"{variables['class_']}_static"
+            if isinstance(variables['static_app'], str):
+                parent_dir = variables['static_app']
+            else:
+                parent_dir = f"{variables['class_']}_static"
 
             if os.path.exists(parent_dir):
                 shutil.rmtree(parent_dir)
@@ -161,11 +164,22 @@ class RadiantHandler(RequestHandler):
             shutil.copytree(os.path.dirname(MAIN), os.path.join(parent_dir, 'root'))
             shutil.copytree(os.path.join(os.path.dirname(__file__), 'static'), os.path.join(parent_dir, 'static'))
 
+            for element in ['.git', '.gitignore']:
+                if os.path.exists(os.path.join(parent_dir, 'root', element)):
+                    try:
+                        shutil.rmtree(os.path.join(parent_dir, 'root', element))
+                    except:
+                        os.remove(os.path.join(parent_dir, 'root', element))
+
             with open(os.path.join(parent_dir, 'index.html'), 'wb') as file:
                 file.write(html)
 
             with open(os.path.join(parent_dir, 'environ.json'), 'w') as file:
                 json.dump(self.initial_arguments, file)
+
+            for element in ['CNAME', '.nojekyll']:
+                if os.path.exists(element):
+                    shutil.copyfile(element, os.path.join(parent_dir, element))
 
         self.render(
             f"{os.path.realpath(variables['template'])}", **variables)

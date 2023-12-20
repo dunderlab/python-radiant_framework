@@ -1,7 +1,8 @@
 #!bryhton
 
 from radiant.framework.server import RadiantAPI
-from browser import document, html
+from radiant.framework import html
+from browser import document
 
 
 ########################################################################

@@ -1,5 +1,7 @@
 from radiant.framework.server import RadiantAPI, RadiantServer, render
-from browser import html
+from radiant.framework import html
+
+# from browser import html
 from browser.template import Template
 
 

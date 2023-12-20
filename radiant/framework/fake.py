@@ -14,6 +14,7 @@ class fake:
 
 brython = ['browser',
            'browser.template',
+           'interpreter',
            # 'js',
            'bootstrap',
            'material_3',
