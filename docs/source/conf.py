@@ -35,7 +35,7 @@ html_theme = 'alabaster'
 html_static_path = ['_static']
 
 html_logo = '_static/logo.svg'
-html_favicon = '_static/favico.ico'
+html_favicon = '_static/favicon.ico'
 
 html_theme_options = {
     'caption_font_family': 'Noto Sans',
@@ -85,7 +85,7 @@ def setup(app):
 
 
 dunderlab_code_reference = False
-dunderlab_color_links = '#4db6ac'
+dunderlab_color_links = '#28BDB8'
 dunderlab_custom_index = f"""
 .. toctree::
    :glob:

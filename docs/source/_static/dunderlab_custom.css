@@ -7,7 +7,7 @@ pre.literal-block,
 }
 
 .docutils.literal {
-    color: #4db6ac;
+    color: #28BDB8;
     padding: 1px 4px;
     margin: 0 -2px;
     border-radius: 2px;
@@ -18,13 +18,13 @@ div.nbinput.container div.input_area {
 }
 
 a.reference {
-    border-bottom: 1px dotted #4db6ac;
-    color: #4db6ac;
+    border-bottom: 1px dotted #28BDB8;
+    color: #28BDB8;
 }
 
 a.reference:hover {
-    border-bottom: 1px solid #357f78;
-    color: #357f78;
+    border-bottom: 1px solid #1c8480;
+    color: #1c8480;
 }
 
 
@@ -104,8 +104,8 @@ dl:not(.docutils) dl dt {
 .dunderlab-footer {
     margin-top: 80px;
     background-color: #7878780d;
-    padding: 30px;
-    border: 1px solid #4db6ac;
+    padding: 15px 30px;
+    border: 1px solid #28BDB8;
     border-width: 3px 0 0 0;
     border-radius: 5px;
 }

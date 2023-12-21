@@ -120,15 +120,14 @@ class html_context:
 ########################################################################
 class HTML:
     """"""
-    # ----------------------------------------------------------------------
 
     def __getattribute__(self, attr):
         """"""
         def inset(*args, **kwargs):
-            q = getattr(html_, attr)(*args, **kwargs)
-            q.classes = class_(q, kwargs.get('Class', ''))
-            q.context = html_context(q)
-            return q
+            html_e = getattr(html_, attr)(*args, **kwargs)
+            html_e.classes = class_(html_e, kwargs.get('Class', ''))
+            html_e.context = html_context(html_e)
+            return html_e
         return inset
 
 
