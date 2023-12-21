@@ -19,9 +19,12 @@ python:
   install:
     - requirements: docs/requirements
 
+
+# Set the version of Python and other tools you might need
 build:
   os: ubuntu-22.04
-  image: testing
+  tools:
+    python: "3.11"
 
 formats:
   - epub
