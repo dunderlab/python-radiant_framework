@@ -1,5 +1,3 @@
-#!bryhton
-
 from radiant.framework.server import RadiantAPI
 from radiant.framework import html
 from browser import document

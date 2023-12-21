@@ -13,7 +13,7 @@ Documentation Overview
    notebooks/01-radiant_framework
    notebooks/02-websockets
    notebooks/03-python_api
-   notebooks/04-brython_enhance
+   notebooks/04-brython_enhancement
 
 
 .. toctree::
