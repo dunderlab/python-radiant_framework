@@ -20,6 +20,7 @@ python:
     - requirements: docs/requirements
 
 build:
+  os: ubuntu-22.04
   image: testing
 
 formats:
