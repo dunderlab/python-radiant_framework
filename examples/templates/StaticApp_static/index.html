@@ -6,6 +6,9 @@
 <!--Brython-->
 <script type="text/javascript" src="/static/brython/brython-3.11.2/brython.js"></script>
 <script type="text/javascript" src="/static/brython/brython-3.11.2/brython_stdlib.js"></script>
+<brython-options debug="0" cache="true"></brython-options>
+<!--Default CSS-->
+<link rel="stylesheet" type="text/css" href="/static/styles/default.css">
 
 
 
@@ -37,8 +40,8 @@ module = StaticApp(None, ())
 autoinit()
 </script>
 </head>
-<body onload="brython(0)">
-HOLA
+<body onload="brython()">
+
 </body>
 <div id="radiant-placeholder--templates" style="display: none;">
 </div>

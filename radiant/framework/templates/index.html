@@ -4,6 +4,8 @@
 
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{page_title}}</title>
 
     <!--Brython-->
     <script type="text/javascript" src="/static/brython/brython-{{brython_version}}/brython.js"></script>
@@ -74,8 +76,17 @@
         <link type="text/css" rel="stylesheet" href="/static/fonts/bootstrap-icons/bootstrap-icons.css">
     {% end %}
 
-    <!--Fonts-->
-    <link type="text/css" rel="stylesheet" href="/static/fonts/fontawesome/css/all.min.css">
+    {% if 'roboto' in modules %}
+        <!--Fonts-->
+        <link type="text/css" rel="stylesheet" href="/static/fonts/roboto-android/roboto.css">
+        <link type="text/css" rel="stylesheet" href="/static/fonts/roboto-android/roboto-mono.css">
+    {% end %}
+
+    {% if 'fontawesome' in modules %}
+        <!--Fonts-->
+        <link type="text/css" rel="stylesheet" href="/static/fonts/fontawesome/css/all.min.css">
+    {% end %}
+
 
 
     <style>

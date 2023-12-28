@@ -1,7 +1,8 @@
 import os
 
-from browser import html, document, timer
+from browser import document, timer
 from .utils import LocalInterpreter
+from .html_ import select, html
 import inspect
 from string import ascii_lowercase
 import random
@@ -34,8 +35,8 @@ class RadiantAPI:
             if module and module != 'None':
                 setattr(self, class_, LocalInterpreter(endpoint=endpoint))
 
-        self.body = document.select_one('body')
-        self.head = document.select_one('head')
+        self.body = select('body')
+        self.head = select('head')
 
     # ----------------------------------------------------------------------
     def add_css_file(self, file):
@@ -55,6 +56,67 @@ class RadiantAPI:
     # ----------------------------------------------------------------------
     def map_value(self, x, in_min, in_max, out_min, out_max):
         return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
+    # ----------------------------------------------------------------------
+
+    def welcome(self):
+        """"""
+        parent = html.DIV(style={'width': '90vw', 'margin-left': '5vw', 'margin-right': '5vw'})
+
+        links_style = {
+            'color': '#28BDB8',
+            'text-decoration': 'none',
+            'font-weight': '400',
+        }
+
+        buttons_style = {
+            'background-color': '#28bdb8',
+            'border': 'none',
+            'padding': '10px 15px',
+            'color': 'white',
+        }
+
+        with parent.context as parent:
+            parent <= html.H1('Radiant Framework', style={'font-weight': '300', 'color': '#28bdb8'})
+            documentation = html.A(' documentation ', href='https://radiant-framework.readthedocs.io', style=links_style)
+            repository = html.A(' repository ', href='https://github.com/dunderlab/python-radiant_framework', style=links_style)
+            brython = html.A(' Brython ', href='https://brython.info/', style=links_style)
+
+            with html.SPAN().context as tagline:
+                tagline <= html.SPAN('Visit the')
+                tagline <= documentation
+                tagline <= html.SPAN('for more information or the')
+                tagline <= repository
+                tagline <= html.SPAN('to get the source code.')
+
+            with html.DIV(style={'padding': '20px 0px'}).context as container:
+                with html.BUTTON('Open Terminal', style=buttons_style).context as button:
+                    button.bind('click', lambda evt: Interpreter(title="Radiant Framework", cols=80))
+
+            with html.IMG(src='https://radiant-framework.readthedocs.io/en/latest/_static/logo.svg').context as image:
+                image.style.width = '100vw'
+                image.style.height = '25vh'
+                image.style['background-color'] = '#F2F2F2'
+                image.style['border-top'] = '1px solid #cdcdcd'
+                image.style['margin-top'] = '5vh'
+                image.style['margin-left'] = '-5vw'
+
+            with html.DIV(style={'text-align': 'center', 'font-size': '110%', 'width': '100%', }).context as container:
+                container <= html.SPAN('Radiant Framework is running succesfully!<br>')
+
+                with html.SPAN().context as tagline:
+                    tagline <= brython
+                    tagline <= html.SPAN('powered!')
+
+        self.body.style = {
+            'background-color': '#F2F2F2',
+            'font-family': 'Roboto',
+            'font-weight': '300',
+            'margin': '0px',
+            'padding': '0px',
+
+        }
+        self.body <= parent
 
 
 # ----------------------------------------------------------------------

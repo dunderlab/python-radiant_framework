@@ -1,11 +1,9 @@
 from radiant.framework.server import RadiantAPI, RadiantServer, render
 from radiant.framework import html
 
-# from browser import html
-from browser.template import Template
-
-
 ########################################################################
+
+
 class StaticApp(RadiantAPI):
 
     # ----------------------------------------------------------------------
@@ -13,21 +11,14 @@ class StaticApp(RadiantAPI):
         """"""
         super().__init__(*args, **kwargs)
         self.body <= html.H1('Radiant-Framework')
-
         self.body <= self.main()
-
-        # Template("menu").render()
 
     # ----------------------------------------------------------------------
     def main(self):
         """"""
         context = {
             'title': 'TITULO',
-            'titles': ["Rendered",
-                       "Radiant",
-                       "Framework",
-                       "Layout",
-                       ],
+            'items': [f'item-{i}' for i in range(10)],
         }
 
         return render('main.html', context)
@@ -35,6 +26,6 @@ class StaticApp(RadiantAPI):
 
 if __name__ == '__main__':
     RadiantServer('StaticApp',
-                  template='layout.html',
+                  # template='layout.html',
                   static_app=True,
                   )

@@ -211,6 +211,7 @@ def make_app(
     static_app: bool = False,
     templates_path: PATH = None,
     modules: Optional[list] = [],
+    page_title: Optional[str] = '',
 ):
     """
     Parameters
@@ -265,6 +266,7 @@ def make_app(
             'debug_level': debug_level,
             'static_app': static_app,
             'modules': modules,
+            'page_title': page_title,
         }
     )
 
@@ -356,7 +358,8 @@ def RadiantServer(
     callbacks: Optional[tuple] = (),
     static_app: Optional[bool] = False,
     templates_path: PATH = None,
-    modules: Optional[list] = [],
+    modules: Optional[list] = ['roboto'],
+    page_title: Optional[str] = '',
     **kwargs,
 ):
     """Python implementation for move `class_` into a Bython environment.
@@ -408,6 +411,7 @@ def RadiantServer(
         static_app=static_app,
         templates_path=templates_path,
         modules=modules,
+        page_title=page_title,
     )
     http_server = HTTPServer(
         application,

@@ -77,6 +77,12 @@ class select(list):
                     setattr(element.style, attr, value)
         return Style()
 
+    # ----------------------------------------------------------------------
+    def __le__(self, other):
+        """"""
+        for element in self:
+            element <= other
+
 
 ########################################################################
 class html_context:
