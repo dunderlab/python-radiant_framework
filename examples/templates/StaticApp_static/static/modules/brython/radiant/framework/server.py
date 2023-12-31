@@ -3,7 +3,7 @@ import os
 from browser import html, document, timer
 from .utils import LocalInterpreter
 import inspect
-from string import ascii_lowercase
+# from string import ascii_lowercase
 import random
 import logging
 import json

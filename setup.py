@@ -6,7 +6,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
 
 setup(
     name='radiant-framework',
-    version='0.1a23',
+    version='0.1a24',
     packages=['radiant.framework'],
     # packages=find_packages(where="radiant.framework"),
     # packages=find_packages(),

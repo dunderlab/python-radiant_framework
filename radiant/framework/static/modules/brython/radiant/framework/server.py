@@ -3,25 +3,10 @@ import os
 from browser import document, timer
 from .utils import LocalInterpreter
 from .html_ import select, html
-import inspect
-from string import ascii_lowercase
-import random
-import logging
-import json
 from browser.template import Template
+from interpreter import Interpreter
 
 RadiantServer = None
-
-
-# # ----------------------------------------------------------------------
-# def delay(t):
-    # """"""
-    # def wrap(fn):
-        # def inset(*args, **kwargs):
-            # print(f'DELAYING: {t}')
-            # return timer.set_timeout(lambda: fn(*args, **kwargs), t)
-        # return inset
-    # return wrap
 
 
 ########################################################################
@@ -58,7 +43,6 @@ class RadiantAPI:
         return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
     # ----------------------------------------------------------------------
-
     def welcome(self):
         """"""
         parent = html.DIV(style={'width': '90vw', 'margin-left': '5vw', 'margin-right': '5vw'})

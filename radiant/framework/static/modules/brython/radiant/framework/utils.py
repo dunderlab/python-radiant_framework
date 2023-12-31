@@ -4,7 +4,7 @@ Brython MDCFramework: Radiant
 
 """
 
-import random
+# import random
 from browser import ajax, window, websocket, document, timer
 import json
 

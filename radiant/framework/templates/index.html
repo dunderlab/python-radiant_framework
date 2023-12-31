@@ -99,9 +99,8 @@
 
     <script type="text/python">
 import sys
-
-sys.path.append('/root/')
-sys.path.append('/static/modules/brython')
+from radiant.framework.utils import autoinit
+from {{file}} import {{class_}}
 
 {% if mock_imports %}
 from radiant.framework.utils import fake
@@ -110,30 +109,17 @@ sys.modules["{{module}}"] = fake()
 {% end %}
 {% end %}
 
-
-    </script>
-
-    <script type="text/python">
-{% if path %}
-import sys
-sys.path.append('/path/')
-{% end %}
-
-from radiant.framework.utils import autoinit
-from {{file}} import {{class_}}
-
-argvs = {{argv}}
-
 {% block module_init %}
 module = {{class_}}(None, {{python_}})
 {% end %}
 
+argvs = {{argv}}
 autoinit()
 
     </script>
 
     </head>
-    <body onload="brython()">
+    <body onload="brython({pythonpath: {{path}}})">
         {% block html_body %}{% end %}
     </body>
 

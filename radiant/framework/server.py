@@ -206,7 +206,7 @@ def make_app(
                                RequestHandler], dict] = (),
     python: Tuple[PATH, str] = ([None, None, None]),
     theme: PATH = None,
-    path: PATH = None,
+    path: List = [],
     autoreload: bool = False,
     static_app: bool = False,
     templates_path: PATH = None,
@@ -261,7 +261,7 @@ def make_app(
             # 'argv': sys.argv,
             'template': template,
             'mock_imports': mock_imports,
-            'path': path,
+            'path': ['/root/', '/static/modules/brython'] + path,
             'brython_version': brython_version,
             'debug_level': debug_level,
             'static_app': static_app,
@@ -327,9 +327,9 @@ def make_app(
         else:
             app.append(url(*handler))
 
-    if path:
+    for dir_ in path:
         app.append(
-            url(r'^/path/(.*)', StaticFileHandler, {'path': path}),
+            url(fr'^/{dir_}/(.*)', StaticFileHandler, {'path': dir_}),
         )
 
     settings.update(environ)
@@ -353,7 +353,7 @@ def RadiantServer(
                                RequestHandler], dict] = (),
     python: Tuple[PATH, str] = (),
     theme: Optional[PATH] = None,
-    path: Optional[PATH] = None,
+    path: Optional[list] = [],
     autoreload: Optional[bool] = False,
     callbacks: Optional[tuple] = (),
     static_app: Optional[bool] = False,
