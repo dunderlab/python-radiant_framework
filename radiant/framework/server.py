@@ -34,7 +34,7 @@ PATH = Union[str, pathlib.Path]
 URL = str
 DEFAULT_IP = '0.0.0.0'
 DEFAULT_PORT = '5000'
-DEFAULT_BRYTHON_VERSION = '3.11.2'
+DEFAULT_BRYTHON_VERSION = '3.12.1'
 DEFAULT_BRYTHON_DEBUG = 0
 
 MAIN = os.path.join(sys.path[0], 'main.py')
