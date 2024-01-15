@@ -37,9 +37,10 @@ DEFAULT_PORT = '5000'
 DEFAULT_BRYTHON_VERSION = '3.12.1'
 DEFAULT_BRYTHON_DEBUG = 0
 
-MAIN = os.path.join(sys.path[0], 'main.py')
-if not os.path.exists(MAIN):
-    MAIN = sys.argv[0]
+# MAIN = os.path.join(sys.path[0], 'main.py')
+# if not os.path.exists(MAIN):
+    # MAIN = sys.argv[0]
+MAIN = sys.argv[0]
 
 
 ########################################################################
@@ -212,6 +213,13 @@ def make_app(
     templates_path: PATH = None,
     modules: Optional[list] = [],
     page_title: Optional[str] = '',
+    page_description: Optional[str] = '',
+    page_image: Optional[str] = '',
+    page_url: Optional[str] = '',
+    page_summary_large_image: Optional[str] = '',
+    page_site: Optional[str] = '',
+    page_author: Optional[str] = '',
+    page_copyright: Optional[str] = '',
 ):
     """
     Parameters
@@ -267,6 +275,13 @@ def make_app(
             'static_app': static_app,
             'modules': modules,
             'page_title': page_title,
+            'page_description': page_description,
+            'page_image': page_image,
+            'page_url': page_url,
+            'page_summary_large_image': page_summary_large_image,
+            'page_site': page_site,
+            'page_author': page_author,
+            'page_copyright': page_copyright,
         }
     )
 
@@ -360,6 +375,14 @@ def RadiantServer(
     templates_path: PATH = None,
     modules: Optional[list] = ['roboto'],
     page_title: Optional[str] = '',
+    page_description: Optional[str] = '',
+    page_image: Optional[str] = '',
+    page_url: Optional[str] = '',
+    page_summary_large_image: Optional[str] = '',
+    page_site: Optional[str] = '',
+    page_author: Optional[str] = '',
+    page_copyright: Optional[str] = '',
+
     **kwargs,
 ):
     """Python implementation for move `class_` into a Bython environment.
@@ -412,6 +435,14 @@ def RadiantServer(
         templates_path=templates_path,
         modules=modules,
         page_title=page_title,
+        page_description=page_description,
+        page_image=page_image,
+        page_url=page_url,
+        page_summary_large_image=page_summary_large_image,
+        page_site=page_site,
+        page_author=page_author,
+        page_copyright=page_copyright,
+
     )
     http_server = HTTPServer(
         application,
