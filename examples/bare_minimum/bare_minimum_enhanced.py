@@ -22,7 +22,11 @@ class BareMinimum(RadiantAPI):
 
         title.style = {'color': 'red'}
         title.style.color = 'blue'
-        # title.style.background_color = 'red'
+        # title.style['background-color'] = 'pink'
+        title.styles.background_color = 'pink'
+
+        print('GET color:')
+        print(title.styles.color)
 
         self.body <= title
 
@@ -41,7 +45,12 @@ class BareMinimum(RadiantAPI):
 
         selection.style.color = 'cyan'
 
-        selection.style = {'background-color': 'red', }
+        # selection.style = {'background-color': 'red', }
+        selection.styles.background_color = 'pink'
+
+        print('GET color [selection]:')
+        print(selection.styles.color)
+
         # Inspector()
 
         # with htmlc.DIV(style={'background-color': 'blue'}) as div_principal:
