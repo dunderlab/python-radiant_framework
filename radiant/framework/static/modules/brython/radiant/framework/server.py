@@ -102,6 +102,30 @@ class RadiantAPI:
         }
         self.body <= parent
 
+    # ----------------------------------------------------------------------
+    def hide(self, selector):
+        """"""
+        def inset(evt):
+            document.select_one(selector).style = {'display': 'none'}
+        return inset
+
+    # ----------------------------------------------------------------------
+    def show(self, selector):
+        """"""
+        def inset(evt):
+            document.select_one(selector).style = {'display': 'block'}
+        return inset
+
+    # ----------------------------------------------------------------------
+    def toggle(self, selector):
+        """"""
+        def inset(evt):
+            if document.select_one(selector).style['display'] == 'none':
+                document.select_one(selector).style['display'] = 'block'
+            else:
+                document.select_one(selector).style['display'] = 'none'
+        return inset
+
 
 # ----------------------------------------------------------------------
 def render(template, context={}):
