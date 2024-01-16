@@ -19,5 +19,3 @@ if __name__ == '__main__':
         'BareMinimum',
         pages=([r'^/multipage$', '_second_page.Second'],),
     )
-
-    RadiantServer()
