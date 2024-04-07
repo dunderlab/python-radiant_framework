@@ -34,7 +34,7 @@ PATH = Union[str, pathlib.Path]
 URL = str
 DEFAULT_IP = '0.0.0.0'
 DEFAULT_PORT = '5000'
-DEFAULT_BRYTHON_VERSION = '3.12.1'
+DEFAULT_BRYTHON_VERSION = '3.11.3'
 DEFAULT_BRYTHON_DEBUG = 0
 
 # MAIN = os.path.join(sys.path[0], 'main.py')
@@ -84,6 +84,11 @@ class PythonHandler(RequestHandler):
         """"""
         return True
 
+    # ----------------------------------------------------------------------
+
+    def prepare(self):
+        """"""
+
 
 ########################################################################
 class JSONHandler(RequestHandler):
@@ -131,7 +136,7 @@ class ThemeHandler(RequestHandler):
             )
 
         tree = ElementTree.parse(theme)
-        theme_css = {child.attrib['name']: child.text for child in tree.getroot()}
+        theme_css = {child.attrib['name']                     : child.text for child in tree.getroot()}
         return theme_css
 
 
@@ -162,13 +167,16 @@ class RadiantHandler(RequestHandler):
             if os.path.exists(parent_dir):
                 shutil.rmtree(parent_dir)
 
-            shutil.copytree(os.path.dirname(MAIN), os.path.join(parent_dir, 'root'))
-            shutil.copytree(os.path.join(os.path.dirname(__file__), 'static'), os.path.join(parent_dir, 'static'))
+            shutil.copytree(os.path.dirname(MAIN),
+                            os.path.join(parent_dir, 'root'))
+            shutil.copytree(os.path.join(os.path.dirname(
+                __file__), 'static'), os.path.join(parent_dir, 'static'))
 
             for element in ['.git', '.gitignore']:
                 if os.path.exists(os.path.join(parent_dir, 'root', element)):
                     try:
-                        shutil.rmtree(os.path.join(parent_dir, 'root', element))
+                        shutil.rmtree(os.path.join(
+                            parent_dir, 'root', element))
                     except:
                         os.remove(os.path.join(parent_dir, 'root', element))
 
@@ -180,7 +188,8 @@ class RadiantHandler(RequestHandler):
 
             for element in ['CNAME', '.nojekyll']:
                 if os.path.exists(element):
-                    shutil.copyfile(element, os.path.join(parent_dir, element))
+                    shutil.copyfile(
+                        element, os.path.join(parent_dir, element))
 
         self.render(
             f"{os.path.realpath(variables['template'])}", **variables)

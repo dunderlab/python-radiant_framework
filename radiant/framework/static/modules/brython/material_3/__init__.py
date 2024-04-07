@@ -15,9 +15,9 @@ def __getattr__(attr):
     def element(*args, **kwargs):
 
         if attr.startswith('_'):
-            tag = maketag(f'{attr[1:].replace("_", "-")}')
+            tag = maketag(f'{attr[1:].removesuffix("_").replace("_", "-")}')
         else:
-            tag = maketag(f'md-{attr.replace("_", "-")}')
+            tag = maketag(f'md-{attr.removesuffix("_").replace("_", "-")}')
 
         kwargs = {k.rstrip('_'): v for k, v in kwargs.items()}
         return tag(*args, **kwargs)

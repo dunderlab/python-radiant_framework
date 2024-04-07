@@ -15,7 +15,6 @@ class style_context:
     def __getattr__(self, attr):
         """"""
         attr = attr.replace('_', '-')
-        # return self.style.__getattribute__(attr)
         return getattr(self.style, attr)
 
     # ----------------------------------------------------------------------
@@ -124,7 +123,8 @@ class select(list):
             def __getattr__(cls, attr):
                 """"""
                 def inset(*args, **kwargs):
-                    [setattr(element, 'classes', class_context(element, element.class_name)) for element in self]
+                    [setattr(element, 'classes', class_context(
+                        element, element.class_name)) for element in self]
                     return [getattr(element.classes, attr)(*args, **kwargs) for element in self]
                 return inset
         return Classes_()
@@ -135,12 +135,14 @@ class select(list):
         class Styles_:
             def __getattr__(cls, attr):
                 """"""
-                [setattr(element, 'styles', style_context(element)) for element in self]
+                [setattr(element, 'styles', style_context(element))
+                 for element in self]
                 return [getattr(element.styles, attr) for element in self]
 
             def __setattr__(cls, attr, value):
                 """"""
-                [setattr(element, 'styles', style_context(element)) for element in self]
+                [setattr(element, 'styles', style_context(element))
+                 for element in self]
                 [setattr(element.styles, attr, value) for element in self]
 
         return Styles_()
@@ -198,8 +200,10 @@ class HTML:
     def __getattribute__(self, attr):
         """"""
         def inset(*args, **kwargs):
-            html_e = getattr(html_, attr)(*args, **kwargs)
-            html_e.classes = class_context(html_e, kwargs.get('Class', ''))
+            kwargs_ = {k.removesuffix("_").replace(
+                "_", "-"): kwargs[k] for k in kwargs}
+            html_e = getattr(html_, attr)(*args, **kwargs_)
+            html_e.classes = class_context(html_e, kwargs_.get('Class', ''))
             html_e.context = html_context(html_e)
             html_e.styles = style_context(html_e)
             return html_e

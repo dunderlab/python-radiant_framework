@@ -27,8 +27,17 @@ setup(
     long_description_content_type='text/markdown',
     python_requires='>=3.8',
     classifiers=[
-        'Development Status :: 4 - Beta',
+
+        # 'Development Status :: 1 - Planning',
+        # 'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 3 - Alpha',
+        # 'Development Status :: 4 - Beta',
         # 'Development Status :: 5 - Production/Stable',
+        # 'Development Status :: 6 - Mature',
+        # 'Development Status :: 7 - Inactive',
+
+
+
         'License :: OSI Approved :: BSD License',
         'Programming Language :: Python :: 3.12',
         'Programming Language :: Python :: 3.11',
