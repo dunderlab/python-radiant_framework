@@ -355,7 +355,7 @@ def make_app(
 
     for dir_ in path:
         app.append(
-            url(fr'^/{dir_}/(.*)', StaticFileHandler, {'path': dir_}),
+            url(fr'^/{dir_.strip("/")}/(.*)', StaticFileHandler, {'path': dir_}),
         )
 
     settings.update(environ)
