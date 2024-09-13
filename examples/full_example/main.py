@@ -13,6 +13,9 @@ from browser import document, html
 
 # from mdc.MDCCard import MDCCard
 
+import os
+
+
 ########################################################################
 class MainApp(RadiantAPI):
 
@@ -32,6 +35,10 @@ class MainApp(RadiantAPI):
         document.select_one('body') <= html.H3(
             f"Pitagoras: {a=}, {b=}, {c=:.3f}"
         )
+
+
+        from path_submodule.sub import test_submodule
+        document.select_one('body') <= html.H3(test_submodule())
 
         # self.add_css_file('custom_styles.css')
 
@@ -85,4 +92,6 @@ if __name__ == '__main__':
         # debug_level=0,
         pages=([r'^/multipage$', 'second_page.Second'],),
         # theme='custom_th.xml',
+
+        path=[os.path.abspath('../')]
     )
