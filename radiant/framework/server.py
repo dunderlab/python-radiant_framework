@@ -36,10 +36,6 @@ DEFAULT_IP = '0.0.0.0'
 DEFAULT_PORT = '5000'
 DEFAULT_BRYTHON_VERSION = '3.11.3'
 DEFAULT_BRYTHON_DEBUG = 0
-
-# MAIN = os.path.join(sys.path[0], 'main.py')
-# if not os.path.exists(MAIN):
-    # MAIN = sys.argv[0]
 MAIN = sys.argv[0]
 
 

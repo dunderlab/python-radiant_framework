@@ -1,4 +1,3 @@
-import sys
 import os
 import multiprocessing
 import logging
