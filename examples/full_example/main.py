@@ -88,7 +88,7 @@ if __name__ == '__main__':
         # handlers=([r'^/ws', ('ws_handler.py', 'WSHandler'), {}],),
         # template='custom_template.html',
         # mock_imports=['numpy'],
-        brython_version='3.12.3',
+        brython_version='3.12.4',
         # debug_level=0,
         pages=([r'^/multipage$', 'second_page.Second'],),
         # theme='custom_th.xml',
