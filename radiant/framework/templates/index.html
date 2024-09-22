@@ -26,22 +26,10 @@
     <meta name="author" content="{{page_author}}">
     <meta name="copyright" content="{{page_copyright}}">
 
-
     <!--Brython-->
-    <script type="text/javascript" src="/static/brython/brython-{{brython_version}}/brython.js"></script>
-    <script type="text/javascript" src="/static/brython/brython-{{brython_version}}/brython_stdlib.js"></script>
+    <script type="text/javascript" src="/static/brython/Brython-{{brython_version}}/brython.js"></script>
+    <script type="text/javascript" src="/static/brython/Brython-{{brython_version}}/brython_stdlib.js"></script>
     <brython-options debug="{{debug_level}}" cache="true"></brython-options>
-
-    <!--Default CSS-->
-    <link rel="stylesheet" type="text/css" href="/static/styles/normalize.css">
-    <link rel="stylesheet" type="text/css" href="/static/styles/default.css">
-    <link rel="stylesheet" type="text/css" href="/static/styles/bootstrap-grid.css">
-
-    {% if 'roboto' in modules %}
-        <!--Fonts-->
-        <link type="text/css" rel="stylesheet" href="/static/fonts/roboto-android/roboto.css">
-        <link type="text/css" rel="stylesheet" href="/static/fonts/roboto-android/roboto-mono.css">
-    {% end %}
 
     <style>
     .RADIANT-HIDE {
