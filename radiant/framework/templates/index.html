@@ -26,6 +26,8 @@
     <meta name="author" content="{{page_author}}">
     <meta name="copyright" content="{{page_copyright}}">
 
+    {% block html_head %}{% end %}
+
     <!--Brython-->
     <script type="text/javascript" src="/static/brython/Brython-{{brython_version}}/brython.js"></script>
     <script type="text/javascript" src="/static/brython/Brython-{{brython_version}}/brython_stdlib.js"></script>
@@ -37,12 +39,13 @@
     }
     </style>
 
-    {% block html_head %}{% end %}
+
 
     <script type="text/python">
 import sys
 from radiant.framework.utils import autoinit
 from {{file}} import {{class_}}
+
 
 {% if mock_imports %}
 from radiant.framework.utils import fake
@@ -52,7 +55,7 @@ sys.modules["{{module}}"] = fake()
 {% end %}
 
 {% block module_init %}
-module = {{class_}}(None, {{python_}})
+module = {{class_}}{% if wrapped %}(**{{arguments}}){% end %}(None, {{python_}})
 {% end %}
 
 argvs = {{argv}}
@@ -65,8 +68,6 @@ autoinit()
         {% block html_body %}{% end %}
     </body>
 
-    <div id="radiant-placeholder--templates" style="display: none;">
-
-    </div>
+    <div id="radiant-placeholder--templates" style="display: none;"></div>
 
 </html>

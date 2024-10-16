@@ -14,6 +14,7 @@ class fake:
 
 brython = ['browser',
            'browser.template',
+           'browser.html',
            'interpreter',
            ]
 for module in brython:

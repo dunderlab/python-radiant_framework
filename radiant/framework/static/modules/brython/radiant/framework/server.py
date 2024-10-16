@@ -10,8 +10,9 @@ RadiantServer = None
 
 
 ########################################################################
-class RadiantAPI:
+class RadiantCore:
     """"""
+    endpoints = []
 
     # ----------------------------------------------------------------------
     def __init__(self, class_, python=[[None, None, None]], **kwargs):
@@ -125,6 +126,36 @@ class RadiantAPI:
             else:
                 document.select_one(selector).style['display'] = 'none'
         return inset
+
+
+
+########################################################################
+class RadiantAPI(RadiantCore):
+    """"""
+
+    # ----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        self.body = select('body')
+        self.head = select('head')
+
+
+    @classmethod
+    # ----------------------------------------------------------------------
+    def get(cls, url):
+        """"""
+        def inset(fn):
+            RadiantCore.endpoints.append((url, fn.__name__))
+            def subinset(**arguments):
+                class Wrapped(RadiantCore):
+                    def __init__(self, *args, **kwargs):
+                        super().__init__(*args, **kwargs)
+                        fn(**{k:arguments[k][0] for k in arguments})
+                return Wrapped
+            return subinset
+        return inset
+
+
 
 
 # ----------------------------------------------------------------------
