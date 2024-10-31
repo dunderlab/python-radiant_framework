@@ -22,7 +22,7 @@ def test(one, two, **kwargs):
 
 # ----------------------------------------------------------------------
 @app.post('/test')
-def test(one, two, **kwargs):
+def test2(one, two, **kwargs):
     """"""
     return {'data': True,}
 

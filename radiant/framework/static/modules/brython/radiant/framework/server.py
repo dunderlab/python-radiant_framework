@@ -140,9 +140,24 @@ class RadiantAPI(RadiantCore):
         self.head = select('head')
 
 
-    @classmethod
     # ----------------------------------------------------------------------
+    @classmethod
     def get(cls, url):
+        """"""
+        def inset(fn):
+            RadiantCore.endpoints.append((url, fn.__name__))
+            def subinset(**arguments):
+                class Wrapped(RadiantCore):
+                    def __init__(self, *args, **kwargs):
+                        super().__init__(*args, **kwargs)
+                        fn(**{k:arguments[k][0] for k in arguments})
+                return Wrapped
+            return subinset
+        return inset
+
+    # ----------------------------------------------------------------------
+    @classmethod
+    def post(cls, url):
         """"""
         def inset(fn):
             RadiantCore.endpoints.append((url, fn.__name__))
