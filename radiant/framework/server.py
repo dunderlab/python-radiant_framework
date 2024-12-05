@@ -71,6 +71,7 @@ class RadiantAPI:
     def get(cls, url):
         def inset(fn):
             RadiantCore.endpoints.append((url, fn.__name__, 'GET', fn))
+
         return inset
 
     # ----------------------------------------------------------------------
@@ -78,6 +79,7 @@ class RadiantAPI:
     def post(cls, url):
         def inset(fn):
             RadiantCore.endpoints.append((url, fn.__name__, 'POST', fn))
+
         return inset
 
 
@@ -148,9 +150,7 @@ class ThemeHandler(RequestHandler):
     # ----------------------------------------------------------------------
     @staticmethod
     def hex2vector(hex_: str):
-        return ', '.join(
-            [str(int(hex_[i : i + 2], 16)) for i in range(1, 6, 2)]
-        )
+        return ', '.join([str(int(hex_[i : i + 2], 16)) for i in range(1, 6, 2)])
 
     # ----------------------------------------------------------------------
     def get_theme(self):
@@ -162,9 +162,7 @@ class ThemeHandler(RequestHandler):
             )
 
         tree = ElementTree.parse(theme)
-        theme_css = {
-            child.attrib['name']: child.text for child in tree.getroot()
-        }
+        theme_css = {child.attrib['name']: child.text for child in tree.getroot()}
         return theme_css
 
 
@@ -202,9 +200,7 @@ class RadiantHandler(RequestHandler):
             if os.path.exists(parent_dir):
                 shutil.rmtree(parent_dir)
 
-            shutil.copytree(
-                os.path.dirname(MAIN), os.path.join(parent_dir, 'root')
-            )
+            shutil.copytree(os.path.dirname(MAIN), os.path.join(parent_dir, 'root'))
             shutil.copytree(
                 os.path.join(os.path.dirname(__file__), 'static'),
                 os.path.join(parent_dir, 'static'),
@@ -213,9 +209,7 @@ class RadiantHandler(RequestHandler):
             for element in ['.git', '.gitignore']:
                 if os.path.exists(os.path.join(parent_dir, 'root', element)):
                     try:
-                        shutil.rmtree(
-                            os.path.join(parent_dir, 'root', element)
-                        )
+                        shutil.rmtree(os.path.join(parent_dir, 'root', element))
                     except:
                         os.remove(os.path.join(parent_dir, 'root', element))
 
@@ -227,21 +221,17 @@ class RadiantHandler(RequestHandler):
 
             for element in ['CNAME', '.nojekyll']:
                 if os.path.exists(element):
-                    shutil.copyfile(
-                        element, os.path.join(parent_dir, element)
-                    )
+                    shutil.copyfile(element, os.path.join(parent_dir, element))
 
         variables['arguments'] = self.request.arguments
 
-        self.render(
-            f"{os.path.realpath(variables['template'])}", **variables
-        )
-
+        self.render(f"{os.path.realpath(variables['template'])}", **variables)
 
 
 # ----------------------------------------------------------------------
 def RadiantHandlerPost(fn):
     """"""
+
     class RadiantHandler_(RadiantHandler):
 
         # ----------------------------------------------------------------------
@@ -263,19 +253,16 @@ def make_app(
     debug_level: int,
     pages: Tuple[str],
     endpoints: Tuple[str],
-    template: PATH = os.path.join(
-        os.path.dirname(__file__), 'templates', 'index.html'
-    ),
+    template: PATH = os.path.join(os.path.dirname(__file__), 'templates', 'index.html'),
     environ: dict = {},
     mock_imports: Tuple[str] = [],
-    handlers: Tuple[
-        URL, Union[List[Union[PATH, str]], RequestHandler], dict
-    ] = (),
+    handlers: Tuple[URL, Union[List[Union[PATH, str]], RequestHandler], dict] = (),
     python: Tuple[PATH, str] = ([None, None, None]),
     theme: PATH = None,
     path: List = [],
     autoreload: bool = False,
     static_app: bool = False,
+    domain: Optional[str] = '',
     templates_path: PATH = None,
     modules: Optional[list] = [],
     page_title: Optional[str] = '',
@@ -315,7 +302,7 @@ def make_app(
     settings = {
         "debug": DEBUG,
         'static_path': os.path.join(os.path.dirname(__file__), 'static'),
-        'static_url_prefix': '/static/',
+        'static_url_prefix': f'{domain}/static/',
         "xsrf_cookies": False,
         'autoreload': autoreload,
     }
@@ -330,16 +317,17 @@ def make_app(
             'python_': python,
             'module': os.path.split(sys.path[0])[-1],
             'file': os.path.split(MAIN)[-1].replace('.py', ''),
-            'file_path': os.path.join('/root', os.path.split(MAIN)[-1]),
+            'file_path': os.path.join(f'{domain}/root', os.path.split(MAIN)[-1]),
             'theme': theme,
             'argv': [MAIN],
             # 'argv': sys.argv,
             'template': template,
             'mock_imports': mock_imports,
-            'path': ['/root/', '/static/modules/brython'] + path,
+            'path': [f'{domain}/root/', f'{domain}/static/modules/brython'] + path,
             'brython_version': brython_version,
             'debug_level': debug_level,
             'static_app': static_app,
+            'domain': domain,
             'modules': modules,
             'page_title': page_title,
             'page_favicon': page_favicon,
@@ -359,9 +347,9 @@ def make_app(
         app += [url(r'^/$', RadiantHandler, environ)]
 
     app += [
-        url(r'^/theme.css$', ThemeHandler),
-        url(r'^/root/(.*)', StaticFileHandler, {'path': sys.path[0]}),
-        url(r'^/environ.json$', JSONHandler, environ),
+        url(rf'^{domain}/theme.css$', ThemeHandler),
+        url(rf'^{domain}/root/(.*)', StaticFileHandler, {'path': sys.path[0]}),
+        url(rf'^{domain}/environ.json$', JSONHandler, environ),
         # url(r'^/manifest.json$', ManifestHandler),
     ]
 
@@ -375,9 +363,7 @@ def make_app(
         if issubclass(module, RadiantCore):
 
             environ_tmp = environ.copy()
-            environ_tmp['file'] = os.path.split(sys.argv[0])[-1].rstrip(
-                '.py'
-            )
+            environ_tmp['file'] = os.path.split(sys.argv[0])[-1].rstrip('.py')
             environ_tmp['class_'] = module.__name__
             app.append(
                 url(url_, RadiantHandler, environ_tmp),
@@ -387,9 +373,7 @@ def make_app(
             if '.' in module:
                 *file_, class_ = module.split('.')
             else:
-                *file_, class_ = (
-                    f'{os.path.split(MAIN)[-1][:-3]}.{module}'.split('.')
-                )
+                *file_, class_ = f'{os.path.split(MAIN)[-1][:-3]}.{module}'.split('.')
 
             environ_tmp = environ.copy()
             file_ = '.'.join(file_)
@@ -407,7 +391,9 @@ def make_app(
     reference_order = ['POST', 'GET']
     sorted_endpoints = sorted(
         RadiantCore.endpoints,
-        key=lambda x: reference_order.index(x[2]) if x[2] in reference_order else float('inf')
+        key=lambda x: (
+            reference_order.index(x[2]) if x[2] in reference_order else float('inf')
+        ),
     )
 
     handlers_ = {}
@@ -421,7 +407,9 @@ def make_app(
             handlers_[url_] = RadiantHandlerPost(fn)
         elif method == 'GET':
             handler = handlers_.get(url_, RadiantHandler)
-            app.append(url(url_, handler, environ_tmp), )
+            app.append(
+                url(url_, handler, environ_tmp),
+            )
 
     for module, class_, endpoint in python:
 
@@ -445,9 +433,7 @@ def make_app(
             )
             foo = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(foo)
-            app.append(
-                url(handler[0], getattr(foo, handler[1][1]), handler[2])
-            )
+            app.append(url(handler[0], getattr(foo, handler[1][1]), handler[2]))
         else:
             app.append(url(*handler))
 
@@ -474,20 +460,17 @@ def RadiantServer(
     endpoints: Tuple[str] = (),
     brython_version: str = DEFAULT_BRYTHON_VERSION,
     debug_level: int = DEFAULT_BRYTHON_DEBUG,
-    template: PATH = os.path.join(
-        os.path.dirname(__file__), 'templates', 'index.html'
-    ),
+    template: PATH = os.path.join(os.path.dirname(__file__), 'templates', 'index.html'),
     environ: dict = {},
     mock_imports: Tuple[str] = [],
-    handlers: Tuple[
-        URL, Union[List[Union[PATH, str]], RequestHandler], dict
-    ] = (),
+    handlers: Tuple[URL, Union[List[Union[PATH, str]], RequestHandler], dict] = (),
     python: Tuple[PATH, str] = (),
     theme: Optional[PATH] = None,
     path: Optional[list] = [],
     autoreload: Optional[bool] = False,
     callbacks: Optional[tuple] = (),
     static_app: Optional[bool] = False,
+    domain: Optional[str] = '',
     templates_path: PATH = None,
     modules: Optional[list] = ['roboto'],
     page_title: Optional[str] = '',
@@ -549,6 +532,7 @@ def RadiantServer(
         endpoints=endpoints,
         debug_level=debug_level,
         static_app=static_app,
+        domain=domain,
         templates_path=templates_path,
         modules=modules,
         page_title=page_title,

@@ -166,8 +166,12 @@ class html_context:
 
     # ----------------------------------------------------------------------
     def __enter__(self):
+        if hasattr(self._element, 'child_'):
+            self._element = self._element.child_
+
         if self._parent:
             self._parent <= self._element
+
         html_context._context.append(self._element)
         return self._element
 
@@ -194,20 +198,47 @@ class html_context:
 
 
 ########################################################################
-class HTML:
+class Element:
     """"""
 
+    # ----------------------------------------------------------------------
+    def __init__(self, element=None):
+        """"""
+        self._element = element
+
+    # ----------------------------------------------------------------------
     def __getattribute__(self, attr):
         """"""
+        if attr.startswith('_'):
+            return super().__getattribute__(attr)
+
         def inset(*args, **kwargs):
             kwargs_ = {k.removesuffix("_").replace(
                 "_", "-"): kwargs[k] for k in kwargs}
-            html_e = getattr(html_, attr)(*args, **kwargs_)
+
+            if self._element:
+                html_e = self._element
+            else:
+                html_e = getattr(html_, attr)(*args, **kwargs_)
+
             html_e.classes = class_context(html_e, kwargs_.get('Class', ''))
             html_e.context = html_context(html_e)
-            html_e.styles = style_context(html_e)
+            try:
+                html_e.styles = style_context(html_e)
+            except:
+                html_e.styles = None
+
             return html_e
+
         return inset
 
+    # ----------------------------------------------------------------------
+    def __call__(self, element):
+        """"""
+        cont = html.DIV(element)
+        cont.child_ = element
+        return cont
 
-html = HTML()
+
+
+html = Element()

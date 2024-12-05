@@ -16,6 +16,7 @@ brython = ['browser',
            'browser.template',
            'browser.html',
            'interpreter',
+           'browser.local_storage',
            ]
 for module in brython:
     sys.modules[f"{module}"] = fake()

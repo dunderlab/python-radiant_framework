@@ -1,1 +1,2 @@
-from .html_ import html, select
+from .html_ import html, select, Element
+from .webcomponents import WebComponents
