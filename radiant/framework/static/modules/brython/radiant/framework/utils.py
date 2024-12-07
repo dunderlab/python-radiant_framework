@@ -16,7 +16,10 @@ class Environ_:
     # ----------------------------------------------------------------------
     def __init__(self):
         """"""
-        self.environ = json.load(open('environ.json'))
+        try:
+            self.environ = json.load(open('environ.json'))
+        except:
+            self.environ = {}
 
     # ----------------------------------------------------------------------
     def __call__(self, value, default=None):
