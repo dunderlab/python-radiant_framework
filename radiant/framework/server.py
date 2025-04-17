@@ -216,11 +216,11 @@ class RadiantHandler(RequestHandler):
 
             with open(os.path.join(parent_dir, 'index.html'), 'wb') as file:
                 file.write(html)
-                
+
             environ_path = os.path.join(parent_dir, self.domain.lstrip("/"))
             if not os.path.exists(environ_path):
                 os.mkdir(environ_path)
-            
+
             with open(os.path.join(environ_path, 'environ.json'), 'w') as file:
                 json.dump(self.initial_arguments, file)
 
@@ -366,7 +366,7 @@ def make_app(
 
     for url_, module in pages:
 
-        if issubclass(module, RadiantCore):
+        if not isinstance(module, str) and issubclass(module, RadiantCore):
 
             environ_tmp = environ.copy()
             environ_tmp['file'] = os.path.split(sys.argv[0])[-1].rstrip('.py')
@@ -522,6 +522,11 @@ def RadiantServer(
         Activate the `autoreload` Tornado feature.
 
     """
+
+    #settings = globals().get("settings")
+    #if settings and not kwargs:
+        #kwargs.update({k.lower(): getattr(settings, k) for k in dir(settings) if not k.startswith("__")})
+
 
     print("Radiant server running on port {}".format(port))
     application = make_app(

@@ -1,6 +1,6 @@
-HOST = 'localhost'
-port = 5000
+HOST = '0.0.0.0'
+PORT = 5000
 BRYTHON_VERSION = '3.10.7'
 DEBUG_LEVEL = 10
 PAGES = 'urls.urls'
-
+CLASS_ = 'passs'

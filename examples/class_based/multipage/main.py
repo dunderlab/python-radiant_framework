@@ -11,11 +11,11 @@ class BareMinimum(RadiantCore):
         super().__init__(*args, **kwargs)
         document.select_one('body') <= html.H1('Hello World')
         document.select_one('body') <= html.H2('Multipage support')
-        document.select_one('body') <= html.A('second page', href='/multipage')
+        document.select_one('body') <= html.A('second page', href='/page2')
 
 
 if __name__ == '__main__':
     RadiantServer(
         'BareMinimum',
-        pages=([r'^/multipage$', '_second_page.Second'],),
+        pages=([r'^/page2$', 'page.Second'],),
     )
