@@ -203,20 +203,6 @@ class WebSocket:
 
 
 # ----------------------------------------------------------------------
-def autoinit():
-    """"""
-    if hasattr(window, "mdc"):
-        window.mdc.autoInit()
-        try:
-            [
-                window.mdc.slider.MDCSlider.attachTo(slider)
-                for slider in document.select(".mdc-slider")
-            ]
-        except:
-            pass
-
-
-# ----------------------------------------------------------------------
 def autoiframe(id_, parent):
     """"""
     if iframe := document.select_one(f"#{id_}"):
