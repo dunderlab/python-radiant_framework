@@ -26,7 +26,7 @@ PATH = Union[str, pathlib.Path]
 URL = str
 DEFAULT_IP = "0.0.0.0"
 DEFAULT_PORT = "5050"
-DEFAULT_BRYTHON_VERSION = "3.11.3"
+DEFAULT_BRYTHON_VERSION = "latest"
 DEFAULT_BRYTHON_DEBUG = 0
 MAIN = sys.argv[0]
 

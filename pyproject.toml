@@ -27,6 +27,7 @@ classifiers = [
 dependencies = [
     "Jinja2",
     "tornado",
+    "brython",
 ]
 urls = { "Download" = "https://github.com/dunderlab/python-radiant.framework" }
 
