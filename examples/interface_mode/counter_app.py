@@ -27,4 +27,4 @@ class CounterApp(RadiantInterfaceApp):
 
 if __name__ == "__main__":
     # Launch the application using the Radiant interface mode
-    CounterApp.serve()
+    CounterApp(port=5001).serve()
