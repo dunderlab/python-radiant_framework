@@ -21,7 +21,6 @@ author = "Yeison Cardona"
 extensions = [
     "nbsphinx",
     "dunderlab.docs",
-    "brython_code",
 ]
 
 templates_path = ["_templates"]
