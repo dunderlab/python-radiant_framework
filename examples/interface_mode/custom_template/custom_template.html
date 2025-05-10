@@ -1,0 +1,15 @@
+{# Inherit base structure from the main index.html template #}
+{% extends "templates/index.html" %}
+
+{% block html_head %}
+{# Add extra CSS or metadata here if needed #}
+{% end %}
+
+{% block html_body %}
+{# Insert custom HTML content here. This will replace the body block in the base template. #}
+<main>
+  <h1>Radiant Interface</h1>
+  <p>Welcome to your custom Radiant application. This layout is defined in <code>custom_template.html</code>.</p>
+  <p>Edit this file to customize your interface or insert dynamic content with Brython.</p>
+</main>
+{% end %}
