@@ -1,4 +1,4 @@
-from radiant.framework.server import RadiantCore, RadiantServer
+from radiant.framework.server import RadiantInterfaceApp, RadiantServer
 from radiant.framework.sound import Tone, note_values
 
 from browser import document, html
@@ -8,7 +8,7 @@ from mdc.MDCFormField import MDCSelect
 
 
 ########################################################################
-class MainApp(RadiantCore):
+class MainApp(RadiantInterfaceApp):
 
     # ----------------------------------------------------------------------
     def __init__(self, *args, **kwargs):

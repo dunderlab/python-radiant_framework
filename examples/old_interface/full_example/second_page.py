@@ -1,9 +1,9 @@
-from radiant.framework.server import RadiantCore
+from radiant.framework.server import RadiantInterfaceApp
 from browser import document, html
 
 
 ########################################################################
-class Second(RadiantCore):
+class Second(RadiantInterfaceApp):
 
     # ----------------------------------------------------------------------
     def __init__(self, *args, **kwargs):

@@ -58,17 +58,18 @@ Before proceeding, ensure that you have Radiant installed on your system. If you
 
 The following script illustrates a basic application using Radiant. This script will set up a simple web page displaying a heading.
 
-
 ```python
-from radiant.framework.server import RadiantAPI
+from radiant.framework.server import AppRouter
 from browser import document, html
 
-class BareMinimum(RadiantAPI):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        document.select_one('body') <= html.H1('Radiant-Framework')
+class BareMinimum(AppRouter):
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		document.select_one('body') <= html.H1('Radiant-Framework')
+
 
 if __name__ == '__main__':
-    BareMinimum()
+	BareMinimum()
 ```

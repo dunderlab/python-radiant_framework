@@ -49,10 +49,10 @@
     </style>
 
     <script type="text/python">
+
 import sys
 from radiant.framework.utils import autoinit
 from {{file}} import {{class_}}
-
 
 {% if mock_imports %}
 from radiant.framework.utils import fake
@@ -71,6 +71,7 @@ autoinit()
     </script>
 
     </head>
+
     <body onload="brython({pythonpath: {{path}}})">
         {% block html_body %}{% end %}
     </body>

@@ -1,4 +1,4 @@
-from radiant.framework.server import RadiantCore, RadiantServer
+from radiant.framework.server import RadiantInterfaceApp, RadiantServer
 # from radiant.framework.sound import Tone
 
 from browser import document, html
@@ -17,7 +17,7 @@ import os
 
 
 ########################################################################
-class MainApp(RadiantCore):
+class MainApp(RadiantInterfaceApp):
 
     # ----------------------------------------------------------------------
     def __init__(self, *args, **kwargs):
