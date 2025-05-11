@@ -3,10 +3,10 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import sys
 import os
+import sys
 
-sys.path.insert(0, os.path.abspath("_extensions"))
+sys.path.insert(0, os.path.abspath("../../"))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -40,14 +40,10 @@ html_theme_options = {
     "caption_font_family": "Noto Sans",
     "font_family": "Noto Sans",
     "head_font_family": "Noto Sans",
-    "page_width": "1280px",
-    "sidebar_width": "300px",
+    # "page_width": "1280px",
+    # "sidebar_width": "300px",
 }
 
-html_static_path = [
-    "_static",
-    "_static/static",
-]
-
-dunderlab_code_reference = False
 dunderlab_color_links = "#28BDB8"
+dunderlab_code_reference = False
+dunderlab_github_repository = "https://github.com/dunderlab/python-radiant_framework"

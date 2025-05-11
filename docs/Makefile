@@ -18,7 +18,3 @@ help:
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-
-buildapi:
-	rm -f source/_modules/*
-	sphinx-apidoc -fMeETl -o source/_modules ../radiant
