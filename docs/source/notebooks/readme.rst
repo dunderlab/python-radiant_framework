@@ -1,125 +1,106 @@
-Radiant Framework
-=================
+Radiant: A Pythonic Web Framework
+=================================
 
-A Brython Framework for Web Apps development.
+A lightweight and Python-first framework for building web applications
+with Brython.
 
 |GitHub top language| |PyPI - License| |PyPI| |PyPI - Status| |PyPI -
 Python Version| |GitHub last commit| |CodeFactor Grade| |Documentation
 Status|
 
-Overview
---------
+.. |GitHub top language| image:: https://img.shields.io/github/languages/top/dunderlab/python-radiant_framework?
+.. |PyPI - License| image:: https://img.shields.io/pypi/l/radiant-framework?
+.. |PyPI| image:: https://img.shields.io/pypi/v/radiant?
+.. |PyPI - Status| image:: https://img.shields.io/pypi/status/radiant-framework?
+.. |PyPI - Python Version| image:: https://img.shields.io/pypi/pyversions/radiant?
+.. |GitHub last commit| image:: https://img.shields.io/github/last-commit/dunderlab/python-radiant_framework?
+.. |CodeFactor Grade| image:: https://img.shields.io/codefactor/grade/github/dunderlab/python-radiant_framework?
+.. |Documentation Status| image:: https://readthedocs.org/projects/radiant-framework/badge/?version=latest
+   :target: https://radiant-framework.readthedocs.io/en/latest/?badge=latest
 
-Radiant Framework is a novel web framework designed to leverage the
-capabilities of `Brython <https://brython.info/>`__, a browser-based
-Python implementation. This innovative approach allows developers to
-write web applications entirely in Python, bypassing the conventional
-requirements of HTML, CSS, or JavaScript for frontend development.
+Why Radiant?
+------------
+
+Radiant is a modern web framework that enables Python developers to
+build full-stack web applications without writing JavaScript. It
+leverages Brython to run Python code directly in the browser, providing
+a seamless development experience.
+
+Target Audience
+~~~~~~~~~~~~~~~
+
+Radiant is designed for Python developers who want to:
+
+-  Build web applications entirely in Python without JavaScript
+   knowledge
+-  Create interactive web interfaces with a Pythonic approach
+-  Leverage Python’s simplicity and expressiveness for frontend
+   development
+-  Benefit from Python’s rich ecosystem of libraries and tools
+-  Avoid context switching between Python and JavaScript
+-  Develop full-stack applications with a single language
+-  Learn web development while staying in a familiar Python environment
+
+Whether you’re a Python enthusiast, a web developer looking for a
+Python-first approach, or a beginner wanting to start web development
+with Python, Radiant provides an intuitive framework for your needs.
 
 Key Features
 ------------
 
-Python-Centric Development
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+-  **Pure Python Development**: Build web applications without writing
+   JavaScript
+-  **Component-Based Architecture**: Create reusable UI components in
+   Python
+-  **Real-time Updates**: Built-in WebSocket support for live data
+   updates
+-  **Template System**: Flexible HTML templating with Python syntax
+-  **State Management**: Simple state handling and reactivity
+-  **Browser API Integration**: Access browser features through Python
+   interfaces
+-  **Modern UI Tools**: Built-in support for CSS frameworks and modern
+   UI patterns
 
--  **Unified Language Usage**: Write your entire web application using
-   Python, ensuring a consistent and streamlined coding experience.
--  **Brython Integration**: Utilizes Brython for executing Python code
-   in the browser, enabling a seamless transition of server-side code to
-   client-side execution.
-
-Server and Browser Compatibility
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
--  **Dual Environment Execution**: Radiant enables the same application
-   code to run both on the server and in the browser, maximizing code
-   reusability and efficiency.
--  **Tornado Web Server**: On the server-side, Radiant harnesses the
-   `Tornado <https://www.tornadoweb.org/>`__ web server to deploy
-   applications, known for its scalability and non-blocking network I/O
-   capabilities.
-
-Resource Management
-~~~~~~~~~~~~~~~~~~~
-
--  **Static File Handling**: Simplifies the management of static files
-   (images, stylesheets, etc.), by setting up a local path for their
-   serving, facilitating their inclusion in the application.
-
-Runtime Configuration
-~~~~~~~~~~~~~~~~~~~~~
-
--  **Dynamic HTML Templates**: Radiant offers a custom HTML template
-   system, configurable at runtime, to dynamically import server-side
-   scripts into the browser environment.
-
-Benefits
---------
-
--  **Streamlined Development Process**: By unifying the development
-   language and environment, Radiant significantly reduces the
-   complexity and learning curve associated with traditional web
-   development.
--  **Code Efficiency**: Eliminates the need for writing separate
-   frontend and backend code, leading to more maintainable and concise
-   codebases.
--  **Focus on Quality**: Developers can concentrate on crafting
-   high-quality Python code, without the distractions of dealing with
-   various web technologies.
-
-.. |GitHub top language| image:: https://img.shields.io/github/languages/top/un-gcpds/brython-radiant?
-.. |PyPI - License| image:: https://img.shields.io/pypi/l/radiant?
-.. |PyPI| image:: https://img.shields.io/pypi/v/radiant?
-.. |PyPI - Status| image:: https://img.shields.io/pypi/status/radiant?
-.. |PyPI - Python Version| image:: https://img.shields.io/pypi/pyversions/radiant?
-.. |GitHub last commit| image:: https://img.shields.io/github/last-commit/un-gcpds/brython-radiant?
-.. |CodeFactor Grade| image:: https://img.shields.io/codefactor/grade/github/UN-GCPDS/brython-radiant?
-.. |Documentation Status| image:: https://readthedocs.org/projects/radiant/badge/?version=latest
-   :target: https://radiant-framework.readthedocs.io/en/latest/?badge=latest
-
-Installation
-------------
-
-To install Radiant, you can use ``pip``, the Python package manager.
-Simply run the following command in your terminal:
-
-.. code:: ipython3
-
-    pip install radiant-framework
-
-Bare minimum
-------------
-
-To help you get started with Radiant, let’s walk through a bare minimum
-example. This example will demonstrate how to create a simple web page
-that displays some text. We’ll utilize the Radiant framework to craft
-the page and run it on a local server. This is an excellent way to
-familiarize yourself with how Radiant functions and to begin exploring
-its capabilities.
+Getting Started
+---------------
 
 Prerequisites
 ~~~~~~~~~~~~~
 
-Before proceeding, ensure that you have Radiant installed on your
-system. If you haven’t installed Radiant yet, please refer to the
-`Installation <#installation>`__ section for guidance.
+-  Python 3.7 or higher
+-  Basic understanding of Python
+-  pip package manager
 
-Creating a Simple Web Page
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Installation
+~~~~~~~~~~~~
 
-The following script illustrates a basic application using Radiant. This
-script will set up a simple web page displaying a heading.
+Install Radiant using pip:
+
+.. code:: bash
+
+   pip install radiant-framework
+
+Quick Example
+~~~~~~~~~~~~~
+
+Here’s a minimal example to get you started:
 
 .. code:: ipython3
 
-    from radiant.framework.server import RadiantAPI
+    from radiant.framework.server import RadiantInterfaceApp
     from browser import document, html
     
-    class BareMinimum(RadiantAPI):
     
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            document.select_one('body') <= html.H1('Radiant-Framework')
+    # Define a simple application using RadiantInterfaceApp
+    class MinimalApp(RadiantInterfaceApp):
     
-    if __name__ == '__main__':
-        BareMinimum()
+        def on_mount(self):
+            document <= html.H1("Minimal Interface App")
+            document <= html.P("This is a single-page app using Radiant.")
+    
+    
+    # Launch the app with default settings
+    if __name__ == "__main__":
+        MinimalApp.serve()
+
+Visit http://localhost:5050 to see your first Radiant application!

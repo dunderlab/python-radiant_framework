@@ -11,35 +11,15 @@ Documentation Overview
    :name: mastertoc
 
    notebooks/01-radiant_framework
-   notebooks/02-websockets
-   notebooks/03-python_api
-   notebooks/04-brython_enhancement
-
-
-.. toctree::
-   :glob:
-   :maxdepth: 2
-   :name: mastertoc3
-   :caption: Material 3
-
-   notebooks/material3/*
-
-
-.. toctree::
-   :glob:
-   :maxdepth: 2
-   :name: mastertoc3
-   :caption: Bootstrap
-
-   notebooks/bootstrap/*
-
-    
+   notebooks/02-host_python
+   notebooks/03-templates
+   notebooks/04-meta
+   notebooks/05-brython_enhancement
+   notebooks/06-websockets
 
 
 
 
-.. container:: dunderlab-footer
 
-    .. include:: notebooks/footer.rst
-        
+
         
