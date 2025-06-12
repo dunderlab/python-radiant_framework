@@ -54,10 +54,9 @@ class RadiantInterfaceApp:
             if module and module != "None":
                 setattr(self, class_, LocalInterpreter(endpoint=endpoint))
 
-        self.on_mount()
-
         self.body = select("body")
         self.head = select("head")
+        self.on_mount()
 
     def add_css_file(self, file):
         """
