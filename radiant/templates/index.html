@@ -30,10 +30,10 @@
 
     <script type="text/python">
         import sys
-        from fake import fake
+        from fake import Fake
 
         for module in $mock_imports:
-            sys.modules[module] = fake()
+            sys.modules[module] = Fake()
 
         from $root_file import $class_name as RadiantClass
         _ = RadiantClass()
