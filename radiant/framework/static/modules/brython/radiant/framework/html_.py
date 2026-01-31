@@ -2,7 +2,6 @@ from browser import html as html_
 from browser import document as document_
 
 
-########################################################################
 class style_context:
     """"""
 
@@ -28,7 +27,6 @@ class style_context:
         return setattr(self.style, attr, value)
 
 
-########################################################################
 class class_context(list):
     """"""
 
@@ -76,7 +74,6 @@ class class_context(list):
         return None
 
 
-########################################################################
 class select(list):
     """"""
 
@@ -184,7 +181,6 @@ class select(list):
             element <= other
 
 
-########################################################################
 class html_context:
     """"""
 
@@ -228,7 +224,6 @@ class html_context:
         return self
 
 
-########################################################################
 class Element:
     """"""
 

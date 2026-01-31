@@ -9,7 +9,6 @@ from browser import ajax, window, websocket, document, timer
 import json
 
 
-########################################################################
 class Environ_:
     """"""
 
@@ -36,7 +35,6 @@ class Environ_:
 environ = Environ_()
 
 
-########################################################################
 class LocalInterpreter:
     """AndroidMain
 
@@ -120,7 +118,6 @@ class LocalInterpreter:
         return __ajax__
 
 
-########################################################################
 class WebSocket:
     """WebSocket
 
