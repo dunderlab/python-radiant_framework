@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 import json
 import os
 import mimetypes
+from collections import defaultdict
 
 BASE_DIR = os.path.dirname(__file__)
 
@@ -26,7 +27,7 @@ def render_template(name, context):
     with open(path, "r", encoding="utf-8") as f:
         template = Template(f.read())
 
-    return template.safe_substitute(context).encode("utf-8")
+    return template.safe_substitute(defaultdict(str, context)).encode("utf-8")
 
 
 class RequestHandler(BaseHTTPRequestHandler):

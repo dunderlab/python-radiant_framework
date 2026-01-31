@@ -9,7 +9,6 @@ from interpreter import Interpreter
 RadiantServer = None
 
 
-########################################################################
 class RadiantInterfaceApp:
     """
     Represents the core interface for a Radiant Framework application.
