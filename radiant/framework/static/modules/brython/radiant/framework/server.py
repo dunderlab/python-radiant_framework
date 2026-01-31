@@ -56,6 +56,7 @@ class RadiantInterfaceApp:
 
         self.body = select("body")
         self.head = select("head")
+
         self.on_mount()
 
     def add_css_file(self, file):
