@@ -40,12 +40,24 @@ class BythonServer:
         return Element(element)
 
     @classmethod
-    def get(cls, route) -> Callable:
-        """"""
+    def get(cls, route: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Decorator for defining HTTP GET-based client handlers.
 
-        def decorator(fn):
+        Parameters
+        ----------
+        route : str
+            Base route for the GET request.
+
+        Returns
+        -------
+        Callable
+            A decorator that wraps a function with GET-fetch behavior.
+        """
+
+        def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
             @wraps(fn)
-            def wrapper(cls, **kwargs):
+            def wrapper(cls, **kwargs: Any) -> Any:
                 if kwargs:
                     query = urlencode(kwargs, doseq=True)
                     url = f"{route}?{query}"
@@ -62,11 +74,24 @@ class BythonServer:
         return decorator
 
     @classmethod
-    def post(cls, route):
+    def post(cls, route: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Decorator for defining HTTP POST-based client handlers.
 
-        def decorator(fn):
+        Parameters
+        ----------
+        route : str
+            Target route for the POST request.
+
+        Returns
+        -------
+        Callable
+            A decorator that wraps a function with POST-fetch behavior.
+        """
+
+        def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
             @wraps(fn)
-            def wrapper(cls, **kwargs):
+            def wrapper(**kwargs: Any) -> Any:
                 body = json.dumps(kwargs)
 
                 return (
@@ -87,10 +112,27 @@ class BythonServer:
         return decorator
 
     @classmethod
-    def view(cls, route) -> Callable:
-        def decorator(fn):
+    def view(cls, route: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Decorator for registering a view handler.
+
+        This decorator currently acts as a pass-through and exists
+        for semantic consistency with other route decorators.
+
+        Parameters
+        ----------
+        route : str
+            Route associated with the view.
+
+        Returns
+        -------
+        Callable
+            A decorator that returns the original function unchanged.
+        """
+
+        def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
             @wraps(fn)
-            def wrapper(*args, **kwargs):
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
                 return fn(*args, **kwargs)
 
             return wrapper
