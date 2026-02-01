@@ -36,7 +36,8 @@
             sys.modules[module] = Fake()
 
         from $root_file import $class_name as RadiantClass
-        _ = RadiantClass()
+        _ = RadiantClass.__new__(RadiantClass)
+        getattr(_, "$call")()
     </script>
 
 
