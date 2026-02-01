@@ -11,7 +11,9 @@ import json
 class BythonServer:
     """Minimal threaded HTTP server wrapper with shared configuration."""
 
-    routes = {}
+    get_routes = {}
+    post_routes = {}
+    html_routes = {}
 
     @classmethod
     def serve(
@@ -52,7 +54,9 @@ class BythonServer:
             **kwargs,
         }
 
-        server.routes = cls.routes
+        server.get_routes = cls.get_routes
+        server.post_routes = cls.post_routes
+        server.html_routes = cls.html_routes
 
         print(f"Server running on http://{ip}:{port}")
 
@@ -68,7 +72,33 @@ class BythonServer:
         """"""
 
         def decorator(fn):
-            cls.routes[route] = fn
+            cls.get_routes[route] = fn
+
+            @wraps(fn)
+            def wrapper(*args, **kwargs):
+                return fn(cls, *args, **kwargs)
+
+            return wrapper
+
+        return decorator
+
+    @classmethod
+    def post(cls, route) -> Callable:
+        def decorator(fn):
+            cls.post_routes[route] = fn
+
+            @wraps(fn)
+            def wrapper(*args, **kwargs):
+                return fn(*args, **kwargs)
+
+            return wrapper
+
+        return decorator
+
+    @classmethod
+    def view(cls, route) -> Callable:
+        def decorator(fn):
+            cls.html_routes[route] = fn.__name__
 
             @wraps(fn)
             def wrapper(*args, **kwargs):
