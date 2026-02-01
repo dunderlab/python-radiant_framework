@@ -1,0 +1,13 @@
+body {
+    background-color: #f5f7fb; /* soft gray-blue */
+    padding: 10vw;
+    font-family: system-ui, sans-serif;
+}
+
+h1 {
+    color: #1e3a8a; /* navy */
+}
+
+p {
+    color: #374151; /* dark gray */
+}
