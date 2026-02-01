@@ -72,6 +72,32 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     server_version = "SimplePythonHTTP/1.0"
 
+    def _read_body(self):
+        length = int(self.headers.get("Content-Length", 0))
+        if length == 0:
+            return b""
+        return self.rfile.read(length)
+
+    def _get_post_data(self):
+        content_type = self.headers.get("Content-Type", "")
+        raw = self._read_body()
+
+        if not raw:
+            return None
+
+        if "application/json" in content_type:
+            import json
+
+            return json.loads(raw)
+
+        if "application/x-www-form-urlencoded" in content_type:
+            from urllib.parse import parse_qs
+
+            data = parse_qs(raw.decode())
+            return {k: v[0] if len(v) == 1 else v for k, v in data.items()}
+
+        return raw  # bytes crudos
+
     def _send(
         self,
         status: int = 200,
@@ -117,7 +143,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         # ---------------- API ---------------- #
 
-        if route := self.server.routes.get(parsed.path):
+        if route := self.server.get_routes.get(parsed.path):
             self._send(**route(**query))
             return
 
@@ -133,6 +159,25 @@ class RequestHandler(BaseHTTPRequestHandler):
                     "path": ["."],
                     "root_file": os.path.splitext(os.path.basename(sys.argv[0]))[0],
                     "mock_imports": [],
+                    "call": "__init__",
+                    # PSS: Explicitly merged server config
+                    **getattr(self.server, "config", {}),
+                },
+            )
+            self._send(200, html, "text/html")
+            return
+
+        elif route := self.server.html_routes.get(parsed.path):
+            html = render_template(
+                "index.html",
+                {
+                    "domain": "",
+                    "brython_version": "3.13.1",
+                    "debug_level": "0",
+                    "path": ["."],
+                    "root_file": os.path.splitext(os.path.basename(sys.argv[0]))[0],
+                    "mock_imports": [],
+                    "call": route,
                     # PSS: Explicitly merged server config
                     **getattr(self.server, "config", {}),
                 },
@@ -155,5 +200,25 @@ class RequestHandler(BaseHTTPRequestHandler):
             if os.path.isfile(candidate):
                 self._serve_file(candidate)
                 return
+
+        self._send(404, b"Not Found")
+
+    def do_POST(self) -> None:
+        """
+        Handle HTTP POST requests.
+        """
+        parsed = urlparse(self.path)
+
+        try:
+            data = self._get_post_data()
+        except ValueError:
+            self.send_error(400, "Invalid request body")
+            return
+
+        # ---------------- API ---------------- #
+
+        if route := self.server.post_routes.get(parsed.path):
+            self._send(**route(**data))
+            return
 
         self._send(404, b"Not Found")
