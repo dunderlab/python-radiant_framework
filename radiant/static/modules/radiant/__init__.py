@@ -5,13 +5,14 @@ from fake import Fake
 
 from browser import ajax
 from urllib.parse import urlencode
-from browser import window
+from browser import window, document
 import json
+import os
 
 from functools import wraps
 
 
-class BythonServer:
+class BrythonServer:
     """
     Integration helper exposing Radiant core primitives.
 
@@ -22,6 +23,8 @@ class BythonServer:
     # Exposed core utilities as class attributes for easy access
     select = select
     html = html
+    document = document
+    window = window
 
     def enhance(self, element: Any) -> Element:
         """
@@ -176,6 +179,24 @@ class BythonServer:
             return wrapper
 
         return decorator
+
+    def add_css_file(self, file):
+        """
+        Adds a CSS file to the document's head element.
+
+        This method appends a CSS link element to the <head> section of the document,
+        allowing the specific CSS file to be applied to the webpage. The CSS file path
+        should be relative to the specified root directory defined in the `href`.
+
+        Parameters
+        ----------
+        file : str
+            The relative path to the CSS file to be added. This path will be combined
+            with the root directory to correctly locate the file.
+        """
+        document.select("head")[0] <= html.LINK(
+            href=file, type="text/css", rel="stylesheet"
+        )
 
 
 json_response = Fake()

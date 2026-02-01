@@ -20,6 +20,16 @@ STATIC_DIRS: list[str] = [
 TEMPLATES_DIR: str = os.path.join(BASE_DIR, "templates")
 
 
+DEFAULT_CONFIG: dict[str, Any] = {
+    "domain": "",
+    "brython_version": "latest",
+    "debug_level": "0",
+    "path": ["."],
+    "mock_imports": [],
+    "static": [],
+}
+
+
 def render_template(name: str, context: Dict[str, Any]) -> bytes:
     """
     Render an HTML template using string substitution.
@@ -153,33 +163,24 @@ class RequestHandler(BaseHTTPRequestHandler):
             html = render_template(
                 "index.html",
                 {
-                    "domain": "",
-                    "brython_version": "3.13.1",
-                    "debug_level": "0",
-                    "path": ["."],
-                    "root_file": os.path.splitext(os.path.basename(sys.argv[0]))[0],
-                    "mock_imports": [],
-                    "call": "__init__",
-                    # PSS: Explicitly merged server config
+                    **DEFAULT_CONFIG,
                     **getattr(self.server, "config", {}),
+                    "root_file": os.path.splitext(os.path.basename(sys.argv[0]))[0],
+                    "call": "__init__",
                 },
             )
             self._send(200, html, "text/html")
             return
 
         elif route := self.server.html_routes.get(parsed.path):
+
             html = render_template(
                 "index.html",
                 {
-                    "domain": "",
-                    "brython_version": "3.13.1",
-                    "debug_level": "0",
-                    "path": ["."],
-                    "root_file": os.path.splitext(os.path.basename(sys.argv[0]))[0],
-                    "mock_imports": [],
-                    "call": route,
-                    # PSS: Explicitly merged server config
+                    **DEFAULT_CONFIG,
                     **getattr(self.server, "config", {}),
+                    "root_file": os.path.splitext(os.path.basename(sys.argv[0]))[0],
+                    "call": route.__name__,
                 },
             )
             self._send(200, html, "text/html")
@@ -189,7 +190,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         requested_path = parsed.path.lstrip("/")
 
-        for static_dir in STATIC_DIRS:
+        for static_dir in STATIC_DIRS + self.server.config.get("static", []):
             base = os.path.abspath(static_dir)
             candidate = os.path.abspath(os.path.join(base, requested_path))
 
