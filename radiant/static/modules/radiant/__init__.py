@@ -56,20 +56,37 @@ class BythonServer:
         """
 
         def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
-            @wraps(fn)
-            def wrapper(cls, **kwargs: Any) -> Any:
-                if kwargs:
-                    query = urlencode(kwargs, doseq=True)
-                    url = f"{route}?{query}"
-                else:
-                    url = route
-                return (
-                    window.fetch(url)
-                    .then(lambda r: r.text())
-                    .then(lambda text: json.loads(text))
-                )
+            # @wraps(fn)
+            # def wrapper(cls, **kwargs: Any) -> Any:
+            #     if kwargs:
+            #         query = urlencode(kwargs, doseq=True)
+            #         url = f"{route}?{query}"
+            #     else:
+            #         url = route
+            #     return (
+            #         window.fetch(url)
+            #         .then(lambda r: r.text())
+            #         .then(lambda text: json.loads(text))
+            #     )
+            #
+            # return wrapper
 
-            return wrapper
+            class wrapper:
+
+                def call(self, **kwargs: Any) -> Any:
+                    """"""
+                    if kwargs:
+                        query = urlencode(kwargs, doseq=True)
+                        url = f"{route}?{query}"
+                    else:
+                        url = route
+                    return (
+                        window.fetch(url)
+                        .then(lambda r: r.text())
+                        .then(lambda text: json.loads(text))
+                    )
+
+            return wrapper()
 
         return decorator
 
@@ -90,24 +107,45 @@ class BythonServer:
         """
 
         def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
-            @wraps(fn)
-            def wrapper(**kwargs: Any) -> Any:
-                body = json.dumps(kwargs)
+            # @wraps(fn)
+            # def wrapper(**kwargs: Any) -> Any:
+            #     body = json.dumps(kwargs)
+            #
+            #     return (
+            #         window.fetch(
+            #             route,
+            #             {
+            #                 "method": "POST",
+            #                 "headers": {"Content-Type": "application/json"},
+            #                 "body": body,
+            #             },
+            #         )
+            #         .then(lambda r: r.text())
+            #         .then(lambda text: json.loads(text))
+            #     )
+            #
+            # return wrapper
 
-                return (
-                    window.fetch(
-                        route,
-                        {
-                            "method": "POST",
-                            "headers": {"Content-Type": "application/json"},
-                            "body": body,
-                        },
+            class wrapper:
+
+                def call(self, **kwargs: Any) -> Any:
+                    """"""
+                    body = json.dumps(kwargs)
+
+                    return (
+                        window.fetch(
+                            route,
+                            {
+                                "method": "POST",
+                                "headers": {"Content-Type": "application/json"},
+                                "body": body,
+                            },
+                        )
+                        .then(lambda r: r.text())
+                        .then(lambda text: json.loads(text))
                     )
-                    .then(lambda r: r.text())
-                    .then(lambda text: json.loads(text))
-                )
 
-            return wrapper
+            return wrapper()
 
         return decorator
 
