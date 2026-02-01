@@ -19,7 +19,7 @@ class BythonServer:
     def serve(
         cls: Type["BythonServer"],
         ip: str = "localhost",
-        port: int = 8000,
+        port: int = 5050,
         **kwargs: Any,
     ) -> None:
         """
