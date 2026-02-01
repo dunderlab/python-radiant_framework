@@ -8,8 +8,7 @@ A lightweight and Python-first runtime bridge for building web applications with
 ![PyPI - Status](https://img.shields.io/pypi/status/radiant-runtime-bridge?)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/radiant-runtime-bridge?)
 ![GitHub last commit](https://img.shields.io/github/last-commit/dunderlab/radiant-runtime-bridge?)
-
-[//]: # (![CodeFactor Grade]&#40;https://img.shields.io/codefactor/grade/github/dunderlab/radiant-runtime-bridge?&#41;)
+![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/dunderlab/radiant-runtime-bridge?)
 
 ## Overview
 
