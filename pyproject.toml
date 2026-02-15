@@ -26,7 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.8",
 ]
-dependencies = ["brython"]
+dependencies = []
 urls = { "Download" = "https://github.com/dunderlab/python-radiant-runtime-bridge" }
 
 [tool.setuptools]
