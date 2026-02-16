@@ -1,6 +1,6 @@
 // brython.js brython.info
-// version [3, 13, 0, 'final', 0]
-// implementation [3, 13, 1, 'dev', 0]
+// version [3, 14, 0, 'final', 0]
+// implementation [3, 14, 0, 'dev', 0]
 // version compiled from commented, indented source files at
 // github.com/brython-dev/brython
 var __BRYTHON__=globalThis.__BRYTHON__ ||{}
@@ -47,6 +47,10 @@ $B.strip_host=function(url){try{var parsed_url=new URL(url)
 return parsed_url.pathname.substr(1)+parsed_url.search+
 parsed_url.hash}catch{console.log(Error().stack)
 throw Error("not a url: "+url)}}
+var href=$B.script_path=_window.location.href.split('#')[0],href_elts=href.split('/')
+href_elts.pop()
+if($B.isWebWorker ||$B.isNode){href_elts.pop()}
+$B.curdir=href_elts.join('/')
 $B.webworkers={}
 $B.file_cache={}
 $B.url2name={}
@@ -57,8 +61,6 @@ $B.precompiled={}
 $B.frame_obj=null
 $B.builtins=Object.create(null)
 $B.builtins_scope={id:'__builtins__',module:'__builtins__',binding:{}}
-$B.builtin_funcs={}
-$B.builtin_classes=[]
 $B.language=_window.navigator.userLanguage ||_window.navigator.language
 $B.locale="C" 
 var date=new Date()
@@ -127,13 +129,17 @@ const func_attrs=['__module__','__name__','__qualname__','__file__','__defaults_
 var i=0
 $B.func_attrs={}
 for(var func_attr of func_attrs){$B.func_attrs[func_attr]=i++}
-$B.set_func_names=function(klass,module){for(var attr in klass){if(typeof klass[attr]=='function'){$B.set_function_infos(klass[attr],{__doc__:klass[attr].__doc__ ||'',__module__:module,__name__:attr,__qualname__ :klass.__qualname__+'.'+attr,__defaults__:[],__kwdefaults__:{}}
+$B.set_func_names=function(klass,module){klass.__module__=module
+for(var attr in klass){if(typeof klass[attr]=='function'){$B.add_function_infos(klass,attr)}}}
+$B.add_function_infos=function(klass,attr){var module=klass.__module__
+$B.set_function_infos(klass[attr],{__doc__:klass[attr].__doc__ ||'',__module__:module,__name__:attr,__qualname__ :klass.__qualname__+'.'+attr,__defaults__:[],__kwdefaults__:{}}
 )
-if(klass[attr].$type=="classmethod"){klass[attr].__class__=$B.method}}}
-klass.__module__=module}
+if(klass[attr].$type=="classmethod"){klass[attr].__class__=$B.method}}
 $B.set_function_infos=function(f,attrs){f.$function_infos=f.$function_infos ??[]
 for(var key in attrs){if($B.func_attrs[key]===undefined){throw Error('no function attribute '+key)}
 f.$function_infos[$B.func_attrs[key]]=attrs[key]}}
+$B.set_function_attr=function(func,attr,value){if($B.func_attrs[attr]===undefined){throw Error('no function attribute '+attr)}
+func.$function_infos[$B.func_attrs[attr]]=value}
 var has_storage=typeof(Storage)!=="undefined"
 if(has_storage){$B.has_local_storage=false
 try{if(localStorage){$B.local_storage=localStorage
@@ -164,7 +170,8 @@ for(var file in files){$B.files[file]=files[file]}}
 $B.has_file=function(file){
 return($B.files && $B.files.hasOwnProperty(file))}
 $B.show_tokens=function(src,mode){
-for(var token of $B.tokenizer(src,'<string>',mode ||'file')){console.log(token.type,$B.builtins.repr(token.string),token.start,token.end,token.line)}}
+for(var token of $B.tokenizer(src,'<string>',mode ||'file')){console.log(token.type,$B.builtins.repr(token.string),`[${token.lineno}.${token.col_offset}-`+
+`${token.end_lineno}.${token.end_col_offset}]`,token.line)}}
 function from_py(src,script_id){if(! $B.options_parsed){
 $B.parse_options()}
 script_id=script_id ||'python_script_'+$B.UUID()
@@ -189,27 +196,28 @@ var script=new fakeScript(),url=$B.script_path=globalThis.location.href.split('#
 if(options){for(var[key,value]of Object.entries(options)){script.options[key]=value}}
 script_id=script_id ?? 'python_script_'+$B.UUID()
 $B.run_script(script,src,script_id,url,true)
-return $B.imported[script_id]}})(__BRYTHON__)
+return $B.imported[script_id]}
+$B.importPythonModule=function(name,options){return $B.runPythonSource('import '+name,options)}})(__BRYTHON__);
 ;
 
-__BRYTHON__.ast_classes={Add:'',And:'',AnnAssign:'target,annotation,value?,simple',Assert:'test,msg?',Assign:'targets*,value,type_comment?',AsyncFor:'target,iter,body*,orelse*,type_comment?',AsyncFunctionDef:'name,args,body*,decorator_list*,returns?,type_comment?,type_params*',AsyncWith:'items*,body*,type_comment?',Attribute:'value,attr,ctx',AugAssign:'target,op,value',Await:'value',BinOp:'left,op,right',BitAnd:'',BitOr:'',BitXor:'',BoolOp:'op,values*',Break:'',Call:'func,args*,keywords*',ClassDef:'name,bases*,keywords*,body*,decorator_list*,type_params*',Compare:'left,ops*,comparators*',Constant:'value,kind?',Continue:'',Del:'',Delete:'targets*',Dict:'keys*,values*',DictComp:'key,value,generators*',Div:'',Eq:'',ExceptHandler:'type?,name?,body*',Expr:'value',Expression:'body',FloorDiv:'',For:'target,iter,body*,orelse*,type_comment?',FormattedValue:'value,conversion,format_spec?',FunctionDef:'name,args,body*,decorator_list*,returns?,type_comment?,type_params*',FunctionType:'argtypes*,returns',GeneratorExp:'elt,generators*',Global:'names*',Gt:'',GtE:'',If:'test,body*,orelse*',IfExp:'test,body,orelse',Import:'names*',ImportFrom:'module?,names*,level?',In:'',Interactive:'body*',Invert:'',Is:'',IsNot:'',JoinedStr:'values*',LShift:'',Lambda:'args,body',List:'elts*,ctx',ListComp:'elt,generators*',Load:'',Lt:'',LtE:'',MatMult:'',Match:'subject,cases*',MatchAs:'pattern?,name?',MatchClass:'cls,patterns*,kwd_attrs*,kwd_patterns*',MatchMapping:'keys*,patterns*,rest?',MatchOr:'patterns*',MatchSequence:'patterns*',MatchSingleton:'value',MatchStar:'name?',MatchValue:'value',Mod:'',Module:'body*,type_ignores*',Mult:'',Name:'id,ctx',NamedExpr:'target,value',Nonlocal:'names*',Not:'',NotEq:'',NotIn:'',Or:'',ParamSpec:'name,default_value?',Pass:'',Pow:'',RShift:'',Raise:'exc?,cause?',Return:'value?',Set:'elts*',SetComp:'elt,generators*',Slice:'lower?,upper?,step?',Starred:'value,ctx',Store:'',Sub:'',Subscript:'value,slice,ctx',Try:'body*,handlers*,orelse*,finalbody*',TryStar:'body*,handlers*,orelse*,finalbody*',Tuple:'elts*,ctx',TypeAlias:'name,type_params*,value',TypeIgnore:'lineno,tag',TypeVar:'name,bound?,default_value?',TypeVarTuple:'name,default_value?',UAdd:'',USub:'',UnaryOp:'op,operand',While:'test,body*,orelse*',With:'items*,body*,type_comment?',Yield:'value?',YieldFrom:'value',alias:'name,asname?',arg:'arg,annotation?,type_comment?',arguments:'posonlyargs*,args*,vararg?,kwonlyargs*,kw_defaults*,kwarg?,defaults*',boolop:['And','Or'],cmpop:['Eq','NotEq','Lt','LtE','Gt','GtE','Is','IsNot','In','NotIn'],comprehension:'target,iter,ifs*,is_async',excepthandler:['ExceptHandler'],expr:['BoolOp','NamedExpr','BinOp','UnaryOp','Lambda','IfExp','Dict','Set','ListComp','SetComp','DictComp','GeneratorExp','Await','Yield','YieldFrom','Compare','Call','FormattedValue','JoinedStr','Constant','Attribute','Subscript','Starred','Name','List','Tuple','Slice'],expr_context:['Load','Store','Del'],keyword:'arg?,value',match_case:'pattern,guard?,body*',mod:['Module','Interactive','Expression','FunctionType'],operator:['Add','Sub','Mult','MatMult','Div','Mod','Pow','LShift','RShift','BitOr','BitXor','BitAnd','FloorDiv'],pattern:['MatchValue','MatchSingleton','MatchSequence','MatchMapping','MatchClass','MatchStar','MatchAs','MatchOr'],stmt:['FunctionDef','AsyncFunctionDef','ClassDef','Return','Delete','Assign','TypeAlias','AugAssign','AnnAssign','For','AsyncFor','While','If','With','AsyncWith','Match','Raise','Try','TryStar','Assert','Import','ImportFrom','Global','Nonlocal','Expr','Pass','Break','Continue'],type_ignore:['TypeIgnore'],type_param:['TypeVar','ParamSpec','TypeVarTuple'],unaryop:['Invert','Not','UAdd','USub'],withitem:'context_expr,optional_vars?'}
+__BRYTHON__.ast_classes={Add:'',And:'',AnnAssign:'target,annotation,value?,simple',Assert:'test,msg?',Assign:'targets*,value,type_comment?',AsyncFor:'target,iter,body*,orelse*,type_comment?',AsyncFunctionDef:'name,args,body*,decorator_list*,returns?,type_comment?,type_params*',AsyncWith:'items*,body*,type_comment?',Attribute:'value,attr,ctx',AugAssign:'target,op,value',Await:'value',BinOp:'left,op,right',BitAnd:'',BitOr:'',BitXor:'',BoolOp:'op,values*',Break:'',Call:'func,args*,keywords*',ClassDef:'name,bases*,keywords*,body*,decorator_list*,type_params*',Compare:'left,ops*,comparators*',Constant:'value,kind?',Continue:'',Del:'',Delete:'targets*',Dict:'keys*,values*',DictComp:'key,value,generators*',Div:'',Eq:'',ExceptHandler:'type?,name?,body*',Expr:'value',Expression:'body',FloorDiv:'',For:'target,iter,body*,orelse*,type_comment?',FormattedValue:'value,conversion,format_spec?',FunctionDef:'name,args,body*,decorator_list*,returns?,type_comment?,type_params*',FunctionType:'argtypes*,returns',GeneratorExp:'elt,generators*',Global:'names*',Gt:'',GtE:'',If:'test,body*,orelse*',IfExp:'test,body,orelse',Import:'names*',ImportFrom:'module?,names*,level?',In:'',Interactive:'body*',Interpolation:'value,str,conversion,format_spec?',Invert:'',Is:'',IsNot:'',JoinedStr:'values*',LShift:'',Lambda:'args,body',List:'elts*,ctx',ListComp:'elt,generators*',Load:'',Lt:'',LtE:'',MatMult:'',Match:'subject,cases*',MatchAs:'pattern?,name?',MatchClass:'cls,patterns*,kwd_attrs*,kwd_patterns*',MatchMapping:'keys*,patterns*,rest?',MatchOr:'patterns*',MatchSequence:'patterns*',MatchSingleton:'value',MatchStar:'name?',MatchValue:'value',Mod:'',Module:'body*,type_ignores*',Mult:'',Name:'id,ctx',NamedExpr:'target,value',Nonlocal:'names*',Not:'',NotEq:'',NotIn:'',Or:'',ParamSpec:'name,default_value?',Pass:'',Pow:'',RShift:'',Raise:'exc?,cause?',Return:'value?',Set:'elts*',SetComp:'elt,generators*',Slice:'lower?,upper?,step?',Starred:'value,ctx',Store:'',Sub:'',Subscript:'value,slice,ctx',TemplateStr:'values*',Try:'body*,handlers*,orelse*,finalbody*',TryStar:'body*,handlers*,orelse*,finalbody*',Tuple:'elts*,ctx',TypeAlias:'name,type_params*,value',TypeIgnore:'lineno,tag',TypeVar:'name,bound?,default_value?',TypeVarTuple:'name,default_value?',UAdd:'',USub:'',UnaryOp:'op,operand',While:'test,body*,orelse*',With:'items*,body*,type_comment?',Yield:'value?',YieldFrom:'value',alias:'name,asname?',arg:'arg,annotation?,type_comment?',arguments:'posonlyargs*,args*,vararg?,kwonlyargs*,kw_defaults*,kwarg?,defaults*',boolop:['And','Or'],cmpop:['Eq','NotEq','Lt','LtE','Gt','GtE','Is','IsNot','In','NotIn'],comprehension:'target,iter,ifs*,is_async',excepthandler:['ExceptHandler'],expr:['BoolOp','NamedExpr','BinOp','UnaryOp','Lambda','IfExp','Dict','Set','ListComp','SetComp','DictComp','GeneratorExp','Await','Yield','YieldFrom','Compare','Call','FormattedValue','Interpolation','JoinedStr','TemplateStr','Constant','Attribute','Subscript','Starred','Name','List','Tuple','Slice'],expr_context:['Load','Store','Del'],keyword:'arg?,value',match_case:'pattern,guard?,body*',mod:['Module','Interactive','Expression','FunctionType'],operator:['Add','Sub','Mult','MatMult','Div','Mod','Pow','LShift','RShift','BitOr','BitXor','BitAnd','FloorDiv'],pattern:['MatchValue','MatchSingleton','MatchSequence','MatchMapping','MatchClass','MatchStar','MatchAs','MatchOr'],stmt:['FunctionDef','AsyncFunctionDef','ClassDef','Return','Delete','Assign','TypeAlias','AugAssign','AnnAssign','For','AsyncFor','While','If','With','AsyncWith','Match','Raise','Try','TryStar','Assert','Import','ImportFrom','Global','Nonlocal','Expr','Pass','Break','Continue'],type_ignore:['TypeIgnore'],type_param:['TypeVar','ParamSpec','TypeVarTuple'],unaryop:['Invert','Not','UAdd','USub'],withitem:'context_expr,optional_vars?'}
 ;
 __BRYTHON__.stdlib = {}
 
 var $B=__BRYTHON__
 $B.unicode={"No_digits":[178,179,185,[4969,9],6618,8304,[8308,6],[8320,10],[9312,9],[9332,9],[9352,9],9450,[9461,9],9471,[10102,9],[10112,9],[10122,9],[68160,4],[69216,9],[69714,9],[127232,11]],"Lo_numeric":[13317,13443,14378,15181,19968,19971,19975,19977,20004,20061,20108,20116,20118,20140,20159,20160,20191,20200,20237,20336,20457,20486,20740,20806,[20841,3,2],21313,[21315,3],21324,[21441,4],22235,22769,22777,24186,24318,24319,[24332,3],24336,25296,25342,25420,26578,27934,28422,29590,30334,30357,31213,32902,33836,36014,36019,36144,37390,38057,38433,38470,38476,38520,38646,63851,63859,63864,63922,63953,63955,63997,131073,131172,131298,131361,133418,133507,133516,133532,133866,133885,133913,140176,141720,146203,156269,194704]}
-$B.digits_starts=[48,1632,1776,1984,2406,2534,2662,2790,2918,3046,3174,3302,3430,3558,3664,3792,3872,4160,4240,6112,6160,6470,6608,6784,6800,6992,7088,7232,7248,42528,43216,43264,43472,43504,43600,44016,65296,66720,68912,69734,69872,69942,70096,70384,70736,70864,71248,71360,71472,71904,72016,72784,73040,73120,73552,92768,92864,93008,120782,120792,120802,120812,120822,123200,123632,124144,125264,130032]
+$B.digits_starts=[48,1632,1776,1984,2406,2534,2662,2790,2918,3046,3174,3302,3430,3558,3664,3792,3872,4160,4240,6112,6160,6470,6608,6784,6800,6992,7088,7232,7248,42528,43216,43264,43472,43504,43600,44016,65296,66720,68912,68928,69734,69872,69942,70096,70384,70736,70864,71248,71360,71376,71386,71472,71904,72016,72688,72784,73040,73120,73184,73552,90416,92768,92864,93008,93552,118000,120782,120792,120802,120812,120822,123200,123632,124144,124401,125264,130032]
 $B.unicode_casefold={223:[115,115],304:[105,775],329:[700,110],496:[106,780],912:[953,776,769],944:[965,776,769],1415:[1381,1410],7830:[104,817],7831:[116,776],7832:[119,778],7833:[121,778],7834:[97,702],7838:[223],8016:[965,787],8018:[965,787,768],8020:[965,787,769],8022:[965,787,834],8064:[7936,953],8065:[7937,953],8066:[7938,953],8067:[7939,953],8068:[7940,953],8069:[7941,953],8070:[7942,953],8071:[7943,953],8072:[8064],8073:[8065],8074:[8066],8075:[8067],8076:[8068],8077:[8069],8078:[8070],8079:[8071],8080:[7968,953],8081:[7969,953],8082:[7970,953],8083:[7971,953],8084:[7972,953],8085:[7973,953],8086:[7974,953],8087:[7975,953],8088:[8080],8089:[8081],8090:[8082],8091:[8083],8092:[8084],8093:[8085],8094:[8086],8095:[8087],8096:[8032,953],8097:[8033,953],8098:[8034,953],8099:[8035,953],8100:[8036,953],8101:[8037,953],8102:[8038,953],8103:[8039,953],8104:[8096],8105:[8097],8106:[8098],8107:[8099],8108:[8100],8109:[8101],8110:[8102],8111:[8103],8114:[8048,953],8115:[945,953],8116:[940,953],8118:[945,834],8119:[945,834,953],8124:[8115],8130:[8052,953],8131:[951,953],8132:[942,953],8134:[951,834],8135:[951,834,953],8140:[8131],8146:[953,776,768],8147:[912],8150:[953,834],8151:[953,776,834],8162:[965,776,768],8163:[944],8164:[961,787],8166:[965,834],8167:[965,776,834],8178:[8060,953],8179:[969,953],8180:[974,953],8182:[969,834],8183:[969,834,953],8188:[8179],64256:[102,102],64257:[102,105],64258:[102,108],64259:[102,102,105],64260:[102,102,108],64261:[64262],64262:[115,116],64275:[1396,1398],64276:[1396,1381],64277:[1396,1387],64278:[1406,1398],64279:[1396,1389]}
 $B.unicode_bidi_whitespace=[9,10,11,12,13,28,29,30,31,32,133,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8287,12288]
 ;
-__BRYTHON__.implementation=[3,13,1,'dev',0]
-__BRYTHON__.version_info=[3,13,0,'final',0]
-__BRYTHON__.compiled_date="2025-01-28 10:45:31.502100"
-__BRYTHON__.timestamp=1738057531501
-__BRYTHON__.builtin_module_names=["_ajax","_ast","_base64","_binascii","_io_classes","_json","_jsre","_locale","_multiprocessing","_posixsubprocess","_profile","_random","_sre","_sre_utils","_string","_strptime","_svg","_symtable","_tokenize","_webcomponent","_webworker","_zlib_utils","_zlib_utils1","_zlib_utils_kozh","array","builtins","dis","encoding_cp932","encoding_cp932_v2","hashlib","html_parser","marshal","math","modulefinder","posix","pyexpat","python_re","python_re_new","unicodedata","xml_helpers","xml_parser","xml_parser_backup"]
+__BRYTHON__.implementation=[3,14,0,'dev',0]
+__BRYTHON__.version_info=[3,14,0,'final',0]
+__BRYTHON__.compiled_date="2025-10-11 17:14:35.766098"
+__BRYTHON__.timestamp=1760195675765
+__BRYTHON__.builtin_module_names=["_ajax","_ast","_base64","_binascii","_io_classes","_json","_jsre","_locale","_multiprocessing","_posixsubprocess","_profile","_random","_sre","_sre_utils","_string","_svg","_symtable","_tokenize","_webcomponent","_webworker","_zlib_utils","_zlib_utils1","_zlib_utils_kozh","array","builtins","dis","encoding_cp932","encoding_cp932_v2","hashlib","html_parser","marshal","math","modulefinder","posix","pyexpat","python_re","python_re_new","unicodedata","xml_helpers","xml_parser","xml_parser_backup"];
 ;
 
-(function($B){const tokens=['ENDMARKER','NAME','NUMBER','STRING','NEWLINE','INDENT','DEDENT','LPAR','RPAR','LSQB','RSQB','COLON','COMMA','SEMI','PLUS','MINUS','STAR','SLASH','VBAR','AMPER','LESS','GREATER','EQUAL','DOT','PERCENT','LBRACE','RBRACE','EQEQUAL','NOTEQUAL','LESSEQUAL','GREATEREQUAL','TILDE','CIRCUMFLEX','LEFTSHIFT','RIGHTSHIFT','DOUBLESTAR','PLUSEQUAL','MINEQUAL','STAREQUAL','SLASHEQUAL','PERCENTEQUAL','AMPEREQUAL','VBAREQUAL','CIRCUMFLEXEQUAL','LEFTSHIFTEQUAL','RIGHTSHIFTEQUAL','DOUBLESTAREQUAL','DOUBLESLASH','DOUBLESLASHEQUAL','AT','ATEQUAL','RARROW','ELLIPSIS','COLONEQUAL','EXCLAMATION','OP','TYPE_IGNORE','TYPE_COMMENT','SOFT_KEYWORD','FSTRING_START','FSTRING_MIDDLE','FSTRING_END','COMMENT','NL',
+(function($B){const tokens=['ENDMARKER','NAME','NUMBER','STRING','NEWLINE','INDENT','DEDENT','LPAR','RPAR','LSQB','RSQB','COLON','COMMA','SEMI','PLUS','MINUS','STAR','SLASH','VBAR','AMPER','LESS','GREATER','EQUAL','DOT','PERCENT','LBRACE','RBRACE','EQEQUAL','NOTEQUAL','LESSEQUAL','GREATEREQUAL','TILDE','CIRCUMFLEX','LEFTSHIFT','RIGHTSHIFT','DOUBLESTAR','PLUSEQUAL','MINEQUAL','STAREQUAL','SLASHEQUAL','PERCENTEQUAL','AMPEREQUAL','VBAREQUAL','CIRCUMFLEXEQUAL','LEFTSHIFTEQUAL','RIGHTSHIFTEQUAL','DOUBLESTAREQUAL','DOUBLESLASH','DOUBLESLASHEQUAL','AT','ATEQUAL','RARROW','ELLIPSIS','COLONEQUAL','EXCLAMATION','OP','TYPE_IGNORE','TYPE_COMMENT','SOFT_KEYWORD','FSTRING_START','FSTRING_MIDDLE','FSTRING_END','TSTRING_START','TSTRING_MIDDLE','TSTRING_END','COMMENT','NL',
 'ERRORTOKEN','ENCODING','N_TOKENS'
 ]
 $B.py_tokens={}
@@ -219,7 +227,7 @@ $B.py_tokens['NT_OFFSET']=256
 $B.EXACT_TOKEN_TYPES={'!':'EXCLAMATION','!=':'NOTEQUAL','%':'PERCENT','%=':'PERCENTEQUAL','&':'AMPER','&=':'AMPEREQUAL','(':'LPAR',')':'RPAR','*':'STAR','**':'DOUBLESTAR','**=':'DOUBLESTAREQUAL','*=':'STAREQUAL','+':'PLUS','+=':'PLUSEQUAL',',':'COMMA','-':'MINUS','-=':'MINEQUAL','->':'RARROW','.':'DOT','...':'ELLIPSIS','/':'SLASH','//':'DOUBLESLASH','//=':'DOUBLESLASHEQUAL','/=':'SLASHEQUAL',':':'COLON',':=':'COLONEQUAL',';':'SEMI','<':'LESS','<<':'LEFTSHIFT','<<=':'LEFTSHIFTEQUAL','<=':'LESSEQUAL','=':'EQUAL','==':'EQEQUAL','>':'GREATER','>=':'GREATEREQUAL','>>':'RIGHTSHIFT','>>=':'RIGHTSHIFTEQUAL','@':'AT','@=':'ATEQUAL','[':'LSQB',']':'RSQB','^':'CIRCUMFLEX','^=':'CIRCUMFLEXEQUAL','{':'LBRACE','|':'VBAR','|=':'VBAREQUAL','}':'RBRACE','~':'TILDE'}
 function ISTERMINAL(x){return x < NT_OFFSET}
 function ISNONTERMINAL(x){return x >=NT_OFFSET}
-function ISEOF(x){return x==ENDMARKER}})(__BRYTHON__)
+function ISEOF(x){return x==ENDMARKER}})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 function is_whitespace(char){return ' \n\r\t\f'.includes(char)}
@@ -269,25 +277,35 @@ var step=table[start][2]
 if(step===undefined){return table[start][0]+table[start][1]> cp}
 return(table[start][0]+step*table[start][1]> cp)&&
 ((cp-table[start][0])% step)==0}
-const FSTRING_START='FSTRING_START',FSTRING_MIDDLE='FSTRING_MIDDLE',FSTRING_END='FSTRING_END'
+const FT_START={f:'FSTRING_START',t:'TSTRING_START'},FT_MIDDLE={f:'FSTRING_MIDDLE',t:'TSTRING_MIDDLE'},FT_END={f:'FSTRING_END',t:'TSTRING_END'}
 function ord(char){if(char.length==1){return char.charCodeAt(0)}
 var code=0x10000
 code+=(char.charCodeAt(0)& 0x03FF)<< 10
 code+=(char.charCodeAt(1)& 0x03FF)
 return code}
 function $last(array){return array[array.length-1]}
+function raise_error(err_type,filename,lineno,col_offset,end_lineno,end_col_offset,line,message){var exc=err_type.$factory(message)
+exc.filename=filename
+exc.lineno=lineno
+exc.offset=col_offset
+exc.end_lineno=end_lineno
+exc.end_offset=end_col_offset
+exc.text=line
+var args1=[filename,lineno,col_offset,line.trimRight(),end_lineno,end_col_offset]
+exc.args=$B.fast_tuple([message,$B.fast_tuple(args1)])
+throw exc}
 var ops='.,:;+-*/%~^|&=<>[](){}@',
 op2=['**','//','>>','<<'],augm_op='+-*/%^|&=<>@',closing={'}':'{',']':'[',')':'('}
-function ErrorToken(){var args=Array.from(arguments)
-args.$error_token=true
-return args}
+function ErrorToken(err_type,filename,lineno,col_offset,end_lineno,end_col_offset,line,message){var token=Token('ERRORTOKEN','',lineno,col_offset,end_lineno,end_col_offset,line)
+token.message=message
+return token}
 function ErrorTokenKnownToken(){var args=Array.from(arguments)
 args.$error_token_known_token=true
 return args}
-function Token(type,string,lineno,col_offset,end_lineno,end_col_offset,line){var res={type,string,line,lineno,col_offset,end_lineno,end_col_offset}
-res.num_type=$B.py_tokens[type]
-if(type=='OP'){res.num_type=$B.py_tokens[$B.EXACT_TOKEN_TYPES[string]]}else if(type=='ENCODING'){
-res.parser_ignored=true}else if(type=='NL' ||type=='COMMENT'){res.parser_ignored=true}
+function Token(type,string,lineno,col_offset,end_lineno,end_col_offset,line){
+var res={type,string,line,lineno,col_offset,end_lineno,end_col_offset}
+res.type=res.num_type=$B.py_tokens[type]
+if(type=='OP'){res.num_type=$B.py_tokens[$B.EXACT_TOKEN_TYPES[string]]}else if(type=='ENCODING'){res.parser_ignored=true}else if(type=='NL' ||type=='COMMENT'){res.parser_ignored=true}
 res.bytes=res.string 
 return res}
 function get_comment(parser,src,pos,line_num,line_start,token_name,line){var start=pos,ix
@@ -321,13 +339,13 @@ function nesting_level(token_modes){var ix=token_modes.length-1
 while(ix >=0){var mode=token_modes[ix]
 if(mode.nesting !==undefined){return mode.nesting}
 ix--}}
-$B.tokenizer=function(src,filename,mode,parser){var string_prefix=/^(r|u|R|U|f|F|fr|Fr|fR|FR|rf|rF|Rf|RF)$/,bytes_prefix=/^(b|B|br|Br|bR|BR|rb|rB|Rb|RB)$/,t=[]
+$B.tokenizer=function(src,filename,mode,parser){var string_prefix=/^(r|u|R|U|f|F|t|T||fr|Fr|fR|FR|rf|rF|Rf|RF||tr|Tr|tR|TR|rt|rT|Rt|RT)$/,bytes_prefix=/^(b|B|br|Br|bR|BR|rb|rB|Rb|RB)$/,t=[]
 if(mode !='eval' && ! src.endsWith('\n')){src+='\n'}
 var lines=src.split('\n'),linenum=0,line_at={}
 for(let i=0,len=src.length;i < len;i++){line_at[i]=linenum
 if(src[i]=='\n'){linenum++}}
 function get_line_at(pos){return lines[line_at[pos]]+'\n'}
-var state="line_start",char,cp,mo,pos=0,quote,triple_quote,escaped=false,string_start,string,prefix,name,number,num_type,comment,indent,indent_before_continuation=0,indents=[],braces=[],line,line_num=0,line_start=1,token_modes=['regular'],token_mode='regular',save_mode=token_mode,fstring_buffer,fstring_start,fstring_expr_start,fstring_escape,format_specifier
+var state="line_start",char,cp,mo,pos=0,quote,triple_quote,escaped=false,string_start,string,prefix,name,number,num_type,comment,indent,indent_before_continuation=0,indents=[],braces=[],line,line_num=0,line_start=1,token_modes=['regular'],token_mode='regular',save_mode=token_mode,format_specifier,ft_type,ft_buffer,ft_start,ft_expr_start,ft_escape,ft_format_spec
 if(parser){parser.braces=braces}
 t.push(Token('ENCODING','utf-8',0,0,0,0,''))
 while(pos < src.length){char=src[pos]
@@ -337,52 +355,53 @@ cp=ord(src.substr(pos,2))
 char=src.substr(pos,2)
 pos++}
 pos++
-if(token_mode !=save_mode){if(token_mode=='fstring'){fstring_buffer=''
-fstring_escape=false}else if(token_mode=='format_specifier'){format_specifier=''}}
+if(token_mode !=save_mode){if(token_mode=='ft'){ft_buffer=''
+ft_escape=false}else if(token_mode=='format_specifier'){format_specifier=''}}
 save_mode=token_mode
-if(token_mode=='fstring'){if(char==token_mode.quote){if(fstring_escape){fstring_buffer+='\\'+char
-fstring_escape=false
+if(token_mode=='ft'){
+if(char==token_mode.quote){if(ft_escape){ft_buffer+='\\'+char
+ft_escape=false
 continue}
-if(token_mode.triple_quote){if(src.substr(pos,2)!=token_mode.quote.repeat(2)){fstring_buffer+=char
+if(token_mode.triple_quote){if(src.substr(pos,2)!=token_mode.quote.repeat(2)){ft_buffer+=char
 continue}
 char=token_mode.quote.repeat(3)
 pos+=2}
-if(fstring_buffer.length > 0){
-t.push(Token(FSTRING_MIDDLE,fstring_buffer,line_num,fstring_start,line_num,fstring_start+fstring_buffer.length,line))}
-t.push(Token(FSTRING_END,char,line_num,pos-line_start,line_num,pos-line_start+1,line))
+if(ft_buffer.length > 0){
+t.push(Token(FT_MIDDLE[ft_type],ft_buffer,line_num,ft_start,line_num,ft_start+ft_buffer.length,line))}
+t.push(Token(FT_END[ft_type],char,line_num,pos-line_start,line_num,pos-line_start+1,line))
 token_modes.pop()
 token_mode=$B.last(token_modes)
 state=null
 continue}else if(char=='{'){if(src.charAt(pos)=='{'){
-fstring_buffer+=char
+ft_buffer+=char
 pos++
 continue}else{
-if(fstring_buffer.length > 0){t.push(Token(FSTRING_MIDDLE,fstring_buffer,line_num,fstring_start,line_num,fstring_start+fstring_buffer.length,line))}
-token_mode='regular_within_fstring'
-fstring_expr_start=pos-line_start
+if(ft_buffer.length > 0){t.push(Token(FT_MIDDLE[ft_type],ft_buffer,line_num,ft_start,line_num,ft_start+ft_buffer.length,line))}
+token_mode='regular_within_ft'
+ft_expr_start=pos-line_start
 state=null
 token_modes.push(token_mode)}}else if(char=='}'){if(src.charAt(pos)=='}'){
-fstring_buffer+=char
+ft_buffer+=char
 pos++
 continue}else{
 t.push(Token('OP',char,line_num,pos-line_start,line_num,pos-line_start+1,line))
-continue}}else if(char=='\\'){if(token_mode.raw){fstring_buffer+=char+char}else{if(fstring_escape){fstring_buffer+='\\'+char}
-fstring_escape=! fstring_escape}
-continue}else{if(fstring_escape){fstring_buffer+='\\'}
-fstring_buffer+=char
-fstring_escape=false
+continue}}else if(char=='\\'){if(token_mode.raw){ft_buffer+=char+char}else{if(ft_escape){ft_buffer+='\\'+char}
+ft_escape=! ft_escape}
+continue}else{if(ft_escape){ft_buffer+='\\'}
+ft_buffer+=char
+ft_escape=false
 if(char=='\n'){line_num++}
 continue}}else if(token_mode=='format_specifier'){if(char==quote){if(format_specifier.length > 0){
-t.push(Token(FSTRING_MIDDLE,format_specifier,line_num,fstring_start,line_num,fstring_start+format_specifier.length,line))
+t.push(Token(FT_MIDDLE[ft_type],format_specifier,line_num,ft_start,line_num,ft_start+format_specifier.length,line))
 token_modes.pop()
 token_mode=$B.last(token_modes)
 continue}}else if(char=='{'){
-t.push(Token(FSTRING_MIDDLE,format_specifier,line_num,fstring_start,line_num,fstring_start+format_specifier.length,line))
-token_mode='regular_within_fstring'
-fstring_expr_start=pos-line_start
+t.push(Token(FT_MIDDLE[ft_type],format_specifier,line_num,ft_start,line_num,ft_start+format_specifier.length,line))
+token_mode='regular_within_ft'
+ft_expr_start=pos-line_start
 state=null
 token_modes.push(token_mode)}else if(char=='}'){
-t.push(Token(FSTRING_MIDDLE,format_specifier,line_num,fstring_start,line_num,fstring_start+format_specifier.length,line))
+t.push(Token(FT_MIDDLE[ft_type],format_specifier,line_num,ft_start,line_num,ft_start+format_specifier.length,line))
 t.push(Token('OP',char,line_num,pos-line_start,line_num,pos-line_start+1,line))
 if(braces.length==0 ||$B.last(braces).char !=='{'){throw Error('wrong braces')}
 braces.pop()
@@ -497,16 +516,14 @@ break
 case '\\':
 var mo=/^\f?(\r\n|\r|\n)/.exec(src.substr(pos))
 if(mo){if(pos==src.length-1){var msg='unexpected EOF while parsing'
-t.push(ErrorToken(_b_.SyntaxError,filename,line_num,pos-line_start,line_num,pos-line_start+1,line,msg))
-return t}
+raise_error(_b_.SyntaxError,filename,line_num,pos-line_start,line_num,pos-line_start+1,line,msg)}
 line_num++
 pos+=mo[0].length
 line_start=pos+1
 line=get_line_at(pos)}else{pos++;
 var msg='unexpected character after line '+
 'continuation character'
-t.push(ErrorToken(_b_.SyntaxError,filename,line_num,pos-line_start,line_num,pos-line_start+1,line,msg))
-return t}
+raise_error(_b_.SyntaxError,filename,line_num,pos-line_start,line_num,pos-line_start+1,line,msg)}
 break
 case '\n':
 case '\r':
@@ -523,11 +540,11 @@ if($B.is_XID_Start(ord(char))){
 state='NAME'
 name=char}else if($B.in_unicode_category('Nd',ord(char))){state='NUMBER'
 num_type=''
-number=char}else if(ops.includes(char)){if(token_mode=='regular_within_fstring' &&
+number=char}else if(ops.includes(char)){if(token_mode=='regular_within_ft' &&
 (char==':' ||char=='}')){if(char==':'){
 if(nesting_level(token_modes)==braces.length-1){let colon=Token('OP',char,line_num,pos-line_start-op.length+1,line_num,pos-line_start+1,line)
 colon.metadata=src.substr(
-line_start+fstring_expr_start,pos-line_start-fstring_expr_start-1)
+line_start+ft_expr_start,pos-line_start-ft_expr_start-1)
 t.push(colon)
 token_modes.pop()
 token_mode='format_specifier'
@@ -535,7 +552,7 @@ token_modes.push(token_mode)
 continue}}else{
 let closing_brace=Token('OP',char,line_num,pos-line_start-op.length+1,line_num,pos-line_start+1,line)
 closing_brace.metadata=src.substring(
-line_start+fstring_expr_start,pos-1)
+line_start+ft_expr_start,pos-1)
 t.push(closing_brace)
 token_modes.pop()
 token_mode=token_modes[token_modes.length-1]
@@ -556,7 +573,7 @@ t.push(Token('OP',op,line_num,pos-line_start-op.length+1,line_num,pos-line_start
 pos++}else{
 let token=Token('OP',char,line_num,pos-line_start,line_num,pos-line_start+1,line)
 token.metadata=src.substring(
-line_start+fstring_start+2,pos-1)
+line_start+ft_start+2,pos-1)
 t.push(token)}}else if(char==' ' ||char=='\t'){}else{
 var cp=char.codePointAt(0),err_msg='invalid'
 if(unprintable_re.exec(char)){err_msg+=' non-printable'}
@@ -575,16 +592,20 @@ quote=char
 triple_quote=src[pos]==quote && src[pos+1]==quote
 prefix=name
 if(triple_quote){pos+=2}
-if(prefix.toLowerCase().includes('f')){fstring_start=pos-line_start-name.length
-token_mode=new String('fstring')
+var is_ft=false
+if(prefix.toLowerCase().includes('f')){is_ft=true
+ft_type='f'}else if(prefix.toLowerCase().includes('t')){is_ft=true
+ft_type='t'}
+if(is_ft){token_mode=new String('ft')
+ft_start=pos-line_start-name.length
 token_mode.nesting=braces.length
 token_mode.quote=quote
 token_mode.triple_quote=triple_quote
 token_mode.raw=prefix.toLowerCase().includes('r')
 token_modes.push(token_mode)
 var s=triple_quote ? quote.repeat(3):quote
-var end_col=fstring_start+name.length+s.length
-t.push(Token(FSTRING_START,prefix+s,line_num,fstring_start,line_num,end_col,line))
+var end_col=ft_start+name.length+s.length
+t.push(Token(FT_START[ft_type],prefix+s,line_num,ft_start,line_num,end_col,line))
 continue}
 escaped=false
 string_start=[line_num,pos-line_start-name.length,line_start]
@@ -615,8 +636,9 @@ break
 case '\r':
 case '\n':
 if(! escaped && ! triple_quote){
-var msg=`unterminated string literal `+
-`(detected at line ${line_num})`,line_num=string_start[0],col_offset=string_start[1]
+var msg
+if(token_mode=='regular_within_fstring'){msg="f-string: missing '}'"}else{var msg=`unterminated string literal `+
+`(detected at line ${line_num})`,line_num=string_start[0],col_offset=string_start[1]}
 t.push(ErrorToken(_b_.SyntaxError,filename,line_num,col_offset,line_num,col_offset,line,msg))
 return t}
 string+=char
@@ -650,7 +672,7 @@ pos--}}else if((char=='+' ||char=='-')&&
 number.toLowerCase().endsWith('e')){number+=char}else if(char.toLowerCase()=='j'){
 number+=char
 t.push(Token('NUMBER',number,line_num,pos-line_start-number.length+1,line_num,pos-line_start+1,line))
-state=null}else if(char.match(/\p{Letter}/u)){t.push(ErrorToken(_b_.SyntaxError,filename,line_num,pos-line_start-number.length,line_num,pos-line_start,line,'invalid decimal literal'))
+state=null}else if(char.match(/\p{Letter}/u)){raise_error(_b_.SyntaxError,filename,line_num,pos-line_start,line_num,pos-line_start,line,'invalid decimal literal')
 return t}else{t.push(Token('NUMBER',number,line_num,pos-line_start-number.length,line_num,pos-line_start,line))
 state=null
 pos--}
@@ -676,7 +698,7 @@ line_num++}
 while(indents.length > 0){indents.pop()
 t.push(Token('DEDENT','',line_num,0,line_num,0,''))}
 t.push(Token('ENDMARKER','',line_num,0,line_num,0,''))
-return t}})(__BRYTHON__)
+return t}})(__BRYTHON__);
 ;
 (function($B){
 var binary_ops={'+':'Add','-':'Sub','*':'Mult','/':'Div','//':'FloorDiv','%':'Mod','**':'Pow','<<':'LShift','>>':'RShift','|':'BitOr','^':'BitXor','&':'BitAnd','@':'MatMult'}
@@ -735,7 +757,7 @@ if(raw_fields){for(let i=0,len=raw_fields.length;i < len;i++){var raw_field=raw_
 if(raw_field.endsWith('?')){_b_.dict.$setitem(cls.__dict__,_fields[i],_b_.None)}}}
 return cls})(klass)}}
 var op2ast_class=$B.op2ast_class={},ast_types=[ast.BinOp,ast.BoolOp,ast.Compare,ast.UnaryOp]
-for(var i=0;i < 4;i++){for(var op in op_types[i]){op2ast_class[op]=[ast_types[i],ast[op_types[i][op]]]}}})(__BRYTHON__)
+for(var i=0;i < 4;i++){for(var op in op_types[i]){op2ast_class[op]=[ast_types[i],ast[op_types[i][op]]]}}})(__BRYTHON__);
 ;
 
 (function($B){var _b_=$B.builtins
@@ -926,11 +948,6 @@ var inject_observer=new MutationObserver(function(mutations){for(var mutation of
 inject_observer.observe(document.documentElement,{childList:true,subtree:true})}}else if($B.isNode){return}
 for(var python_script of python_scripts){set_script_id(python_script)}
 var scripts=[]
-$B.script_path=_window.location.href.split('#')[0]
-var $href=$B.script_path=_window.location.href.split('#')[0],$href_elts=$href.split('/')
-$href_elts.pop()
-if($B.isWebWorker ||$B.isNode){$href_elts.pop()}
-$B.curdir=$href_elts.join('/')
 var kk=Object.keys(_window)
 var ids=$B.get_page_option('ids')
 if(ids !==undefined){if(! Array.isArray(ids)){throw _b_.ValueError.$factory("ids is not a list")}
@@ -1013,7 +1030,7 @@ if($B.get_option_from_filename('debug',filename)> 1){console.log(js)}}catch(err)
 var _script={__doc__:get_docstring(root._ast),js:js,__name__:name,__file__:url,script_element:script}
 $B.tasks.push(["execute",_script])
 if(run_loop){$B.loop()}}
-$B.brython=brython})(__BRYTHON__)
+$B.brython=brython})(__BRYTHON__);
 globalThis.brython=__BRYTHON__.brython
 if(__BRYTHON__.isNode){global.__BRYTHON__=__BRYTHON__
 module.exports={__BRYTHON__ }}
@@ -1167,7 +1184,7 @@ $B.handle_error(err)}
 loop()}else{
 try{func.apply(null,args)}catch(err){$B.handle_error(err)}}}
 $B.tasks=[]
-$B.has_indexedDB=self.indexedDB !==undefined})(__BRYTHON__)
+$B.has_indexedDB=self.indexedDB !==undefined})(__BRYTHON__);
 ;
 ;(function($B){var _b_=$B.builtins,_window=globalThis,isWebWorker=('undefined' !==typeof WorkerGlobalScope)&&
 ("function"===typeof importScripts)&&
@@ -1431,7 +1448,11 @@ if(klass===undefined){return $B.get_jsobj_class(obj)}
 return klass}
 $B.class_name=function(obj){var klass=$B.get_class(obj)
 if(klass===$B.JSObj){return 'Javascript '+obj.constructor.name}else{return klass.__name__}}
-$B.unpack_mapping=function*(func,obj){var klass=$B.get_class(obj)
+$B.unpack_mapping=function(func,obj){var items=[]
+if($B.$isinstance(obj,_b_.dict)){for(var item of _b_.dict.$iter_items(obj)){if(! $B.$isinstance(item.key,_b_.str)){throw _b_.TypeError.$factory('keywords must be strings')}
+items.push(item)}
+return items}
+var klass=$B.get_class(obj)
 var getitem=$B.$getattr(klass,'__getitem__',null)
 if(getitem===null){throw _b_.TypeError.$factory(`'${$B.class_name(obj)}' object `+
 'is not subscriptable')}
@@ -1441,8 +1462,9 @@ if(key_func===null){var f=`${func.$infos.__module__}.${func.$infos.__name__}`
 throw _b_.TypeError.$factory(`${f}() argument after **`+
 ` must be a mapping, not ${$B.class_name(obj)}`)}
 var keys=$B.$call($B.$getattr(klass,'keys'))(obj)
-for(var key of $B.make_js_iterator(keys)){if(! _b_.isinstance(key,_b_.str)){throw _b_.TypeError.$factory('keywords must be strings')}
-yield{key,value:getitem(obj,key)}}}
+for(var key of $B.make_js_iterator(keys)){if(! $B.$isinstance(key,_b_.str)){throw _b_.TypeError.$factory('keywords must be strings')}
+items.push({key,value:getitem(obj,key)})}
+return items}
 $B.make_js_iterator=function(iterator,frame,lineno){
 var set_lineno=$B.set_lineno
 if(frame===undefined){if(! $B.frame_obj){set_lineno=function(){}}else{frame=$B.frame_obj.frame
@@ -1469,6 +1491,7 @@ return{
 [Symbol.iterator](){return this},next(){set_lineno(frame,lineno)
 try{var value=next_func()
 return{done:false,value}}catch(err){if($B.is_exc(err,[_b_.StopIteration])){return{done:true,value:null}}
+if(iterator.$inum){$B.set_inum(iterator.$inum)}
 throw err}}}}}
 $B.unpacker=function(obj,nb_targets,has_starred){
 var inum_rank=3
@@ -1483,7 +1506,7 @@ var exc=_b_.ValueError.$factory(`not enough values to unpack `+
 `${left_length}, got ${right_length})`)
 throw exc}
 if((! has_starred)&& right_length > left_length){var exc=_b_.ValueError.$factory("too many values to unpack "+
-`(expected ${left_length})`)
+`(expected ${left_length}, got ${right_length})`)
 throw exc}
 t.index=-1
 t.read_one=function(){t.index++
@@ -1539,27 +1562,23 @@ var exc=_b_.TypeError.$factory("'"+$B.class_name(obj)+
 "' object is not subscriptable")
 throw exc}
 $B.getitem_slice=function(obj,slice){var res
-if(Array.isArray(obj)&& obj.__class__===_b_.list){if(slice.start===_b_.None && slice.stop===_b_.None){if(slice.step===_b_.None ||slice.step==1){res=obj.slice()}else if(slice.step==-1){res=obj.slice().reverse()}}else if(slice.step===_b_.None){if(slice.start===_b_.None){slice.start=0}
-if(slice.stop===_b_.None){slice.stop=obj.length}
-if(typeof slice.start=="number" &&
-typeof slice.stop=="number"){if(slice.start < 0){slice.start+=obj.length}
-if(slice.stop < 0){slice.stop+=obj.length}
-res=obj.slice(slice.start,slice.stop)}}
-if(res){res.__class__=obj.__class__ 
-return res}else{return _b_.list.$getitem(obj,slice)}}else if(typeof obj=="string"){return _b_.str.__getitem__(obj,slice)}
+if(Array.isArray(obj)&& obj.__class__===_b_.list){return _b_.list.$getitem(obj,slice)}else if(typeof obj=="string"){return _b_.str.__getitem__(obj,slice)}
 return $B.$getattr($B.get_class(obj),"__getitem__")(obj,slice)}
 $B.$getattr_pep657=function(obj,attr,inum){try{return $B.$getattr(obj,attr)}catch(err){$B.set_inum(inum)
 throw err}}
-$B.$setitem=function(obj,item,value){if(Array.isArray(obj)&& obj.__class__===undefined &&
+$B.$setitem=function(obj,item,value,inum){if(Array.isArray(obj)&& obj.__class__===undefined &&
 ! obj.$is_js_array &&
 typeof item=="number" &&
 ! $B.$isinstance(obj,_b_.tuple)){if(item < 0){item+=obj.length}
-if(obj[item]===undefined){throw _b_.IndexError.$factory("list assignment index out of range")}
+if(obj[item]===undefined){$B.set_inum(inum)
+throw _b_.IndexError.$factory("list assignment index out of range")}
 obj[item]=value
 return}else if(obj.__class__===_b_.dict){_b_.dict.$setitem(obj,item,value)
-return}else if(obj.__class__===_b_.list){return _b_.list.$setitem(obj,item,value)}
+return}else if(obj.__class__===_b_.list){try{return _b_.list.$setitem(obj,item,value)}catch(err){if($B.is_exc(err,[_b_.IndexError])){$B.set_inum(inum)}
+throw err}}
 var si=$B.$getattr(obj.__class__ ||$B.get_class(obj),"__setitem__",null)
-if(si===null ||typeof si !='function'){throw _b_.TypeError.$factory("'"+$B.class_name(obj)+
+if(si===null ||typeof si !='function'){$B.set_inum(inum)
+throw _b_.TypeError.$factory("'"+$B.class_name(obj)+
 "' object does not support item assignment")}
 return si(obj,item,value)}
 $B.set_inum=function(inum){if(inum !==undefined && $B.frame_obj){$B.frame_obj.frame.inum=inum}}
@@ -1756,7 +1775,7 @@ if(gen.$frame===undefined){continue}
 var ctx_managers=gen.$frame[1].$context_managers
 if(ctx_managers){for(var cm of ctx_managers){$B.$call($B.$getattr(cm,'__exit__'))(
 _b_.None,_b_.None,_b_.None)}}}}}
-delete frame[1].$current_exception
+if(frame[1].$current_exception){delete frame[1].$current_exception}
 return _b_.None}
 $B.trace_return_and_leave=function(frame,return_value){if(frame.$f_trace !==_b_.None){$B.trace_return(return_value)}
 $B.leave_frame()
@@ -1877,19 +1896,19 @@ $B.repr={enter:function(obj){var obj_id=_b_.id(obj)
 if(repr_stack.has(obj_id)){return true}else{repr_stack.add(obj_id)
 if(repr_stack.size > $B.recursion_limit){repr_stack.clear()
 throw _b_.RecursionError.$factory("maximum recursion depth "+
-"exceeded while getting the repr of an object")}}},leave:function(obj){repr_stack.delete(_b_.id(obj))}}})(__BRYTHON__)
+"exceeded while getting the repr of an object")}}},leave:function(obj){repr_stack.delete(_b_.id(obj))}}})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 var object={
 __name__:'object',__qualname__:'object',$is_class:true,$native:true}
 object.__delattr__=function(self,attr){if(self.__dict__ && $B.$isinstance(self.__dict__,_b_.dict)&&
 _b_.dict.$contains_string(self.__dict__,attr)){_b_.dict.$delete_string(self.__dict__,attr)
+delete self[attr]
 return _b_.None}else if(self.__dict__===undefined && self[attr]!==undefined){delete self[attr]
 return _b_.None}else{
-var klass=self.__class__
-if(klass){var prop=$B.$getattr(klass,attr)
-if(prop.__class__===_b_.property){if(prop.__delete__ !==undefined){prop.__delete__(self)
-return _b_.None}}}}
+var klass=$B.get_class(self)
+var kl_attr=$B.search_in_mro(klass,attr)
+if(_b_.hasattr(kl_attr,'__get__')&& _b_.hasattr(kl_attr,'__delete__')){return $B.$getattr(kl_attr,'__delete__')(self)}}
 throw $B.attr_error(attr,self)}
 object.__dir__=function(self){var objects
 if(self.$is_class){objects=[self].concat(self.__mro__)}else{var klass=self.__class__ ||$B.get_class(self)
@@ -2111,11 +2130,12 @@ var res={__class__:object},args=[res]
 object.__init__.apply(null,args)
 return res}
 $B.set_func_names(object,"builtins")
-_b_.object=object})(__BRYTHON__)
+_b_.object=object})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 const TPFLAGS={STATIC_BUILTIN:1 << 1,MANAGED_WEAKREF:1 << 3,MANAGED_DICT:1 << 4,SEQUENCE:1 << 5,MAPPING:1 << 6,DISALLOW_INSTANTIATION:1 << 7,IMMUTABLETYPE:1 << 8,HEAPTYPE:1 << 9,BASETYPE:1 << 10,HAVE_VECTORCALL:1 << 11,READY:1 << 12,READYING:1 << 13,HAVE_GC:1 << 14,METHOD_DESCRIPTOR:1 << 17,VALID_VERSION_TAG:1 << 19,IS_ABSTRACT:1 << 20,MATCH_SELF:1 << 22,LONG_SUBCLASS:1 << 24,LIST_SUBCLASS:1 << 25,TUPLE_SUBCLASS:1 << 26,BYTES_SUBCLASS:1 << 27,UNICODE_SUBCLASS:1 << 28,DICT_SUBCLASS:1 << 29,BASE_EXC_SUBCLASS:1 << 30,TYPE_SUBCLASS:1 << 31,HAVE_FINALIZE:1 << 0,HAVE_VERSION_TAG:1 << 18}
-$B.$class_constructor=function(class_name,class_obj_proxy,metaclass,resolved_bases,bases,kwargs,static_attributes,firstlineno){var dict
+$B.$class_constructor=function(class_name,frame,metaclass,resolved_bases,bases,kwargs,static_attributes,annotate,firstlineno){var dict
+var class_obj_proxy=frame[1]
 if(class_obj_proxy instanceof $B.str_dict){dict=$B.empty_dict()
 dict.$strings=class_obj_proxy}else{dict=class_obj_proxy.$target}
 var module=class_obj_proxy.__module__
@@ -2139,9 +2159,13 @@ kls.$subclasses=[]
 kls.$is_class=true
 kls.__static_attributes__=$B.fast_tuple(static_attributes)
 kls.__firstlineno__=firstlineno
+$B.make_annotate_class(kls,annotate,frame)
 if(kls.__class__===metaclass){
 var meta_init=_b_.type.__getattribute__(metaclass,"__init__")
-meta_init(kls,class_name,resolved_bases,dict,{$kw:[extra_kwargs]})}
+try{meta_init(kls,class_name,resolved_bases,dict,{$kw:[extra_kwargs]})}catch(err){if(class_name=='SupportsInt'){console.log('err for',class_name)
+console.log(err)
+console.log(err.stack)}
+throw err}}
 for(let i=0;i < bases.length;i++){bases[i].$subclasses=bases[i].$subclasses ||[]
 bases[i].$subclasses.push(kls)}
 return kls}
@@ -2219,14 +2243,34 @@ __class__:staticmethod,__func__:func}}
 staticmethod.__call__=function(self){return $B.$call(self.__func__)}
 staticmethod.__get__=function(self){return self.__func__}
 $B.set_func_names(staticmethod,"builtins")
-$B.getset_descriptor=$B.make_class("getset_descriptor",function(klass,attr,getter,setter){var res={__class__:$B.getset_descriptor,__doc__:_b_.None,cls:klass,attr,getter,setter}
+$B.getset_descriptor=$B.make_class("getset_descriptor",function(klass,attr,getter,setter,deleter){var res={__class__:$B.getset_descriptor,__doc__:_b_.None,cls:klass,attr,getter,setter,deleter}
 return res}
 )
-$B.getset_descriptor.__get__=function(self,obj,klass){if(obj===_b_.None){return self}
-return self.getter(self,obj,klass)}
-$B.getset_descriptor.__set__=function(self,klass,value){return self.setter(self,klass,value)}
+$B.getset_descriptor.__delete__=function(self,obj){return self.deleter(obj)}
+$B.getset_descriptor.__get__=function(self,obj){if(obj===_b_.None){return self}
+return self.getter(obj)}
+$B.getset_descriptor.__set__=function(self,klass,value){return self.setter(klass,value)}
 $B.getset_descriptor.__repr__=function(self){return `<attribute '${self.attr}' of '${self.cls.__name__}' objects>`}
 $B.set_func_names($B.getset_descriptor,"builtins")
+type.__dict__={}
+type.__dict__.__annotations__=$B.getset_descriptor.$factory(type,'__annotations__',function(klass){if(klass.__annotations__ !==undefined){
+return klass.__annotations__}
+if(klass.__annotations_cache__ !==undefined){return klass.__annotations_cache__}
+var annotate=$B.search_in_mro(klass,'__annotate__')
+var annotate_func=klass.__annotate_func__
+if(annotate_func===undefined){console.log('no __annotate_func__ for klass',klass)}
+if(annotate_func===_b_.None){return $B.empty_dict()}
+return klass.__annotations_cache__=$B.$call(annotate_func)(1)},function(klass,value){klass.__annotations__=value},function(klass){if(klass.__annotations_cache__===undefined){throw _b_.AttributeError.$factory('__annotations__')}
+klass.__annotations_cache__=$B.empty_dict()
+klass.__annotate__=_b_.None}
+)
+type.__dict__.__annotate__=$B.getset_descriptor.$factory(type,'__annotate__',function(klass){if(klass.__annotate__ !==undefined){
+return klass.__annotate__}
+return klass.__annotate_func__ ?? _b_.None},function(klass,value){try{$B.$call(value)}catch(err){if(value !==_b_.None){throw _b_.TypeError.$factory(
+'__annotate__ must be callable or None')}
+klass.__annotate__=value}}
+)
+type.__dict__.__mro__={__get__:function(cls){return $B.fast_tuple([cls].concat(cls.__mro__))}}
 type.$call=function(klass,new_func,init_func){
 return function(){
 var instance=new_func.bind(null,klass).apply(null,arguments)
@@ -2261,10 +2305,7 @@ merge_class_dict(dict,klass)
 return _b_.sorted(dict)}
 type.__format__=function(klass){
 return _b_.str.$factory(klass)}
-type.__getattribute__=function(klass,attr){switch(attr){case "__annotations__":
-var ann=klass.__annotations__
-return ann===undefined ? $B.empty_dict():ann
-case "__bases__":
+type.__getattribute__=function(klass,attr){switch(attr){case "__bases__":
 if(klass.__bases__ !==undefined){return $B.fast_tuple($B.resolve_mro_entries(klass.__bases__))}
 throw $B.attr_error(attr,klass)
 case "__class__":
@@ -2279,7 +2320,10 @@ function(kls,key,value){kls[key]=value}
 return method_wrapper.$factory(attr,klass,func)
 case "__delattr__":
 if(klass["__delattr__"]!==undefined){return klass["__delattr__"]}
-return method_wrapper.$factory(attr,klass,function(key){if(klass.__dict__){_b_.dict.__delitem__(klass.__dict__,key)}
+return method_wrapper.$factory(attr,klass,function(key){if(klass.__flags__ && TPFLAGS.IMMUTABLETYPE){throw _b_.TypeError.$factory(
+`cannot delete '${key}' attribute `+
+`of immutable type '${klass.__name__}'`)}
+if(klass.__dict__){_b_.dict.__delitem__(klass.__dict__,key)}
 delete klass[key]})}
 var res=klass.hasOwnProperty(attr)? klass[attr]:undefined
 var $test=false 
@@ -2295,19 +2339,23 @@ var v=klass.hasOwnProperty(attr)? klass[attr]:undefined
 if(v===undefined){if($test){console.log(attr,'not in klass[attr], search in __dict__',klass.__dict__)}
 if(klass.__dict__ && klass.__dict__.__class__===_b_.dict &&
 _b_.dict.$contains_string(klass.__dict__,attr)){res=klass[attr]=_b_.dict.$getitem_string(klass.__dict__,attr)
-if($test){console.log('found in __dict__',v)}}else{var mro=klass.__mro__
+if($test){console.log('found in __dict__',res)}}else{var mro=klass.__mro__
 if(mro===undefined){console.log("no mro for",klass,'attr',attr)}
 for(let i=0;i < mro.length;i++){if(mro[i].hasOwnProperty(attr)){res=mro[i][attr]
 break}}}}else{res=v}}
 if(res===undefined){
 if(res===undefined){var meta=klass.__class__ ||$B.get_class(klass)
-res=meta.hasOwnProperty(attr)? meta[attr]:undefined
+res=meta.hasOwnProperty(attr)
+? meta[attr]
+:meta.__dict__ && _b_.dict.$contains(meta.__dict__,attr)
+? _b_.dict.$getitem(meta.__dict__,attr)
+:undefined
 if($test){console.log("search in meta",meta,res)}
 if(res===undefined){var meta_mro=meta.__mro__
 for(let i=0;i < meta_mro.length;i++){if(meta_mro[i].hasOwnProperty(attr)){res=meta_mro[i][attr]
 break}}}
 if(res !==undefined){if($test){console.log("found in meta",res,typeof res)}
-if(res.__class__===_b_.property){return res.fget(klass)}
+if(res.__class__===_b_.property){return res.fget(klass)}else if(res.__class__===$B.getset_descriptor){return res.getter(klass)}
 if(typeof res=="function"){
 if(attr=='__new__'){
 return res}
@@ -2388,7 +2436,7 @@ var init_subclass=_b_.super.__getattribute__(sup,"__init_subclass__")
 init_subclass(extra_kwargs)
 return class_dict}
 type.__or__=function(){var $=$B.args('__or__',2,{cls:null,other:null},['cls','other'],arguments,{},null,null),cls=$.cls,other=$.other
-if(other !==_b_.None && ! $B.$isinstance(other,[type,$B.GenericAlias])){return _b_.NotImplemented}
+if(other !==_b_.None && ! $B.$isinstance(other,[type,$B.GenericAlias,$B.UnionType])){return _b_.NotImplemented}
 return $B.UnionType.$factory([cls,other])}
 type.__prepare__=function(){return $B.empty_dict()}
 type.__qualname__='type'
@@ -2406,10 +2454,10 @@ for(var subclass of kls.$subclasses){if(! subclass.hasOwnProperty(name)){subclas
 update_subclasses(subclass,name,alias,value)}}}
 type.__setattr__=function(kls,attr,value){var $test=false
 if($test){console.log("kls is class",type)}
-if(type[attr]&& type[attr].__get__ &&
-type[attr].__set__){type[attr].__set__(kls,value)
-return _b_.None}
-if(kls.__module__=="builtins"){throw _b_.TypeError.$factory(
+if($B.mappingproxy.$contains(type.__dict__,attr)){var v=$B.mappingproxy.$getitem(type.__dict__,attr)
+var vtype=$B.get_class(v)
+if(vtype.__set__){return vtype.__set__(v,kls,value)}}
+if(kls.__flags__ && TPFLAGS.IMMUTABLETYPE){throw _b_.TypeError.$factory(
 `cannot set '${attr}' attribute of immutable type '`+
 kls.__qualname__+"'")}
 kls[attr]=value
@@ -2493,7 +2541,7 @@ property.__get__=function(self,kls){if(self.fget===undefined){throw _b_.Attribut
 return $B.$call(self.fget)(kls)}
 property.__new__=function(cls){return{
 __class__:cls}}
-property.__set__=function(self,obj,value){if(self.fset===undefined){var name=self.fget.$infos.__name__
+property.__set__=function(self,obj,value){if(self.fset===undefined){var name=self.fget.$function_infos[$B.func_attrs.__name__]
 var msg=`property '${name}' of '${$B.class_name(obj)}' object `+
 'has no setter'
 throw _b_.AttributeError.$factory(msg)}
@@ -2640,6 +2688,7 @@ __class__:$B.UnionType,items}}
 $B.UnionType.__args__=_b_.property.$factory(
 self=> $B.fast_tuple(self.items)
 )
+$B.UnionType.__class_getitem__=function(cls,items){if($B.$isinstance(items,_b_.tuple)){return $B.UnionType.$factory(items)}else{return items}}
 $B.UnionType.__eq__=function(self,other){if(! $B.$isinstance(other,$B.UnionType)){return _b_.NotImplemented}
 return _b_.list.__eq__(self.items,other.items)}
 $B.UnionType.__or__=function(self,other){var items=self.items.slice()
@@ -2653,7 +2702,58 @@ for(var item of self.items){if(item.$is_class){var s=item.__name__
 if(item.__module__ !=="builtins"){s=item.__module__+'.'+s}
 t.push(s)}else{t.push(_b_.repr(item))}}
 return t.join(' | ')}
-$B.set_func_names($B.UnionType,"types")})(__BRYTHON__)
+$B.set_func_names($B.UnionType,"types")
+$B.make_annotate_class=function(kls,annotations,class_frame){if(annotations===undefined){kls.__annotate_func__=_b_.None
+return}
+kls.$annotations=annotations
+kls.__annotate_func__=function(format){if(! $B.$isinstance(format,_b_.int)){throw _b_.TypeError.$factory('__annotate__ argument should be '+
+`int, not ${$B.class_name(format)}`)}
+var file=class_frame.__file__
+var locals={format}
+var frame=['__annotate__',locals,class_frame[2],class_frame[3]]
+$B.enter_frame(frame,file)
+frame.positions=class_frame.positions
+try{switch(format){case 1:
+case 2:
+var ann_dict=$B.empty_dict()
+if(kls.$annotations===undefined){return $B.trace_return_and_leave(frame,ann_dict)}
+for(var key in kls.$annotations){if(key=='$lineno'){continue}
+try{var[lineno,func]=kls.$annotations[key]}catch(err){throw err}
+try{$B.$setitem(ann_dict,key,func())}catch(err){frame.$lineno=lineno
+console.log('error',frame.inum,frame.positions)
+throw err}}
+return $B.trace_return_and_leave(frame,ann_dict)
+default:
+frame.$lineno=kls.$annotations.$lineno
+throw _b_.NotImplementedError.$factory('')}}catch(err){$B.set_exc_and_leave(frame,err)}}
+$B.add_function_infos(kls,'__annotate_func__')
+$B.set_function_attr(kls.__annotate_func__,'__name__','__annotate__')
+$B.set_function_attr(kls.__annotate_func__,'__qualname__',kls.__qualname__+'.'+'__annotate__')}
+$B.postpone_annotations=function(obj,file){
+var module_frame=$B.frame_obj.frame
+obj.$annotations={}
+Object.defineProperty(obj,'__annotations__',{configurable:true,get(){if(obj.$set_annotations){return obj.$set_annotations}
+var res=$B.empty_dict()
+for(var key in obj.$annotations){_b_.dict.$setitem(res,key,obj.$annotations[key][1]())}
+return res},set(value){obj.$set_annotations=value}}
+)}
+$B.make_module_annotate=function(locals){Object.defineProperty(locals,'__annotations__',{get(){if(locals.$set_annotations){return locals.$set_annotations}
+if(locals.__annotate__){return locals.__annotate__(1)}
+return locals.__annotate_func__(1)},set(value){locals.$set_annotations=value}}
+)
+Object.defineProperty(locals,'__annotate__',{get(){if(locals.$annotate){return locals.$annotate}
+return locals.__annotate_func__},set(value){locals.$annotate=value}}
+)
+locals.__annotate_func__=function(format){switch(format){case 1:
+var ann_dict=$B.empty_dict()
+for(var key in locals.$annotations){var item=locals.$annotations[key]
+$B.$setitem(ann_dict,key,item[1]())}
+return ann_dict
+default:
+throw _b_.NotImplementedError.$factory()}}
+$B.add_function_infos(locals,'__annotate_func__')
+$B.set_function_attr(locals.__annotate_func__,'__name__','__annotate__')
+$B.set_function_attr(locals.__annotate_func__,'__qualname__','__annotate__')}})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 var FunctionCode=$B.make_class("function code")
@@ -2661,20 +2761,20 @@ var FunctionGlobals=$B.make_class("function globals")
 $B.function={__class__:_b_.type,__mro__:[_b_.object],__name__:'function',__qualname__:'function',$is_class:true}
 $B.function.__dict__={}
 $B.function.__dict__.__annotations__=$B.getset_descriptor.$factory(
-$B.function,'__annotations__',function(kls,f){$B.check_infos(f)
-return f.__annotations__},function(kls,f,value){$B.check_infos(f)
+$B.function,'__annotations__',function(f){$B.check_infos(f)
+if(f.__annotations__ !==undefined){return f.__annotations__}else{return f.__annotations__=f.__annotate__(1)}},function(f,value){$B.check_infos(f)
 if(! $B.$isinstance(value,_b_.dict)){throw _b_.TypeError.$factory(
 '__annotations__ must be set to a dict object')}
 f.__annotations__=value}
 )
 $B.function.__dict__.__builtins__=$B.getset_descriptor.$factory(
-$B.function,'__builtins__',function(kls,f){$B.check_infos(f)
+$B.function,'__builtins__',function(f){$B.check_infos(f)
 if(f.$infos && f.$infos.__globals__){return _b_.dict.$getitem(self.$infos.__globals__,'__builtins__')}
 return $B.obj_dict(_b_)}
 ,function(){throw _b_.AttributeError.$factory('readonly attribute')}
 )
 $B.function.__dict__.__closure__=$B.getset_descriptor.$factory(
-$B.function,'__closure__',function(kls,f){var free_vars=f.$function_infos[$B.func_attrs.free_vars]
+$B.function,'__closure__',function(f){var free_vars=f.$function_infos[$B.func_attrs.free_vars]
 if(free_vars===undefined ||free_vars.length==0){return _b_.None}
 var cells=[]
 for(var i=0;i < free_vars.length;i++){try{cells.push($B.cell.$factory($B.$check_def_free(free_vars[i])))}catch(err){
@@ -2683,53 +2783,54 @@ return $B.fast_tuple(cells)}
 ,function(){throw _b_.AttributeError.$factory('readonly attribute')}
 )
 $B.function.__dict__.__code__=$B.getset_descriptor.$factory(
-$B.function,'__code__',function(kls,f){$B.check_infos(f)
+$B.function,'__code__',function(f){$B.check_infos(f)
 var res={__class__:_b_.code}
 for(var _attr in f.$infos.__code__){res[_attr]=f.$infos.__code__[_attr]}
 res.name=f.$infos.__name__
 res.filename=f.$infos.__code__.co_filename
 res.co_code=f+"" 
-return res},function(kls,f,value){$B.check_infos(f)
+return res},function(f,value){$B.check_infos(f)
 if(! $B.$isinstance(value,_b_.code)){throw _b_.TypeError.$factory(
 '__code__ must be set to a code object')}
 f.$infos.__code__=value}
 )
 $B.function.__dict__.__defaults__=$B.getset_descriptor.$factory(
-$B.function,'__defaults__',function(kls,f){$B.check_infos(f)
-return f.$infos.__defaults__},function(kls,f,value){$B.check_infos(f)
+$B.function,'__defaults__',function(f){$B.check_infos(f)
+return f.$infos.__defaults__},function(f,value){$B.check_infos(f)
 if(value===_b_.None){value=[]}else if(! $B.$isinstance(value,_b_.tuple)){throw _b_.TypeError.$factory(
 "__defaults__ must be set to a tuple object")}
 f.$infos.__defaults__=value
+f.$function_infos[$B.func_attrs.__defaults__]=value
 $B.make_args_parser(f)}
 )
 $B.function.__delattr__=function(self,attr){if(attr=="__dict__"){throw _b_.TypeError.$factory("can't delete function __dict__")}}
 $B.function.__dict__.__doc__=$B.getset_descriptor.$factory(
-$B.function,'__doc__',function(kls,f){$B.check_infos(f)
-return f.$infos.__doc__},function(kls,f,value){$B.check_infos(f)
+$B.function,'__doc__',function(f){$B.check_infos(f)
+return f.$infos.__doc__},function(f,value){$B.check_infos(f)
 f.$infos.__doc__=value}
 )
 $B.function.__dict__.__module__=$B.getset_descriptor.$factory(
-$B.function,'__module__',function(kls,f){$B.check_infos(f)
-return f.$infos.__module__},function(kls,f,value){$B.check_infos(f)
+$B.function,'__module__',function(f){$B.check_infos(f)
+return f.$infos.__module__},function(f,value){$B.check_infos(f)
 f.$infos.__module__=value}
 )
 $B.function.__dict__.__name__=$B.getset_descriptor.$factory(
-$B.function,'__name__',function(kls,f){$B.check_infos(f)
-return f.$infos.__name__},function(kls,f,value){$B.check_infos(f)
+$B.function,'__name__',function(f){$B.check_infos(f)
+return f.$infos.__name__},function(f,value){$B.check_infos(f)
 if(! $B.$isinstance(value,_b_.str)){throw _b_.TypeError.$factory(
 '__name__ must be set to a string object')}
 f.$infos.__name__=value}
 )
 $B.function.__dict__.__qualname__=$B.getset_descriptor.$factory(
-$B.function,'__qualname__',function(kls,f){$B.check_infos(f)
-return f.$infos.__qualname__},function(kls,f,value){$B.check_infos(f)
+$B.function,'__qualname__',function(f){$B.check_infos(f)
+return f.$infos.__qualname__},function(f,value){$B.check_infos(f)
 if(! $B.$isinstance(value,_b_.str)){throw _b_.TypeError.$factory(
 '__qualname__ must be set to a string object')}
 f.$infos.__qualname__=value}
 )
 $B.function.__dict__.__type_params__=$B.getset_descriptor.$factory(
-$B.function,'__type_params__',function(kls,f){$B.check_infos(f)
-return f.$infos.__type_params__},function(kls,f,value){$B.check_infos(f)
+$B.function,'__type_params__',function(f){$B.check_infos(f)
+return f.$infos.__type_params__},function(f,value){$B.check_infos(f)
 if(! $B.$isinstance(value,_b_.tuple)){throw _b_.TypeError.$factory(
 'TypeError: __type_params__ must be set to a tuple')}
 f.$infos.__type_params__=value}
@@ -2745,16 +2846,19 @@ $B.function.__get__=function(self,obj){
 if(obj===_b_.None){return self}
 return $B.method.$factory(self,obj)}
 $B.function.__dict__.__globals__=$B.getset_descriptor.$factory(
-$B.function,'__globals__',function(kls,f){$B.check_infos(f)
+$B.function,'__globals__',function(f){$B.check_infos(f)
 return $B.obj_dict($B.imported[f.$infos.__module__])}
 ,function(){throw _b_.AttributeError.$factory('readonly attribute')}
 )
 $B.function.__dict__.__kwdefaults__=$B.getset_descriptor.$factory(
-$B.function,'__kwdefaults__',function(kls,f){$B.check_infos(f)
-return f.$infos.__kwdefaults__},function(kls,f,value){$B.check_infos(f)
+$B.function,'__kwdefaults__',function(f){$B.check_infos(f)
+return f.$infos.__kwdefaults__},function(f,value){$B.check_infos(f)
 if(value==_b_.None){value=$B.empty_dict()}else if(! $B.$isinstance(value,_b_.dict)){throw _b_.TypeError.$factory(
 '__kwdefaults__ must be set to a dict object')}
 f.$infos.__kwdefaults__=value
+var kwd={}
+for(var item of _b_.dict.$iter_items(value)){kwd[item.key]=item.value}
+f.$function_infos[$B.func_attrs.__kwdefaults__]=kwd
 $B.make_args_parser(f)}
 )
 $B.function.__repr__=function(self){if(self.$function_infos){return `<function ${self.$function_infos[$B.func_attrs.__qualname__]}>`}else if(self.$infos===undefined){return '<function '+self.name+'>'}else{return '<function '+self.$infos.__qualname__+'>'}}
@@ -2786,10 +2890,10 @@ type_params.__class__=_b_.tuple
 f.$infos.__type_params__=type_params
 co_freevars=co_freevars ??[]
 co_freevars.__class__=_b_.tuple
-annotations=annotations ??[]
-f.__annotations__=_b_.dict.$from_array(annotations)
 co_varnames=co_varnames ??[]
 co_varnames.__class__=_b_.tuple
+if(annotations){
+f.__annotations__=_b_.dict.$literal(annotations)}
 f.$infos.__code__={co_argcount,co_filename,co_firstlineno,co_flags,co_freevars,co_kwonlyargcount,co_name,co_nlocals:co_varnames.length,co_posonlyargcount,co_qualname,co_varnames,co_positions:{}}
 f.$infos.__dict__=$B.empty_dict()}
 $B.make_args_parser_and_parse=function make_args_parser_and_parse(fct,args){return $B.make_args_parser(fct)(fct,args);}
@@ -3100,7 +3204,115 @@ if(hasKWargs ){fct+=`
 fct+=`
     return result
     `;
-return fct;}})(__BRYTHON__)
+return fct;}
+function missing_names(missing){var len=missing.length
+var plural=len==1 ? '' :'s'
+var report
+switch(len){case 1:
+report=`${missing[0]}`
+break
+case 2:
+report=`${missing[0]} and ${missing[1]}`
+break
+default:
+report=`${missing.slice(0, len - 1).join(', ')}, and `+
+`${missing[len - 1]}`
+break}
+return report}
+function add_to_kwargs(kw_dict,key,value){kw_dict.$strings[key]=value}
+$B.args_parser=function(f,args){if(! f.$arguments_parser){f.$arguments_parser=make_arguments_parser(f)}
+return f.$arguments_parser(f,args)}
+$B.has_kw=function(args){var last_arg=args[args.length-1]
+return last_arg && last_arg.$kw}
+var empty={}
+function make_arguments_parser(f){
+var infos=f.$function_infos
+var name=infos[$B.func_attrs.__name__]
+var arg_names=infos[$B.func_attrs.arg_names]
+var positional_length=infos[$B.func_attrs.positional_length]
+var kwonly_length=infos[$B.func_attrs.kwonlyargs_length]
+var vararg=infos[$B.func_attrs.args_vararg]
+var kwarg=infos[$B.func_attrs.args_kwarg]
+var defaults=infos[$B.func_attrs.__defaults__]
+var posonly_length=infos[$B.func_attrs.posonlyargs_length]
+var kwonly_defs=[$B.func_attrs.__kwdefaults__]
+var nb_formal=positional_length+kwonly_length
+var def_obj={}
+if(defaults !==_b_.None){var start_defs=positional_length-defaults.length
+for(var i=start_defs;i < positional_length;i++){def_obj[arg_names[i]]=defaults[i-start_defs]}}
+if(kwonly_defs !==_b_.None){for(var key in kwonly_defs){def_obj[key]=kwonly_defs[key]}}
+var parser=function(f,args){function add_key(key,value){var index=arg_names.indexOf(key)
+if(index==-1){if(kwarg){add_to_kwargs(locals[kwarg],key,value)
+return}else{throw _b_.TypeError.$factory(name+
+`() got an unexpected keyword argument '${key}'`)}}
+if(locals.hasOwnProperty(key)){if(kwarg && index < posonly_length){_b_.dict.$setitem_string(locals[kwarg],key,value)
+return}
+throw _b_.TypeError.$factory(name+
+`() got multiple values for argument '${key}'`)}
+if(index < posonly_length){if(defaults===_b_.None ||
+index <=positional_length-defaults.length){
+if(kwarg){_b_.dict.$setitem_string(locals[kwarg],key,value)}else{posonly_as_keywords.push(key)}}}else{locals[key]=value
+filled_pos++}}
+var too_many_pos=0
+var posonly_as_keywords=[]
+const locals={}
+var filled_pos=0
+var vargs
+if(kwarg !==null){locals[kwarg]=$B.empty_dict()}
+const args_length=args.length
+const last_arg=args[args_length-1]
+const has_kw=last_arg && last_arg.$kw
+const nb_pos=has_kw ? args_length-1 :args_length
+if(vararg !==null){locals[vararg]=vargs=[]}
+if(nb_pos <=positional_length){for(let iarg=0;iarg < nb_pos;iarg++){locals[arg_names[iarg]]=args[iarg]}
+filled_pos=nb_pos}else{for(let iarg=0;iarg < positional_length;iarg++){locals[arg_names[iarg]]=args[iarg]}
+filled_pos=positional_length
+if(vararg !==null){for(let j=positional_length;j < nb_pos;j++){vargs[vargs.length]=args[j]}}else{too_many_pos=nb_pos-positional_length}}
+if(has_kw){var elt=last_arg
+for(let key in elt.$kw[0]){add_key(key,elt.$kw[0][key])}
+for(let i=1;i< elt.$kw.length;i++){if(elt.$kw[i].__class__===_b_.dict){for(let item of _b_.dict.$iter_items(elt.$kw[i])){add_key(item.key,item.value)}}else{let klass=$B.get_class(elt.$kw[i])
+let keys_method=$B.$getattr(klass,'keys',null)
+let getitem=$B.$getattr(klass,'__getitem__',null)
+if(keys_method===null ||getitem===null){throw _b_.TypeError.$factory(
+`${name} argument after ** must be a mapping, `+
+`not ${$B.class_name(elt.$kw[i])}`)}
+for(let key of $B.make_js_iterator(keys_method(elt.$kw[i]))){add_key(key,getitem(elt.$kw[i],key))}}}}
+if(vararg !==null){locals[vararg]=$B.fast_tuple(locals[vararg])}
+if(nb_formal==0){
+return locals}
+if(too_many_pos > 0){var plural=positional_length==1 ? '' :'s'
+var nb=positional_length+too_many_pos
+var report=positional_length
+if(defaults.length){var nb_min=positional_length-defaults.length
+report=`from ${nb_min} to ${positional_length}`
+plural='s'}
+throw _b_.TypeError.$factory(
+`${name}() takes ${report} positional argument`+
+`${plural} but ${nb} were given`)}
+if(posonly_as_keywords.length > 0){throw _b_.TypeError.$factory(
+`${name}() got some positional-only arguments passed as keyword `+
+`arguments: '${posonly_as_keywords.join(', ')}'`)}
+if(filled_pos < nb_formal){for(let key in def_obj){if(! locals.hasOwnProperty(key)){locals[key]=def_obj[key]
+filled_pos++}}
+if(filled_pos < nb_formal){
+var missing_positional=[]
+var missing_kwonly=[]
+for(let i=0;i < nb_formal;i++){let arg_name=arg_names[i]
+if(! locals.hasOwnProperty(arg_name)){if(i < positional_length){missing_positional.push(`'${arg_name}'`)}else{missing_kwonly.push(`'${arg_name}'`)}}}
+var missing
+var missing_type
+var report
+if(missing_positional.length){missing=missing_positional
+missing_type='positional'}else{missing=missing_kwonly
+missing_type='keyword-only'}
+var report=missing_names(missing)
+var nb_missing=missing.length
+var plural=nb_missing==1 ? '' :'s'
+throw _b_.TypeError.$factory(name+
+`() missing ${nb_missing} required ${missing_type} `+
+`argument${plural}: ${report}`)}}
+return locals}
+return parser}})(__BRYTHON__);
 ;
 
 (function($B){var _b_=$B.builtins
@@ -3273,18 +3485,28 @@ _b_.delattr=function(obj,attr){
 check_nb_args_no_kw('delattr',2,arguments)
 if(typeof attr !='string'){throw _b_.TypeError.$factory("attribute name must be string, not '"+
 $B.class_name(attr)+"'")}
-return $B.$getattr(obj,'__delattr__')(attr)}
+var deleter=$B.search_in_mro($B.get_class(obj),'__delattr__')
+if(deleter){return deleter(obj,attr)}
+return _b_.object.__delattr__(obj,attr)}
 $B.$delattr=function(obj,attr,inum){try{_b_.delattr(obj,attr)}catch(err){$B.set_inum(inum)
 throw err}}
-$B.$delete=function(name,inum){
+$B.$delete=function(name,locals_id,inum){
 function del(obj){if(obj.__class__===$B.generator){
 obj.js_gen.return()}}
-var found=false,frame=$B.frame_obj.frame
-if(frame[1][name]!==undefined){found=true
+var found=false
+if(locals_id=='local'){var frame=$B.frame_obj.frame
+if(frame[1].hasOwnProperty(name)){found=true
 del(frame[1][name])
-delete frame[1][name]}
+delete frame[1][name]}}else if(locals_id=='global'){var frame=$B.frame_obj.frame
+if(frame[3].hasOwnProperty(name)){found=true
+del(frame[3][name])
+delete frame[3][name]}}else if(locals_id !==null && locals_id[name]!==undefined){found=true
+del(locals_id[name])
+delete locals_id[name]}
 if(! found){$B.set_inum(inum)
-throw $B.name_error(name)}}
+if(locals_id=='local'){throw _b_.UnboundLocalError.$factory(
+`cannot access local variable '${name}' `+
+'where it is not associated with a value')}else{throw $B.name_error(name)}}}
 _b_.dir=function(obj){if(obj===undefined){
 var locals=_b_.locals()
 return _b_.sorted(locals)}
@@ -3366,8 +3588,16 @@ frame=[__name__,exec_locals,__name__,exec_globals]
 frame.is_exec_top=true
 $B.enter_frame(frame,filename,1)
 var _frame_obj=$B.frame_obj
-if(src.__class__===code){_ast=src._ast
-if(_ast.$js_ast){_ast=_ast.$js_ast}else{_ast=$B.ast_py_to_js(_ast)}}
+if(src.__class__===code){if(src.mode=='exec' && mode=='eval'){return _b_.None}
+_ast=src._ast
+if(_ast.$js_ast){_ast=_ast.$js_ast}else{_ast=$B.ast_py_to_js(_ast)}
+if(_ast instanceof $B.ast.Expression){
+var expr_name='_'+$B.UUID()
+var name=new $B.ast.Name(expr_name,new $B.ast.Store())
+$B.copy_position(name,_ast.body)
+var assign=new $B.ast.Assign([name],_ast.body)
+$B.copy_position(assign,_ast.body)
+_ast=new $B.ast.Module([assign])}}
 try{if(! _ast){var _mode=mode=='eval' ? 'eval' :'file'
 var parser=new $B.Parser(src,filename,_mode)
 _ast=$B._PyPegen.run_parser(parser)}
@@ -3375,17 +3605,21 @@ var future=$B.future_features(_ast,filename),symtable=$B._PySymtable_Build(_ast,
 $B.frame_obj=save_frame_obj
 throw err}
 if(mode=='eval'){
-js=`var __file__ = '${filename}'\n`+
-`var locals = ${local_name}\nreturn ${js}`}else if(src.single_expression){js=`var __file__ = '${filename}'\n`+
+if(src.__class__===_b_.code){js+=`\nreturn locals.${expr_name}`}else{js=`var __file__ = '${filename}'\n`+
+`var locals = ${local_name};\n`+
+'return '+js}}else if(src.single_expression){if(src.__class__===_b_.code){js+=`var result = locals.${expr_name}\n`+
+`if(result !== _b_.None){\n`+
+`_b_.print(result)\n`+
+`}`}else{js=`var __file__ = '${filename}'\n`+
 `var result = ${js}\n`+
 `if(result !== _b_.None){\n`+
 `_b_.print(result)\n`+
-`}`}
-try{var exec_func=new Function('$B','_b_',local_name,global_name,'frame','_frame_obj',js)}catch(err){if($B.get_option('debug')> 1){console.log('eval() error\n',$B.format_indent(js,0))
+`}`}}
+try{var exec_func=new Function('$B','_b_','locals',local_name,global_name,'frame','_frame_obj',js)}catch(err){if($B.get_option('debug')> 1){console.log('eval() error\n',$B.format_indent(js,0))
 console.log('-- python source\n',src)}
 $B.frame_obj=save_frame_obj
 throw err}
-try{var res=exec_func($B,_b_,exec_locals,exec_globals,frame,_frame_obj)}catch(err){if($B.get_option('debug')> 2){console.log(
+try{var res=exec_func($B,_b_,exec_locals,exec_locals,exec_globals,frame,_frame_obj)}catch(err){if($B.get_option('debug')> 2){console.log(
 'Python code\n',src,'\nexec func',$B.format_indent(exec_func+'',0),'\n    filename',filename,'\n    name from filename',$B.url2name[filename],'\n    local_name',local_name,'\n    exec_locals',exec_locals,'\n    global_name',global_name,'\n    exec_globals',exec_globals,'\n    frame',frame,'\n    _ast',_ast,'\n    js',js,'\n    err',err.__class__,err.args,err.$frame_obj)}
 $B.set_exc(err,frame)
 $B.frame_obj=save_frame_obj
@@ -3434,12 +3668,18 @@ var $=$B.args("getattr",3,{obj:null,attr:null,_default:null},["obj","attr","_def
 if(! $B.$isinstance($.attr,_b_.str)){throw _b_.TypeError.$factory("attribute name must be string, "+
 `not '${$B.class_name($.attr)}'`)}
 return $B.$getattr($.obj,_b_.str.$to_string($.attr),$._default===missing ? undefined :$._default)}
-$B.search_in_mro=function(klass,attr){if(klass.hasOwnProperty(attr)){return klass[attr]}
+$B.search_in_mro=function(klass,attr){var test=false 
+if(klass.hasOwnProperty(attr)){return klass[attr]}else if(klass.__dict__){var v=_b_.dict.$get_string(klass.__dict__,attr,false)
+if(v !==false){if(test){console.log('found in klass dict',klass.__dict__,v)}
+return v}}
 var mro=klass.__mro__
-for(var i=0,len=mro.length;i < len;i++){if(mro[i].hasOwnProperty(attr)){return mro[i][attr]}}}
+for(var i=0,len=mro.length;i < len;i++){if(mro[i].hasOwnProperty(attr)){return mro[i][attr]}else if(mro[i].__dict__){var v=_b_.dict.$get_string(mro[i].__dict__,attr,false)
+if(v !==false){if(test){console.log('found in dict of mro',i,v)}
+return v}}}}
 $B.$getattr=function(obj,attr,_default){
 var res
-if(obj===undefined){console.log('attr',attr,'of obj undef')}
+if(obj===undefined ||obj===null){throw _b_.AttributeError.$factory("Javascript object '"+obj+
+"' has no attribute")}
 if(obj.$method_cache &&
 obj.$method_cache[attr]&&
 obj.__class__ &&
@@ -3488,7 +3728,7 @@ $jsobj:dict,$version:0}}else if(! klass.$native){if(obj[attr]!==undefined){retur
 if(obj.hasOwnProperty("__dict__")){return obj.__dict__}else if(obj.$infos.hasOwnProperty("__func__")&&
 obj.$infos.__func__){obj.$infos.__func__.__dict__=obj.$infos.__func__.__dict__ ??
 $B.empty_dict()}}else if(obj.__class__ && obj.__class__.__dict__){}else if(! obj.__class__){}
-return $B.obj_dict(obj,function(attr){return['__class__'].indexOf(attr)>-1}
+return $B.obj_dict(obj,function(attr){return attr.startsWith('$')||['__class__'].indexOf(attr)>-1}
 )}
 break
 case '__mro__':
@@ -3558,7 +3798,7 @@ throw err}}}
 getattr=$B.search_in_mro(klass,'__getattr__')
 if($test){console.log('try getattr',getattr)}
 if(getattr){if($test){console.log('try with getattr',getattr)}
-try{return getattr(obj,attr)}catch(err){if(_default !==undefined){return _default}
+try{return getattr(obj,attr)}catch(err){if($B.is_exc(err,[_b_.AttributeError])){if(_default !==undefined){return _default}}
 throw err}}
 if(_default !==undefined){return _default}
 throw err}
@@ -3793,7 +4033,17 @@ res=self.obj.__class__.__getitem__(self.obj,key)
 if(key.__class__===_b_.slice){return memoryview.$factory(res)}}
 memoryview.__len__=function(self){return len(self.obj)/self.itemsize}
 memoryview.__setitem__=function(self,key,value){try{$B.$setitem(self.obj,key,value)}catch(err){throw _b_.TypeError.$factory("cannot modify read-only memory")}}
-memoryview.cast=function(self,format){switch(format){case "B":
+var struct_format={'x':{'size':1},'b':{'size':1},'B':{'size':1},'c':{'size':1},'s':{'size':1},'p':{'size':1},'h':{'size':2},'H':{'size':2},'i':{'size':4},'I':{'size':4},'l':{'size':4},'L':{'size':4},'q':{'size':8},'Q':{'size':8},'f':{'size':4},'d':{'size':8},'P':{'size':8}}
+memoryview.cast=function(self,format,shape){if(! struct_format.hasOwnProperty(format)){throw _b_.ValueError.$factory(`unknown format: '${format}'`)}
+var new_itemsize=struct_format[format].size
+if(shape===undefined){shape=_b_.len(self)}else{if(! $B.$isinstance(shape,[_b_.list,_b_.tuple])){throw _b_.TypeError.$factory('shape must be a list or a tuple')}
+var nb=1
+for(var item of shape){if(! $B.$isinstance(item,_b_.int)){throw _b_.TypeError.$factory(
+'memoryview.cast(): elements of shape must be integers')}
+nb*=item}
+if(nb*new_itemsize !=_b_.len(self)){throw _b_.TypeError.$factory(
+'memoryview: product(shape) * itemsize != buffer size')}}
+switch(format){case "B":
 return memoryview.$factory(self.obj)
 case "I":
 var res=memoryview.$factory(self.obj),objlen=len(self.obj)
@@ -3833,11 +4083,7 @@ _b_.oct=function(obj){check_nb_args_no_kw('oct',1,arguments)
 return bin_hex_oct(8,obj)}
 _b_.ord=function(c){check_nb_args_no_kw('ord',1,arguments)
 if(typeof c.valueOf()=='string'){if(c.length==1){return c.charCodeAt(0)}else if(c.length==2){var code=c.codePointAt(0)
-if((code >=0x10000 && code <=0x1FFFF)||
-(code >=0x20000 && code <=0x2FFFF)||
-(code >=0x30000 && code <=0x3FFFF)||
-(code >=0xD0000 && code <=0xDFFFF)||
-(code >=0xE0000 && code <=0xFFFFF)){return code}}
+if(code >=0x10000 && code <=0x10FFFF){return code}}
 throw _b_.TypeError.$factory('ord() expected a character, but '+
 'string of length '+c.length+' found')}
 switch($B.get_class(c)){case _b_.str:
@@ -3908,6 +4154,8 @@ return $B.$call(klass)(res)}}
 _b_.setattr=function(){var $=$B.args('setattr',3,{obj:null,attr:null,value:null},['obj','attr','value'],arguments,{},null,null),obj=$.obj,attr=$.attr,value=$.value
 if(!(typeof attr=='string')){throw _b_.TypeError.$factory("setattr(): attribute name must be string")}
 return $B.$setattr(obj,attr,value)}
+$B.$setattr1=function(obj,attr,value,inum){try{$B.$setattr(obj,attr,value)}catch(err){$B.set_inum(inum)
+throw err}}
 $B.$setattr=function(obj,attr,value){if(obj===undefined){console.log('obj undef',attr,value)}
 var $test=false 
 switch(attr){case '__dict__':
@@ -3930,7 +4178,7 @@ return None
 case '__doc__':
 if(obj.__class__===_b_.property){obj[attr]=value}
 break}
-if($test){console.log("set attr",attr,"to",obj)}
+if($test){console.log("set attr",attr,"of",obj,"to",value)}
 if(obj.$factory ||obj.$is_class){var metaclass=obj.__class__
 if(metaclass===_b_.type){return _b_.type.__setattr__(obj,attr,value)}
 return $B.$call($B.$getattr(metaclass,'__setattr__'))(obj,attr,value)}
@@ -3968,8 +4216,11 @@ if(! has_slot){throw $B.attr_error(attr,klass)}}}
 if($test){console.log("attr",attr,"use _setattr",_setattr)}
 if(!_setattr){if(obj[attr]!==undefined){obj[attr]=value}else if(obj.__dict__===undefined){throw _b_.AttributeError.$factory(`'${$B.class_name(obj)}' `+
 `object has no attribute '${attr}' and no __dict__ for `+
-`setting new attributes`)}else{_b_.dict.$setitem(obj.__dict__,attr,value)}
+`setting new attributes`)}else{_b_.dict.$setitem(obj.__dict__,attr,value)
+if(obj.$method_cache && obj.$method_cache[attr]){delete obj.$method_cache[attr]}}
 if($test){console.log("no setattr, obj",obj)}}else{if($test){console.log('apply _setattr',obj,attr)}
+if(typeof _setattr !=='function'){console.log('not a function',_setattr)
+console.log('attr',attr,'of',obj)}
 _setattr(obj,attr,value)}
 return None}
 _b_.sorted=function(){var $=$B.args('sorted',1,{iterable:null},['iterable'],arguments,{},null,'kw')
@@ -4048,9 +4299,14 @@ $Reader.__enter__=function(self){return self}
 $Reader.__exit__=function(self){$Reader.close(self)}
 $Reader.__init__=function(_self,initial_value=''){_self.$content=initial_value
 _self.$counter=0}
-$Reader.__iter__=function(self){
-return iter($Reader.readlines(self))}
+$Reader.__iter__=function(self){self.$lc=-1
+delete self.$lines
+make_lines(self)
+return self}
 $Reader.__len__=function(self){return self.lines.length}
+$Reader.__next__=function(self){self.$lc++
+if(self.$lc >=self.$lines.length){throw _b_.StopIteration.$factory()}
+return self.$lines[self.$lc]}
 $Reader.__new__=function(cls){return{
 __class__:cls}}
 $Reader.close=function(self){self.closed=true}
@@ -4136,6 +4392,7 @@ var $TextIOWrapper=$B.make_class('_io.TextIOWrapper',function(){var $=$B.args("T
 return{
 __class__:$TextIOWrapper,__dict__:$B.empty_dict(),$content:_b_.bytes.decode($.buffer.$content,$.encoding),encoding:$.encoding,errors:$.errors,newline:$.newline}}
 )
+$TextIOWrapper.__bases__=[$Reader]
 $TextIOWrapper.__mro__=[$Reader,_b_.object]
 $B.set_func_names($TextIOWrapper,"builtins")
 $B.Reader=$Reader
@@ -4244,7 +4501,7 @@ _b_[name].$infos={__module__:'builtins',__name__:name,__qualname__:name}
 $B.set_function_infos(_b_[name],{__module__:'builtins',__name__:name,__qualname__:name}
 )}}catch(err){}}
 _b_.object.__init__.__class__=$B.wrapper_descriptor 
-_b_.object.__new__.__class__=builtin_function})(__BRYTHON__)
+_b_.object.__new__.__class__=builtin_function})(__BRYTHON__);
 ;
 ;(function($B){var _b_=$B.builtins
 var DEFAULT_MIN_MERGE=32
@@ -4526,11 +4783,14 @@ try{
 tim_sort(array,compare,0,array.length)}catch(e){if(e.name==TIM_SORT_ASSERTION){array.sort(compare);}else{
 throw e;}}}
 $B.$TimSort=tim_sort_safe
-$B.$AlphabeticalCompare=alphabeticalCompare})(__BRYTHON__)
+$B.$AlphabeticalCompare=alphabeticalCompare})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 $B.del_exc=function(frame){delete frame[1].$current_exception}
 $B.set_exc=function(exc,frame){exc.__traceback__=exc.__traceback__===_b_.None ? make_tb():exc.__traceback__
+if(! exc.__class__){console.log('no class',exc)}
+exc.__class__=exc.__class__ ?? _b_.JavascriptError
+exc.args=exc.args ??[exc.message]
 if(frame===undefined){var msg='Internal error: no frame for exception '+_b_.repr(exc)
 console.error(['Traceback (most recent call last):',$B.print_stack(exc.$frame_obj),msg].join('\n'))
 if($B.get_option('debug',exc)> 1){console.log(exc.args)
@@ -4615,11 +4875,14 @@ frame.__str__=frame.__repr__=function(_self){return '<frame object, file '+_self
 frame.f_code.__get__(_self).co_name+'>'}
 frame.f_builtins={__get__:function(_self){return $B.$getattr(_self[3].__builtins__,'__dict__')}}
 frame.f_code={__get__:function(_self){var res
+var positions
 if(_self[4]){res=$B.$getattr(_self[4],'__code__')
-res.co_positions=_self.positions ??[]}else if(_self.f_code){
-res=_self.f_code}else{res={co_name:(_self[0]==_self[2]? '<module>' :_self[0]),co_filename:_self.__file__,co_varnames:$B.fast_tuple([]),co_positions:_self.positions}
-res.co_qualname=res.co_name }
+positions=_self.positions ??[]}else if(_self.f_code){
+res=_self.f_code}else{res={co_name:(_self[0]==_self[2]? '<module>' :_self[0]),co_filename:_self.__file__,co_varnames:$B.fast_tuple([]),co_firstlineno:1}
+res.co_qualname=res.co_name 
+positions=_self.positions}
 res.__class__=_b_.code
+if(positions){res.co_positions=positions.map($B.decode_position)}
 return res}}
 frame.f_globals={__get__:function(_self){if(_self.f_globals){return _self.f_globals}else if(_self.f_locals && _self[1]==_self[3]){return _self.f_globals=_self.f_locals}else{return _self.f_globals=$B.obj_dict(_self[3])}}}
 frame.f_lineno={__get__:function(_self){return _self.$lineno}}
@@ -4650,6 +4913,7 @@ exc=_b_.RecursionError.$factory(msg)}
 exc.__cause__=_b_.None
 exc.__context__=_b_.None
 exc.__suppress_context__=false
+exc.__traceback__=traceback.$factory(js_exc)
 exc.args=_b_.tuple.$factory([msg])
 exc.$py_error=true
 js_exc.$py_exc=exc}else{exc=js_exc}
@@ -4700,8 +4964,14 @@ _b_.BaseException.__new__=function(cls){var err=_b_.BaseException.$factory()
 err.__class__=cls
 err.__dict__=$B.empty_dict()
 return err}
-_b_.BaseException.__getattr__=function(self,attr){if(attr=='__context__'){var frame=$B.frame_obj.frame,ctx=frame[1].$current_exception
-return ctx ||_b_.None}else{throw $B.attr_error(attr,self)}}
+_b_.BaseException.__getattr__=function(self,attr){switch(attr){case '__context__':
+var frame=$B.frame_obj.frame,ctx=frame[1].$current_exception
+return ctx ||_b_.None
+case '__cause__':
+case '__suppress_context__':
+return self[attr]?? _b_.None
+default:
+throw $B.attr_error(attr,self)}}
 _b_.BaseException.add_note=function(self,note){
 if(! $B.$isinstance(note,_b_.str)){throw _b_.TypeError.$factory('note must be a str, not '+
 `'${$B.class_name(note)}'`)}
@@ -4744,6 +5014,9 @@ make_builtin_exception(["DeprecationWarning","PendingDeprecationWarning","Runtim
 _b_.EnvironmentError=_b_.OSError
 _b_.WindowsError=_b_.OSError
 _b_.IOError=_b_.OSError
+_b_.KeyError.__str__=function(self){if(self.args.length==1){return _b_.repr(self.args[0])}
+return _b_.BaseException.__str__(self)}
+$B.set_func_names(_b_.KeyError,'builtins')
 _b_.AttributeError=$B.make_class('AttributeError',function(){var $=$B.args("AttributeError",3,{"msg":null,"name":null,"obj":null},["msg","name","obj"],arguments,{msg:_b_.None,name:_b_.None,obj:_b_.None},"*",null)
 var err=Error()
 err.__class__=_b_.AttributeError
@@ -4791,52 +5064,7 @@ return exc}
 $B.recursion_error=function(frame){var exc=_b_.RecursionError.$factory("maximum recursion depth exceeded")
 $B.set_exc(exc,frame)
 return exc}
-var MAX_CANDIDATE_ITEMS=750,MOVE_COST=2,CASE_COST=1,SIZE_MAX=65535
-function LEAST_FIVE_BITS(n){return((n)& 31)}
-function levenshtein_distance(a,b,max_cost){
-if(a==b){return 0}
-if(a.length < b.length){[a,b]=[b,a]}
-while(a.length && a[0]==b[0]){a=a.substr(1)
-b=b.substr(1)}
-while(a.length && a[a.length-1]==b[b.length-1]){a=a.substr(0,a.length-1)
-b=b.substr(0,b.length-1)}
-if(b.length==0){return a.length*MOVE_COST}
-if((b.length-a.length)*MOVE_COST > max_cost){return max_cost+1}
-var buffer=[]
-for(var i=0;i < a.length;i++){
-buffer[i]=(i+1)*MOVE_COST}
-var result=0
-for(var b_index=0;b_index < b.length;b_index++){var code=b[b_index]
-var distance=result=b_index*MOVE_COST;
-var minimum=SIZE_MAX;
-for(var index=0;index < a.length;index++){
-var substitute=distance+substitution_cost(code,a[index])
-distance=buffer[index]
-var insert_delete=Math.min(result,distance)+MOVE_COST
-result=Math.min(insert_delete,substitute)
-buffer[index]=result
-if(result < minimum){minimum=result}}
-if(minimum > max_cost){
-return max_cost+1}}
-return result}
-function substitution_cost(a,b){if(LEAST_FIVE_BITS(a)!=LEAST_FIVE_BITS(b)){
-return MOVE_COST}
-if(a==b){return 0}
-if(a.toLowerCase()==b.toLowerCase()){return CASE_COST}
-return MOVE_COST}
-function calculate_suggestions(dir,name){if(dir.length >=MAX_CANDIDATE_ITEMS){return null}
-var suggestion_distance=2**52,suggestion=null
-for(var item of dir){
-var max_distance=(name.length+item.length+3)*MOVE_COST/6
-max_distance=Math.min(max_distance,suggestion_distance-1)
-var current_distance=
-levenshtein_distance(name,item,max_distance)
-if(current_distance > max_distance){continue}
-if(!suggestion ||current_distance < suggestion_distance){suggestion=item
-suggestion_distance=current_distance}}
-if(suggestion==name){
-return null}
-return suggestion}
+function calculate_suggestions(list,name){return $B.imported._suggestions._generate_suggestions(list,name)}
 $B.offer_suggestions_for_attribute_error=function(exc){var name=exc.name,obj=exc.obj
 if(name===_b_.None){return _b_.None}
 var dir=_b_.dir(obj),suggestions=calculate_suggestions(dir,name)
@@ -4968,7 +5196,7 @@ lineno:coords.lineno+lineno-2,end_lineno:coords.end_lineno+lineno-2,col_offset:c
 function handle_BinOp_error(lines,lineno,ast_obj,tokens){
 var reset_lineno=make_line_setter(lineno)
 var operator
-for(var token of tokens){if(token.type=='OP'){if(is_before(ast_obj.right,token.lineno,token.col_offset)
+for(var token of tokens){if(token.type==$B.py_tokens.OP){if(is_before(ast_obj.right,token.lineno,token.col_offset)
 && token.string !='('){operator=reset_lineno(token)}}}
 var end_binop=reset_lineno(tokens[tokens.length-1])
 var left=reset_lineno(ast_obj.left)
@@ -4977,7 +5205,7 @@ function handle_Call_error(lines,lineno,ast_obj,tokens){
 var reset_lineno=make_line_setter(lineno)
 var opening_parenth
 var closing_parenth
-for(var token of tokens){if(token.type=='OP'){if(token.string=='(' &&
+for(var token of tokens){if(token.type==$B.py_tokens.OP){if(token.string=='(' && ! opening_parenth &&
 token.lineno==ast_obj.func.end_lineno &&
 token.col_offset >=ast_obj.func.end_col_offset){opening_parenth=reset_lineno(token)}else if(token.string==')'){closing_parenth=reset_lineno(token)}}}
 var func=reset_lineno(ast_obj.func)
@@ -4990,7 +5218,7 @@ return lineno < obj.lineno ||
 (lineno==obj.lineno && col < obj.col_offset)}
 function handle_Subscript_error(lines,lineno,ast_obj,tokens){
 var reset_lineno=make_line_setter(lineno)
-for(var token of tokens){if(token.type=='OP'){if(token.string=='[' &&
+for(var token of tokens){if(token.type==$B.py_tokens.OP){if(token.string=='[' &&
 is_before(ast_obj.slice,token.lineno,token.col_offset)){var opening_bracket=reset_lineno(token)}else if(token.string==']'){var closing_bracket=reset_lineno(token)}}}
 var value=reset_lineno(ast_obj.value)
 return fill_marks(lines,lineno,value.col_offset,'~',opening_bracket.lineno,opening_bracket.col_offset,'^',closing_bracket.end_lineno,closing_bracket.end_col_offset)}
@@ -5012,13 +5240,18 @@ save_filename=filename
 save_lineno=lineno
 save_scope=scope
 count_repeats=0
-var src=$B.file_cache[filename]
 trace.push(`  File "${filename}", line ${lineno}, in `+
 (frame[0]==frame[2]? '<module>' :frame[0]))
+var src
+if(! filename.startsWith('<')){src=$B.file_cache[filename]}
 if(src){var lines=src.split('\n')
-var positions
-if(! is_syntax_error && frame.inum && frame.positions){positions=frame.positions[Math.floor(frame.inum/2)]}
+var positions=false
+if(! is_syntax_error && frame.inum && frame.positions){positions=$B.decode_position(
+frame.positions[Math.floor(frame.inum/2)])}
 if(positions){let[lineno,end_lineno,col_offset,end_col_offset]=positions
+if(lines[lineno-1]===undefined){console.log('no line, lines\n',lines,'lineno',lineno)
+console.log('filename',filename,'src',src)
+continue}
 var head=lines[lineno-1].substr(0,col_offset)
 var segment=' '.repeat(col_offset)
 if(lineno==end_lineno){segment+=lines[lineno-1].substring(col_offset,end_col_offset)}else{segment+=lines[lineno-1].substr(col_offset)+'\n'
@@ -5049,7 +5282,6 @@ trace.push(handle_Subscript_error(
 lines,lineno,expr.value,tokens))
 break
 default:
-var ast_obj={lineno,end_lineno,col_offset,end_col_offset}
 trace.push(handle_Expr_error(
 lines,lineno,expr.value))
 break}}catch(err){if($B.get_option('debug')> 1){console.log('error in error handlers',err)}
@@ -5063,6 +5295,36 @@ for(let i=0;i < 2;i++){if(src){trace.push(trace[len-2])
 trace.push(trace[len-1])}else{trace.push(trace[len-1])}}
 trace.push(`[Previous line repeated ${count_repeats - 2} more times]`)}
 return trace.join('\n')+'\n'}
+var python_keywords
+function _find_keyword_typos(err){
+if(err.msg !="invalid syntax" && ! err.msg.includes("Perhaps you forgot a comma")){return}
+let[line,offset,source]=err._metadata
+let end_line=self.lineno===_b_.None ? 0 :self.lineno
+let lines=source.split('\n')
+var error_code
+if(line > 0){error_code=[lines[line-1]]}else{error_code=lines.slice(0,end_line)}
+var indent=Math.min(...error_code.map(x=> x.length-x.trimLeft().length))
+var error_code_lines=error_code.map(x=> x.substr(indent))
+error_code=error_code_lines.join('\n')
+if(error_code.length > 1024){return}
+if(python_keywords===undefined){python_keywords=Object.keys($B.python_keywords)}
+for(let token of $B.tokenizer(error_code,'<debug>','exec')){if(token.type==$B.py_tokens['NAME']){if(python_keywords.includes(token.string)){continue}
+var suggestions=calculate_suggestions(python_keywords,token.string)
+if(suggestions){console.log(token.lineno)
+var new_line=token.line.substr(0,token.col_offset)+
+suggestions+token.line.substr(token.end_col_offset)
+var new_lines=error_code_lines.slice()
+new_lines.splice(token.lineno-1,1,new_line)
+var candidate=new_lines.join('\n')
+var found=false
+try{var parser=new $B.Parser(candidate,'<debug>','file')
+parser.flags=$B.PyCF_ALLOW_INCOMPLETE_INPUT
+var _ast=$B._PyPegen.run_parser(parser)
+found=true}catch(err){if($B.is_exc(err,[_b_._IncompleteInputError])){found=true}}
+if(found){err.args[1][2]=err.offset=token.col_offset
+err.args[1][5]=err.end_offset=token.end_col_offset
+err.args[0]=err.msg=`invalid syntax. Did you mean '${suggestions}'?`
+return}}}}}
 $B.error_trace=function(err){var trace='',has_stack=err.__traceback__ !==_b_.None
 var debug=$B.get_option('debug',err)
 if(debug > 1){console.log("handle error",err.__class__,err.args,err.__traceback__)}
@@ -5074,7 +5336,7 @@ if(line !==_b_.None){var indent=line.length-line.trimLeft().length
 trace+=`  File "${filename}", line ${err.args[1][1]}\n`+
 `    ${line.trim()}\n`}}
 if(err.__class__ !==_b_.IndentationError &&
-err.text && err.text !==_b_.None){
+err.text && err.text !==_b_.None){if(err._metadata){_find_keyword_typos(err)}
 if($B.get_option('debug')> 2){console.log('debug from error',$B.get_option('debug',err))
 console.log('error args',err.args[1])
 console.log('err line',line)
@@ -5106,7 +5368,8 @@ if($B.get_option('debug',err)> 1){trace+=err.$js_exc.stack}}
 return trace}
 $B.get_stderr=function(){return $B.imported.sys ? $B.imported.sys.stderr :$B.imported._sys.stderr}
 $B.get_stdout=function(){return $B.imported.sys ? $B.imported.sys.stdout :$B.imported._sys.stdout}
-$B.show_error=function(err){var trace=$B.error_trace($B.exception(err))
+$B.show_error=function(err){if($B.get_option('debug',err)> 2){console.debug(err.stack)}
+var trace=$B.error_trace($B.exception(err))
 try{var stderr=$B.get_stderr()
 $B.$getattr(stderr,'write')(trace)
 var flush=$B.$getattr(stderr,'flush',_b_.None)
@@ -5115,7 +5378,7 @@ $B.handle_error=function(err){
 if(err.$handled){return}
 err.$handled=true
 $B.show_error(err)
-throw err}})(__BRYTHON__)
+throw err}})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins,None=_b_.None,range={__class__:_b_.type,__mro__:[_b_.object],__qualname__:'range',$is_class:true,$native:true,$match_sequence_pattern:true,
 $is_sequence:true,$not_basetype:true,
@@ -5273,7 +5536,7 @@ conv_slice(res)
 return res}
 $B.set_func_names(slice,"builtins")
 _b_.range=range
-_b_.slice=slice})(__BRYTHON__)
+_b_.slice=slice})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 var from_unicode={},to_unicode={}
@@ -5909,7 +6172,7 @@ for(var attr in bytes){if(bytearray[attr]===undefined && typeof bytes[attr]=="fu
 $B.set_func_names(bytearray,"builtins")
 bytearray.fromhex=bytes.fromhex
 _b_.bytes=bytes
-_b_.bytearray=bytearray})(__BRYTHON__)
+_b_.bytearray=bytearray})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins,$N=_b_.None
 function make_new_set(type){var res={__class__:type,$store:Object.create(null),$version:0,$used:0}
@@ -5977,7 +6240,9 @@ if(args.length==0){return result}
 for(var other of args){result=set_intersection(result,other)}
 return result;}
 function set_lookkey(so,key,hash){
-if(hash===undefined){try{hash=$B.$hash(key)}catch(err){if($B.$isinstance(key,set)){hash=$B.$hash(frozenset.$factory(key))}else{throw err}}}
+if(hash===undefined){try{hash=$B.$hash(key)}catch(err){if($B.$isinstance(key,set)){hash=$B.$hash(frozenset.$factory(key))}else{if(err.args && err.args[0]){err.args[0]=`cannot use '${$B.class_name(key)}' as `+
+`a set element (${err.args[0]})`}
+throw err}}}
 var items=so.$store[hash]
 if(items===undefined){return false}
 for(var index=0,len=so.$store[hash].length;index < len;index++){if($B.is_or_equals(key,items[index])){return{hash,index}}}
@@ -6232,12 +6497,15 @@ frozenset.__init__(self,...arguments)
 return self}
 $B.set_func_names(frozenset,"builtins")
 _b_.set=set
-_b_.frozenset=frozenset})(__BRYTHON__)
+_b_.frozenset=frozenset})(__BRYTHON__);
 ;
 
 (function($B){var _b_=$B.builtins,_window=globalThis
 var Module=$B.module=$B.make_class("module",function(name,doc,$package){return{
 $tp_class:Module,__builtins__:_b_.__builtins__,__name__:name,__doc__:doc ||_b_.None,__package__:$package ||_b_.None}}
+)
+Module.__annotations__=_b_.property.$factory(
+function(){return 'coucou'}
 )
 Module.__dir__=function(self){if(self.__dir__){return $B.$call(self.__dir__)()}
 var res=[]
@@ -6250,8 +6518,8 @@ Module.__repr__=Module.__str__=function(self){var res="<module "+self.__name__
 res+=self.__file__===undefined ? " (built-in)" :
 ' at '+self.__file__
 return res+">"}
-Module.__setattr__=function(self,attr,value){if(self.__name__=="__builtins__"){
-$B.builtins[attr]=value}else{self[attr]=value}}
+Module.__setattr__=function(self,attr,value){if(self.__name__=='__builtins__'){
+$B.builtins[attr]=value}else if(self.__name__=='builtins'){_b_[attr]=value}else{self[attr]=value}}
 $B.set_func_names(Module,"builtins")
 $B.make_import_paths=function(filename){
 var filepath=$B.script_domain ? $B.script_domain+'/'+filename :filename
@@ -6294,7 +6562,8 @@ mod_name+"' (res is null)")}
 if(res.constructor===Error){throw res}
 return res}
 $B.$download_module=$download_module
-$B.addToImported=function(name,modobj){$B.imported[name]=modobj
+$B.addToImported=function(name,modobj){if($B.imported[name]){for(var attr in $B.imported[name]){if(! modobj.hasOwnProperty(attr)){modobj[attr]=$B.imported[name][attr]}}}
+$B.imported[name]=modobj
 if(modobj===undefined){throw _b_.ImportError.$factory('imported not set by module')}
 modobj.__class__=Module
 modobj.__name__=name
@@ -6348,7 +6617,6 @@ var imports=Object.keys(root.imports).join(",")
 try{
 for(let attr in mod){module[attr]=mod[attr]}
 module.__initializing__=false
-$B.imported[module.__name__]=module
 return{
 content:src,name:mod_name,imports,is_package:module.$is_package,path,timestamp:$B.timestamp,source_ts:module.__spec__.loader_state.timestamp}}catch(err){console.log(""+err+" "+" for module "+module.__name__)
 for(let attr in err){console.log(attr+" "+err[attr])}
@@ -6357,6 +6625,7 @@ throw err}}
 $B.run_py=run_py 
 $B.run_js=run_js
 var ModuleSpec=$B.make_class("ModuleSpec",function(fields){fields.__class__=ModuleSpec
+fields.__dict__=$B.empty_dict()
 return fields}
 )
 ModuleSpec.__str__=ModuleSpec.__repr__=function(self){var res=`ModuleSpec(name='${self.name}', `+
@@ -6647,8 +6916,9 @@ $B.$import=function(mod_name,fromlist,aliases,locals,inum){
 var test=false 
 if(test){console.log('import',mod_name,fromlist,aliases)}
 if(mod_name=='_frozen_importlib_external'){
-let alias=aliases[mod_name]||mod_name
-$B.$import_from("importlib",["_bootstrap_external"],{_bootstrap_external:alias},0,locals)
+var ns,alias
+if(aliases[mod_name]){[ns,alias]=aliases[mod_name]}else{[ns,alias]=[locals,mod_name]}
+$B.$import_from("importlib",["_bootstrap_external"],{_bootstrap_external:[ns,alias]},locals,0)
 let _bootstrap=$B.imported.importlib._bootstrap,_bootstrap_external=$B.imported.importlib['_bootstrap_external']
 _bootstrap_external._set_bootstrap_module(_bootstrap)
 _bootstrap._bootstap_external=_bootstrap_external
@@ -6695,21 +6965,23 @@ if(test){console.log('step 3, mod_name',mod_name,'fromlist',fromlist)
 console.log('modobj',modobj)}
 if(! fromlist ||fromlist.length==0){
 let alias=aliases[mod_name]
-if(alias){locals[alias]=$B.imported[mod_name]}else{locals[norm_parts[0]]=modobj}}else{var __all__=fromlist,thunk={}
+if(alias){var[ns,name]=alias
+ns[name]=$B.imported[mod_name]}else{locals[norm_parts[0]]=modobj}}else{var __all__=fromlist,thunk={}
 if(fromlist && fromlist[0]=="*"){if(test){console.log('import *',modobj)}
 __all__=$B.$getattr(modobj,"__all__",thunk);
 if(__all__ !==thunk){
 aliases={}}}
 if(__all__===thunk){
 for(var attr in modobj){if(attr[0]!=="_"){locals[attr]=modobj[attr]}}}else{
-for(let name of __all__){var alias=aliases[name]||name
+for(let name of __all__){var[ns,alias]=[locals,name]
+if(aliases[name]){[ns,alias]=aliases[name]}
 try{
-locals[alias]=$B.$getattr(modobj,name)
-if(locals[alias]&& locals[alias].$js_func){
-locals[alias]=locals[alias].$js_func}}catch($err1){if(! $B.is_exc($err1,[_b_.AttributeError])){$B.set_inum(inum)
+ns[alias]=$B.$getattr(modobj,name)
+if(ns[alias]&& ns[alias].$js_func){
+ns[alias]=ns[alias].$js_func}}catch($err1){if(! $B.is_exc($err1,[_b_.AttributeError])){$B.set_inum(inum)
 throw $err1}
 try{$B.$getattr(__import__,'__call__')(mod_name+'.'+name,globals,undefined,[],0)
-locals[alias]=$B.$getattr(modobj,name)}catch($err3){$B.set_inum(inum)
+ns[alias]=$B.$getattr(modobj,name)}catch($err3){$B.set_inum(inum)
 if(mod_name==="__future__"){
 var exc=_b_.SyntaxError.$factory(
 "future feature "+name+" is not defined")
@@ -6749,12 +7021,13 @@ $B.$import(submodule,[],{},{},inum)
 current_module=$B.imported[submodule]}
 if(names.length > 0 && names[0]=='*'){
 for(var key in current_module){if(key.startsWith('$')||key.startsWith('_')){continue}
-locals[key]=current_module[key]}}else{for(var name of names){var alias=aliases[name]||name
+locals[key]=current_module[key]}}else{for(var name of names){var ns,alias
+if(aliases[name]){[ns,alias]=aliases[name]}else{[ns,alias]=[locals,name]}
 if(current_module[name]!==undefined){
-locals[alias]=current_module[name]}else{
+ns[alias]=current_module[name]}else{
 var sub_module=current_module.__name__+'.'+name
 $B.$import(sub_module,[],{},{})
-locals[alias]=$B.imported[sub_module]}}}}else{
+ns[alias]=$B.imported[sub_module]}}}}else{
 $B.$import(module,names,aliases,locals,inum)}}
 $B.$meta_path=[VFSFinder,StdlibStaticFinder,PathFinder]
 $B.finders={VFS:VFSFinder,stdlib_static:StdlibStaticFinder,path:PathFinder}
@@ -6765,7 +7038,7 @@ $B.path_importer_cache[path]=value}
 var Loader={__class__:$B.$type,__mro__:[_b_.object],__name__ :"Loader"}
 var _importlib_module={__class__ :Module,__name__ :"_importlib",Loader:Loader,VFSFinder:VFSFinder,StdlibStatic:StdlibStaticFinder,ImporterPath:PathFinder,UrlPathFinder:url_hook,optimize_import_for_path :optimize_import_for_path}
 _importlib_module.__repr__=_importlib_module.__str__=function(){return "<module '_importlib' (built-in)>"}
-$B.imported["_importlib"]=_importlib_module})(__BRYTHON__)
+$B.imported["_importlib"]=_importlib_module})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 var escape2cp=$B.escape2cp={b:'\b',f:'\f',n:'\n',r:'\r',t:'\t',v:'\v'}
@@ -7183,7 +7456,8 @@ return res}
 return _b_.NotImplemented}
 str.__setattr__=function(_self,attr,value){if(typeof _self==="string"){if(str.hasOwnProperty(attr)){throw _b_.AttributeError.$factory("'str' object attribute '"+
 attr+"' is read-only")}else{throw _b_.AttributeError.$factory(
-"'str' object has no attribute '"+attr+"'")}}
+`'str' object has no attribute '${attr}' and no __dict__ `+
+'for setting new attributes')}}
 _b_.dict.$setitem(_self.__dict__,attr,value)
 return _b_.None}
 str.__setitem__=function(){throw _b_.TypeError.$factory(
@@ -7381,8 +7655,7 @@ $B.check_nb_args_no_kw('str.isascii',1,arguments)
 var _self=to_string(self)
 for(var i=0,len=_self.length;i < len;i++){if(_self.charCodeAt(i)> 127){return false}}
 return true}
-var unicode_categories_contain_character=function(categories,cp){for(var cat of categories){console.log(cat,cp);
-if($B.in_unicode_category(cat,cp)){return true}}
+var unicode_categories_contain_character=function(categories,cp){for(var cat of categories){if($B.in_unicode_category(cat,cp)){return true}}
 return false}
 var alpha_categories=['Ll','Lu','Lm','Lt','Lo']
 var alnum_categories=['Ll','Lu','Lm','Lt','Lo','Nd']
@@ -7647,8 +7920,9 @@ for(var prefix of prefixes){if(! $B.$isinstance(prefix,str)){throw _b_.TypeError
 if(s.substr(0,prefix.length)==prefix){return true}}
 return false}
 str.strip=function(){var $=$B.args("strip",2,{self:null,chars:null},["self","chars"],arguments,{chars:_b_.None},null,null)
-if($.chars===_b_.None){return $.self.trim()}
-return str.rstrip(str.lstrip($.self,$.chars),$.chars)}
+var _self=to_string($.self)
+if($.chars===_b_.None){return _self.trim()}
+return str.rstrip(str.lstrip(_self,$.chars),$.chars)}
 str.swapcase=function(self){$B.check_nb_args_no_kw('str.swapcase',1,arguments)
 var res="",cp,_self=to_string(self)
 for(var char of _self){cp=_b_.ord(char)
@@ -7890,7 +8164,44 @@ $B.jsstring2codepoint=function(c){if(c.length==1){return c.charCodeAt(0)}
 var code=0x10000
 code+=(c.charCodeAt(0)& 0x03FF)<< 10
 code+=(c.charCodeAt(1)& 0x03FF)
-return code}})(__BRYTHON__)
+return code}
+var Interpolation=$B.make_class('Interpolation',function(value,expression,conversion,format_spec){return{
+__class__:Interpolation,value,expression,conversion,format_spec}}
+)
+Interpolation.__repr__=function(self){var res='Interpolation(',items=[]
+for(var attr of['value','expression','conversion','format_spec']){items.push(`${_b_.repr(self[attr])}`)}
+return res+items.join(', ')+')'}
+$B.set_func_names(Interpolation,'builtins')
+var Template=$B.make_class('Template',function(){
+var strings=$B.fast_tuple([]),interpolations=$B.fast_tuple([])
+var expect_str=true
+for(var item of arguments){if(Array.isArray(item)){
+if(expect_str){strings.push('')}
+interpolations.push(Interpolation.$factory(...item))}else{strings.push(item)
+expect_str=false}}
+if(expect_str){strings.push('')}
+return{
+__class__:Template,strings,interpolations}})
+Template.__iter__=function(self){self.$counter=-1
+self.$len=self.strings.length+self.interpolations.length
+return self}
+Template.__next__=function(self){self.$counter++
+if(self.$counter >=self.$len){throw _b_.StopIteration.$factory('')}
+var type='si'[self.$counter % 2]
+var rank=Math.floor(self.$counter/2)
+switch(type){case 's':
+var s=self.strings[rank]
+if(s.length > 0){return s}
+return Template.__next__(self)
+case 'i':
+return self.interpolations[rank]}}
+Template.values=_b_.property.$factory(
+function(self){var values=[]
+for(var itp of self.interpolations){values.push(itp.value)}
+return $B.fast_tuple(values)}
+)
+$B.set_func_names(Template,'builtins')
+$B.Template=function(){return Template.$factory(...arguments)}})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 function $err(op,other){var msg="unsupported operand type(s) for "+op+
@@ -8235,17 +8546,13 @@ if(obj){return true}
 return false
 default:
 if(obj.$is_class){return true}
-var klass=$B.get_class(obj),missing={},bool_method=bool_class ?
-$B.$getattr(klass,"__bool__",missing):
-$B.$getattr(obj,"__bool__",missing)
+var klass=$B.get_class(obj),missing={},bool_method=$B.search_in_mro(klass,'__bool__')
 var test=false 
 if(test){console.log('bool(obj)',obj,'bool_class',bool_class,'klass',klass,'apply bool method',bool_method)
 console.log('$B.$call(bool_method)',bool_method+'')}
-if(bool_method===missing){var len_method=$B.$getattr(klass,'__len__',missing)
+if(bool_method===undefined){var len_method=$B.$getattr(klass,'__len__',missing)
 if(len_method===missing){return true}
-return _b_.len(obj)> 0}else{var res=bool_class ?
-$B.$call(bool_method)(obj):
-$B.$call(bool_method)()
+return _b_.len(obj)> 0}else{var res=$B.$call(bool_method)(obj)
 if(res !==true && res !==false){throw _b_.TypeError.$factory("__bool__ should return "+
 "bool, returned "+$B.class_name(res))}
 if(test){console.log('bool method returns',res)}
@@ -8284,7 +8591,7 @@ bool.imag=int.imag
 for(var attr of['real']){bool[attr].setter=(function(x){return function(self){throw _b_.AttributeError.$factory(`attribute '${x}' of `+
 `'${$B.class_name(self)}' objects is not writable`)}})(attr)}
 _b_.bool=bool
-$B.set_func_names(bool,"builtins")})(__BRYTHON__)
+$B.set_func_names(bool,"builtins")})(__BRYTHON__);
 ;
 (function($B){
 var _b_=$B.builtins
@@ -8472,7 +8779,7 @@ $B.long_int=long_int
 $B.fast_long_int=function(value){if(typeof value !=='bigint'){console.log('expected bigint, got',value)
 throw Error('not a big int')}
 return{
-__class__:$B.long_int,value:value}}})(__BRYTHON__)
+__class__:$B.long_int,value:value}}})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 function float_value(obj){return obj.__class__===float ? obj :fast_float(obj.value)}
@@ -8995,7 +9302,7 @@ if(value.indexOf('__')>-1){throw _b_.ValueError.$factory('invalid float literal 
 value)}
 value=value.charAt(0)+value.substr(1).replace(/_/g,"")
 value=to_digits(value)
-if(isFinite(value)){return fast_float(parseFloat(value))}else{throw _b_.TypeError.$factory(
+if(isFinite(value)){return fast_float(parseFloat(value))}else{throw _b_.ValueError.$factory(
 "could not convert string to float: "+
 _b_.repr(original_value))}}}
 let klass=$B.get_class(value),float_method=$B.$getattr(klass,'__float__',null)
@@ -9029,7 +9336,7 @@ float.fromhex=_b_.classmethod.$factory(float.fromhex)
 _b_.float=float
 $B.MAX_VALUE=fast_float(Number.MAX_VALUE)
 $B.MIN_VALUE=fast_float(2.2250738585072014e-308)
-const NINF=fast_float(Number.NEGATIVE_INFINITY),INF=fast_float(Number.POSITIVE_INFINITY),NAN=fast_float(Number.NaN),ZERO=fast_float(0)})(__BRYTHON__)
+const NINF=fast_float(Number.NEGATIVE_INFINITY),INF=fast_float(Number.POSITIVE_INFINITY),NAN=fast_float(Number.NaN),ZERO=fast_float(0)})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 function $UnsupportedOpType(op,class1,class2){throw _b_.TypeError.$factory("unsupported operand type(s) for "+
@@ -9280,7 +9587,7 @@ __class__:complex,$real:_b_.float.$factory(real),$imag:_b_.float.$factory(imag)}
 var c_1=make_complex(1,0)
 complex.$factory=function(){return complex.__new__(complex,...arguments)}
 $B.set_func_names(complex,"builtins")
-_b_.complex=complex})(__BRYTHON__)
+_b_.complex=complex})(__BRYTHON__);
 ;
 (function($B){
 var _b_=$B.builtins
@@ -9796,7 +10103,7 @@ return d}
 $B.obj_dict=function(obj,exclude){var klass=obj.__class__ ||$B.get_class(obj)
 if(!(obj instanceof $B.str_dict)&& klass !==undefined && klass.$native){throw $B.attr_error("__dict__",obj)}
 var res={__class__:dict,$jsobj:obj,$exclude:exclude ||function(){return false}}
-return res}})(__BRYTHON__)
+return res}})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins,isinstance=$B.$isinstance
 function check_not_tuple(self,attr){if(self.__class__===tuple){throw $B.attr_error(attr,self)}}
@@ -9860,18 +10167,22 @@ if(int_key < 0){pos=items.length+pos}
 if(pos >=0 && pos < items.length){return items[pos]}
 throw _b_.IndexError.$factory($B.class_name(self)+
 " index out of range")}
-if(key.__class__===_b_.slice ||isinstance(key,_b_.slice)){
-if(key.start===_b_.None && key.stop===_b_.None &&
-key.step===_b_.None){return self.slice()}
-let s=_b_.slice.$conv_for_seq(key,self.length)
-let res=[],items=self.valueOf(),pos=0,start=s.start,stop=s.stop,step=s.step
-if(step > 0){if(stop <=start){return factory(res)}
-for(let i=start;i < stop;i+=step){res[pos++]=items[i]}
-return factory(res)}else{if(stop > start){return factory(res)}
-for(let i=start;i > stop;i+=step){res[pos++]=items[i]}
-return factory(res)}}
+if(key.__class__===_b_.slice ||isinstance(key,_b_.slice)){return _b_.list.$getitem_slice(self,key)}
 throw _b_.TypeError.$factory($B.class_name(self)+
 " indices must be integer, not "+$B.class_name(key))}
+list.$getitem_slice=function(self,key){var klass=self.__class__ ?? $B.get_class(self)
+if(key.start===_b_.None && key.stop===_b_.None &&
+key.step===_b_.None){let res=self.slice()
+res.__class__=klass
+return res}
+let s=_b_.slice.$conv_for_seq(key,self.length)
+let res=[],items=self.valueOf(),pos=0,start=s.start,stop=s.stop,step=s.step
+res.__class__=klass
+if(step > 0){if(stop <=start){return res}
+for(let i=start;i < stop;i+=step){res[pos++]=items[i]}
+return res}else{if(stop > start){return res}
+for(let i=start;i > stop;i+=step){res[pos++]=items[i]}
+return res}}
 list.__ge__=function(self,other){
 if(! isinstance(other,list)){return _b_.NotImplemented}
 var res=list.__le__(other,self)
@@ -9983,7 +10294,7 @@ j++}}
 list.$setitem=function(self,arg,value){
 if(typeof arg=="number" ||isinstance(arg,_b_.int)){var pos=$B.PyNumber_Index(arg)
 if(arg < 0){pos=self.length+pos}
-if(pos >=0 && pos < self.length){self[pos]=value}else{throw _b_.IndexError.$factory("list index out of range")}
+if(pos >=0 && pos < self.length){self[pos]=value}else{throw _b_.IndexError.$factory("list assignment index out of range")}
 return _b_.None}
 if(isinstance(arg,_b_.slice)){var s=_b_.slice.$conv_for_seq(arg,self.length)
 if(arg.step===null){set_list_slice(self,s.start,s.stop,value)}else{set_list_slice_step(self,s.start,s.stop,s.step,value)}
@@ -10097,7 +10408,6 @@ tuple.$factory=function(){var obj=factory.apply(tuple,arguments)
 obj.__class__=tuple
 return obj}
 $B.fast_tuple=function(array){array.__class__=tuple
-array.__dict__=$B.empty_dict()
 return array}
 for(let attr in list){switch(attr){case "__delitem__":
 case "__iadd__":
@@ -10145,7 +10455,7 @@ $B.set_func_names(tuple,"builtins")
 _b_.list=list
 _b_.tuple=tuple
 _b_.object.__bases__=tuple.$factory()
-_b_.type.__bases__=$B.fast_tuple([_b_.object])})(__BRYTHON__)
+_b_.type.__bases__=$B.fast_tuple([_b_.object])})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 function to_simple(value){switch(typeof value){case 'string':
@@ -10350,8 +10660,11 @@ klass.new=function(){var args=pyargs2jsargs(arguments)
 return jsobj2pyobj(new proto.constructor(...args))}
 var key,value
 for([key,value]of Object.entries(Object.getOwnPropertyDescriptors(proto))){if(key=='constructor'){continue}
-if(value.get){var getter=(function(v){return function(self){return v.get.call(self.__dict__.$jsobj)}})(value),setter=(function(v){return function(self,x){v.set.call(self.__dict__.$jsobj,x)}})(value)
-klass[key]=_b_.property.$factory(getter,setter)}else{klass[key]=(function(m){return function(self){var args=Array.from(arguments).slice(1)
+if(value.get){var getter=(function(v){return function(self){return v.get.call(self.__dict__.$jsobj)}})(value)
+getter.$infos={__name__:key}
+var setter
+if(value.set){setter=(function(v){return function(self,x){v.set.call(self.__dict__.$jsobj,x)}})(value)
+klass[key]=_b_.property.$factory(getter,setter)}else{klass[key]=_b_.property.$factory(getter)}}else{klass[key]=(function(m){return function(self){var args=Array.from(arguments).slice(1)
 return proto[m].apply(self.__dict__.$jsobj,args)}})(key)}}
 for(var name of Object.getOwnPropertyNames(js_class)){klass[name]=(function(k){return function(self){var args=Array.from(arguments).map(pyobj2jsobj)
 return js_class[k].apply(self,args)}})(name)}
@@ -10395,6 +10708,7 @@ js_attr.toString &&
 typeof js_attr=='function' &&
 js_attr.toString().startsWith('class ')){
 return jsclass2pyclass(js_attr)}else if(typeof js_attr==='function'){
+if(! js_attr.$infos && ! js_attr.$function_infos){js_attr.$js_func=js_attr}
 return jsobj2pyobj(js_attr,_self.$js_func ||_self)}else{if(test){console.log('jsobj2pyobj on',js_attr)}
 var res=jsobj2pyobj(js_attr)
 if(test){console.log('    res',res)}
@@ -10437,7 +10751,8 @@ if(! _self.$brython_events[evt]){return _b_.None}
 var events=_self.$brython_events[evt]
 if(func===undefined){
 for(var item of events){_self.removeEventListener(evt,item[1])}
-delete _self.$brython_events[evt]}else{for(var i=0,len=events.length;i < len;i++){if(events[i][0]===func){events.splice(i,1)}}
+delete _self.$brython_events[evt]}else{for(var i=0,len=events.length;i < len;i++){if(events[i][0]===func){_self.removeEventListener(evt,events[i][1])
+events.splice(i,1)}}
 if(events.length==0){delete _self.$brython_events[evt]}}}
 $B.JSObj.to_dict=function(_self){
 if(typeof _self=='function'){throw _b_.TypeError.$factory(
@@ -10547,6 +10862,7 @@ if(proto[Symbol.iterator]!==undefined){return $B.IterableJSObj}else if(Object.ge
 return $B.JSObj}
 $B.JSMeta=$B.make_class("JSMeta")
 $B.JSMeta.__call__=function(cls){
+console.log('create',cls)
 var extra_args=new Array(arguments.length-1),klass=arguments[0]
 for(var i=1,len=arguments.length;i < len;i++){extra_args[i-1]=arguments[i]}
 var new_func=_b_.type.__getattribute__(klass,"__new__")
@@ -10592,7 +10908,7 @@ new_js_class.__qualname__=new_js_class.__name__=class_name
 new_js_class.$is_js_class=true
 for(var item of _b_.dict.$iter_items(cl_dict)){new_js_class[item.key]=item.value}
 return new_js_class}
-$B.set_func_names($B.JSMeta,"builtins")})(__BRYTHON__)
+$B.set_func_names($B.JSMeta,"builtins")})(__BRYTHON__);
 ;
 (function($B){
 var _b_=$B.builtins
@@ -10685,7 +11001,7 @@ var save_frame_obj=$B.frame_obj
 if(self.$frame){$B.frame_obj=$B.push_frame(self.$frame)}
 await gen.throw(value)
 $B.frame_obj=save_frame_obj}
-$B.set_func_names($B.async_generator,"builtins")})(__BRYTHON__)
+$B.set_func_names($B.async_generator,"builtins")})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins,object=_b_.object,_window=globalThis
 function convertDomValue(v){if(v===null ||v===undefined){return _b_.None}
@@ -11308,7 +11624,7 @@ for(var i=0;i < self.children.length;i++){res.children.push(self.children[i].clo
 return res}
 $B.set_func_names(TagSum,"<dom>")
 $B.TagSum=TagSum 
-$B.DOMNode=DOMNode})(__BRYTHON__)
+$B.DOMNode=DOMNode})(__BRYTHON__);
 ;
 (function($B){$B.pattern_match=function(subject,pattern){var _b_=$B.builtins,frame=$B.frame_obj.frame,locals=frame[1]
 function bind(pattern,subject){if(pattern.alias){locals[pattern.alias]=subject}}
@@ -11432,7 +11748,7 @@ if($B.rich_comp('__eq__',subject,literal)){bind(pattern,subject)
 return true}
 return false}else if(pattern.hasOwnProperty('value')){if($B.rich_comp('__eq__',subject,pattern.value)){bind(pattern,subject)
 return true}}else if(subject==pattern){return true}
-return false}})(__BRYTHON__)
+return false}})(__BRYTHON__);
 ;
 ;(function($B){var _b_=$B.builtins
 var coroutine=$B.coroutine=$B.make_class("coroutine")
@@ -11477,10 +11793,10 @@ if($B.$getattr(awaitable,'__next__',null)===null){throw _b_.TypeError.$factory('
 ` of type '${$B.class_name(awaitable)}'`)}
 return awaitable}
 throw _b_.TypeError.$factory(`object ${$B.class_name(obj)} `+
-`can't be used in 'await' expression`)}})(__BRYTHON__)
+`can't be used in 'await' expression`)}})(__BRYTHON__);
 ;
 
-(function($B){$B.builtin_class_flags={builtins:{1073763586:['AttributeError','ConnectionResetError','AssertionError','PythonFinalizationError','InterruptedError','PendingDeprecationWarning','ValueError','UnicodeDecodeError','BytesWarning','DeprecationWarning','UnboundLocalError','PermissionError','FloatingPointError','BaseException','BrokenPipeError','KeyboardInterrupt','FileExistsError','KeyError','EnvironmentError','TimeoutError','MemoryError','StopAsyncIteration','WindowsError','BufferError','IndexError','SyntaxWarning','GeneratorExit','TabError','RuntimeError','OverflowError','IOError','ProcessLookupError','Exception','EOFError','NameError','ConnectionAbortedError','Warning','LookupError','FileNotFoundError','ModuleNotFoundError','UnicodeTranslateError','_IncompleteInputError','ResourceWarning','UnicodeError','UnicodeEncodeError','ConnectionError','ImportError','NotADirectoryError','OSError','SystemExit','IndentationError','FutureWarning','EncodingWarning','UserWarning','RecursionError','StopIteration','RuntimeWarning','UnicodeWarning','ZeroDivisionError','NotImplementedError','SyntaxError','BaseExceptionGroup','ImportWarning','ConnectionRefusedError','SystemError','TypeError','IsADirectoryError','ReferenceError','ChildProcessError','BlockingIOError','ArithmeticError'],1073763848:['ExceptionGroup'],20975874:['bool'],4199682:['bytearray','float'],138417410:['bytes'],21762:['reversed','staticmethod','property','zip','map','enumerate','classmethod','filter','super'],5378:['complex','object'],541087042:['dict'],4216066:['frozenset','set'],20976898:['int'],37770530:['list'],20770:['memoryview'],4386:['range'],20738:['slice'],272635138:['str'],71324962:['tuple'],2155896066:['type'],},types:{20866:['getset_descriptor','frame','async_generator','method-wrapper','generator','member_descriptor','classmethod_descriptor','coroutine'],22914:['builtin_function_or_method'],20738:['traceback','cell'],4354:['NotImplementedType','NoneType','code','ellipsis'],153858:['function'],20802:['mappingproxy'],153986:['method_descriptor'],22786:['method'],21762:['module'],151938:['wrapper_descriptor'],}}})(__BRYTHON__)
+(function($B){$B.builtin_class_flags={builtins:{1073763586:['UnicodeWarning','PythonFinalizationError','FileExistsError','TabError','KeyError','KeyboardInterrupt','EncodingWarning','RuntimeWarning','UserWarning','BytesWarning','SystemExit','UnicodeDecodeError','ConnectionAbortedError','ArithmeticError','ConnectionRefusedError','NotADirectoryError','LookupError','UnicodeEncodeError','ConnectionResetError','DeprecationWarning','WindowsError','GeneratorExit','SystemError','ProcessLookupError','UnicodeTranslateError','Warning','EOFError','ConnectionError','IndexError','BlockingIOError','StopIteration','AttributeError','SyntaxWarning','RuntimeError','SyntaxError','PendingDeprecationWarning','ModuleNotFoundError','NameError','ImportWarning','FileNotFoundError','TimeoutError','UnicodeError','BaseExceptionGroup','FutureWarning','ChildProcessError','IOError','_IncompleteInputError','IsADirectoryError','NotImplementedError','MemoryError','OSError','IndentationError','AssertionError','RecursionError','ResourceWarning','TypeError','InterruptedError','FloatingPointError','BrokenPipeError','ImportError','OverflowError','EnvironmentError','PermissionError','ZeroDivisionError','ValueError','BaseException','Exception','StopAsyncIteration','BufferError','UnboundLocalError','ReferenceError'],1073763848:['ExceptionGroup'],20975874:['bool'],4199682:['float','bytearray'],138417410:['bytes'],21762:['enumerate','super','staticmethod','zip','property','map','filter','reversed','classmethod'],5378:['object','complex'],541087042:['dict'],4216066:['frozenset','set'],20976898:['int'],37770530:['list'],20770:['memoryview'],4386:['range'],20738:['slice'],272635138:['str'],71324962:['tuple'],2155896066:['type'],},types:{20866:['PyCapsule','classmethod_descriptor','generator','coroutine','frame','getset_descriptor','async_generator','member_descriptor','method-wrapper'],22914:['builtin_function_or_method'],20738:['traceback','cell'],4354:['code','ellipsis','NoneType','NotImplementedType'],153858:['function'],20802:['mappingproxy'],153986:['method_descriptor'],22786:['method'],21762:['module'],151938:['wrapper_descriptor'],}}})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 var update=$B.update_obj=function(mod,data){for(let attr in data){mod[attr]=data[attr]}}
@@ -11523,8 +11839,8 @@ function(){throw _b_.ValueError.$factory(
 update(browser,{"alert":function(message){window.alert($B.builtins.str.$factory(message ||""))},confirm:$B.jsobj2pyobj(window.confirm),"document":$B.DOMNode.$factory(document),doc:$B.DOMNode.$factory(document),
 DOMEvent:$B.DOMEvent,DOMNode:$B.DOMNode,load:function(script_url){
 var file_obj=$B.builtins.open(script_url)
-var content=$B.$getattr(file_obj,'read')()
-eval(content)},load1:function(script_url,callback){
+var content=$B.$getattr(file_obj,'read')();
+eval(content);},load1:function(script_url,callback){
 var script=document.createElement('SCRIPT')
 script.src=script_url
 if(callback){script.addEventListener('load',function(){callback()})}
@@ -11780,6 +12096,52 @@ var flush=$B.$getattr(stderr,'flush',_b_.None)
 if(flush !==_b_.None){flush()}}
 return _b_.None},warn_explicit:function(){
 console.log("warn_explicit",arguments)}}
+var MAX_CANDIDATE_ITEMS=750,MOVE_COST=2,CASE_COST=1,SIZE_MAX=65535
+function LEAST_FIVE_BITS(n){return((n)& 31)}
+function levenshtein_distance(a,b,max_cost){
+if(a==b){return 0}
+if(a.length < b.length){[a,b]=[b,a]}
+while(a.length && a[0]==b[0]){a=a.substr(1)
+b=b.substr(1)}
+while(a.length && a[a.length-1]==b[b.length-1]){a=a.substr(0,a.length-1)
+b=b.substr(0,b.length-1)}
+if(b.length==0){return a.length*MOVE_COST}
+if((b.length-a.length)*MOVE_COST > max_cost){return max_cost+1}
+var buffer=[]
+for(var i=0;i < a.length;i++){
+buffer[i]=(i+1)*MOVE_COST}
+var result=0
+for(var b_index=0;b_index < b.length;b_index++){var code=b[b_index]
+var distance=result=b_index*MOVE_COST;
+var minimum=SIZE_MAX;
+for(var index=0;index < a.length;index++){
+var substitute=distance+substitution_cost(code,a[index])
+distance=buffer[index]
+var insert_delete=Math.min(result,distance)+MOVE_COST
+result=Math.min(insert_delete,substitute)
+buffer[index]=result
+if(result < minimum){minimum=result}}
+if(minimum > max_cost){
+return max_cost+1}}
+return result}
+function substitution_cost(a,b){if(LEAST_FIVE_BITS(a)!=LEAST_FIVE_BITS(b)){
+return MOVE_COST}
+if(a==b){return 0}
+if(a.toLowerCase()==b.toLowerCase()){return CASE_COST}
+return MOVE_COST}
+modules['_suggestions']={_generate_suggestions:function(dir,name){if(dir.length >=MAX_CANDIDATE_ITEMS){return null}
+var suggestion_distance=2**52,suggestion=null
+for(var item of dir){
+var max_distance=(name.length+item.length+3)*MOVE_COST/6
+max_distance=Math.min(max_distance,suggestion_distance-1)
+var current_distance=
+levenshtein_distance(name,item,max_distance)
+if(current_distance > max_distance){continue}
+if(!suggestion ||current_distance < suggestion_distance){suggestion=item
+suggestion_distance=current_distance}}
+if(suggestion==name){
+return null}
+return suggestion}}
 var responseType={"text":"text","binary":"arraybuffer","dataURL":"arraybuffer"}
 function handle_kwargs(kw,method){var result={cache:false,format:'text',mode:'text',headers:{}}
 for(let item of _b_.dict.$iter_items(kw)){let key=item.key,value=item.value
@@ -11889,9 +12251,7 @@ if(_b_[attr].$is_class){if(_b_[attr].__bases__){_b_[attr].__bases__.__class__=_b
 _b_.__builtins__.__setattr__=function(attr,value){_b_[attr]=value}
 $B.method_descriptor.__getattribute__=$B.function.__getattribute__
 $B.wrapper_descriptor.__getattribute__=$B.function.__getattribute__
-var tp_dict=_b_.type.__dict__=$B.empty_dict(),setitem=_b_.dict.$setitem
-for(let method in _b_.type){if(method.startsWith('__')&& method.endsWith('__')){setitem(tp_dict,method,_b_.type[method])}}
-setitem(tp_dict,'__mro__',{__get__:function(cls){return $B.fast_tuple([cls].concat(cls.__mro__))}})
+_b_.type.__dict__=$B.mappingproxy.$factory(_b_.type.__dict__)
 for(var name in _b_){var builtin=_b_[name]
 if(_b_[name].__class__===_b_.type){_b_[name].__qualname__=_b_[name].__qualname__ ?? name
 _b_[name].__module__='builtins'
@@ -11946,7 +12306,7 @@ return js_node}}}
 $B.stdin={__class__:$io,__original__:true,closed:false,len:1,pos:0,read:function(){return ""},readline:function(){return ""}}
 $B.__ARGV=$B.$list([])
 $B.tracefunc=_b_.None
-$B.function.__dict__=$B.obj_dict($B.function.__dict__)})(__BRYTHON__)
+$B.function.__dict__=$B.obj_dict($B.function.__dict__)})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 function ast_dump(tree,indent){var attr,value
@@ -12002,8 +12362,11 @@ function copy_position(target,origin){target.lineno=origin.lineno
 target.col_offset=origin.col_offset
 target.end_lineno=origin.end_lineno
 target.end_col_offset=origin.end_col_offset}
-function encode_position(){return `[${Array.from(arguments).join(',')}]`}
-$B.decode_position=function(pos){return pos}
+$B.copy_position=copy_position
+function encode_position(lineno,end_lineno,col_offset,end_col_offset){var res
+if(end_lineno==lineno){res=`[${lineno},${col_offset},${end_col_offset - col_offset}]`}else{res=`[${lineno},${end_lineno},${col_offset},${end_col_offset}]`}
+return res}
+$B.decode_position=function(pos){if(pos.length==3){return[pos[0],pos[0],pos[1],pos[1]+pos[2]]}else{return pos}}
 function get_source_from_position(scopes,ast_obj){scopes.lines=scopes.lines ?? scopes.src.split('\n')
 var lines=scopes.lines,start_line=lines[ast_obj.lineno-1],res
 if(ast_obj.end_lineno==ast_obj.lineno){res=start_line.substring(ast_obj.col_offset,ast_obj.end_col_offset)}else{var res=start_line.substr(ast_obj.col_offset),line_num=ast_obj.lineno+1
@@ -12063,9 +12426,10 @@ return name}
 function reference(scopes,scope,name){return make_scope_name(scopes,scope)+'.'+mangle(scopes,scope,name)}
 function bind(name,scopes){var scope=$B.last(scopes),up_scope=last_scope(scopes)
 name=mangle(scopes,up_scope,name)
-if(up_scope.globals && up_scope.globals.has(name)){scope=scopes[0]}else if(up_scope.nonlocals.has(name)){for(var i=scopes.indexOf(up_scope)-1;i >=0;i--){if(scopes[i].locals.has(name)){return scopes[i]}}}
+if(up_scope.globals && up_scope.globals.has(name)){scope=scopes[0]}else if(up_scope.nonlocals.has(name)){for(var i=scopes.indexOf(up_scope)-1;i >=0;i--){if(scopes[i].locals.has(name)||
+(scopes[i].maybe_locals && scopes[i].maybe_locals.has(name))){return scopes[i]}}}
 scope.locals.add(name)
-if(up_scope.type=='class'){up_scope.maybe_locals=up_scope.maybe_locals ?? new Set()
+if(up_scope.type=='class' ||up_scope !==scope){up_scope.maybe_locals=up_scope.maybe_locals ?? new Set()
 up_scope.maybe_locals.add(name)}
 return scope}
 var SF=$B.SYMBOL_FLAGS 
@@ -12077,7 +12441,8 @@ if(scope.found){var res=reference(scopes,scope.found,name)
 if(test){console.log('res',res)}
 return res}else{var inum=add_to_positions(scopes,ast_obj)
 if(scope.resolve=='all'){var scope_names=make_search_namespaces(scopes)
-return `$B.resolve_in_scopes('${name}', [${scope_names}], ${inum})`}else if(scope.resolve=='local'){return `$B.resolve_local('${name}', ${inum})`}else if(scope.resolve=='global'){return `$B.resolve_global('${name}', _frame_obj, ${inum})`}else if(Array.isArray(scope.resolve)){return `$B.resolve_in_scopes('${name}', [${scope.resolve}], ${inum})`}else if(scope.resolve=='own_class_name'){return `$B.own_class_name('${name}', ${inum})`}}}
+return `$B.resolve_in_scopes('${name}', [${scope_names}], ${inum})`}else if(scope.resolve=='local'){return `$B.resolve_local('${name}', ${inum})`}else if(scope.resolve=='global'){return `$B.resolve_global('${name}', _frame_obj, ${inum})`}else if(Array.isArray(scope.resolve)){return `$B.resolve_in_scopes('${name}', [${scope.resolve}], ${inum})`}else if(scope.resolve=='own_class_name'){if(scopes.eval_annotation){return `$B.resolve_global('${name}', _frame_obj, ${inum})`}
+return `$B.own_class_name('${name}', ${inum})`}}}
 function local_scope(name,scope){
 var s=scope
 while(true){if(s.locals.has(name)){return{found:true,scope:s}}
@@ -12085,8 +12450,7 @@ if(! s.parent){return{found:false}}
 s=s.parent}}
 function name_scope(name,scopes){
 var test=false 
-if(test){console.log('name scope',name,scopes.slice())
-alert()}
+if(test){console.log('name scope',name,scopes.slice())}
 var flags,block
 if(scopes.length==0){
 return{found:false,resolve:'all'}}
@@ -12131,7 +12495,8 @@ for(let i=scopes.length-2;i >=0;i--){block=undefined
 if(scopes[i].ast){block=scopes.symtable.table.blocks.get(fast_id(scopes[i].ast))}
 if(scopes[i].globals.has(name)){scope.needs_frames=true
 return{found:false,resolve:'global'}}
-if(scopes[i].locals.has(name)&& scopes[i].type !='class'){return{found:scopes[i]}}else if(block && _b_.dict.$contains_string(block.symbols,name)){flags=_b_.dict.$getitem_string(block.symbols,name)
+if(scopes[i].locals.has(name)&& scopes[i].type !='class'){if(test){console.log('found in locals of',scopes[i])}
+return{found:scopes[i]}}else if(block && _b_.dict.$contains_string(block.symbols,name)){flags=_b_.dict.$getitem_string(block.symbols,name)
 let __scope=(flags >> SF.SCOPE_OFF)& SF.SCOPE_MASK
 if([SF.LOCAL,SF.CELL].indexOf(__scope)>-1){
 return{found:false,resolve:'all'}}}
@@ -12355,52 +12720,76 @@ return}else if(last.type=="def"){ix=scopes.indexOf(last)-1}else{return}}}}
 function add_to_positions(scopes,ast_obj){
 var up_scope=last_scope(scopes)
 up_scope.positions=up_scope.positions ??[]
-up_scope.positions[up_scope.positions.length]=encode_position([ast_obj.lineno,ast_obj.end_lineno,ast_obj.col_offset,ast_obj.end_col_offset
-])
-return 1+2*(up_scope.positions.length-1)}
+up_scope.positions[up_scope.positions.length]=encode_position(
+ast_obj.lineno,ast_obj.end_lineno,ast_obj.col_offset,ast_obj.end_col_offset
+)
+var inum=1+2*(up_scope.positions.length-1)
+ast_obj.inum=inum
+return inum}
 $B.ast.Assert.prototype.to_js=function(scopes){var test=$B.js_from_ast(this.test,scopes),msg=this.msg ? $B.js_from_ast(this.msg,scopes):"''"
 var inum=add_to_positions(scopes,this.test)
 var js=prefix+`$B.set_lineno(frame, ${this.lineno})\n`
 return js+prefix+`$B.assert(${test}, ${msg}, ${inum})`}
 function annotation_to_str(obj,scopes){return get_source_from_position(scopes,obj)}
+function annotation_code(scope,ref){
+if(scope.annotate){var annotate=prefix+`var annotate = {\n`
+indent()
+var anns=scope.annotate.map(x=> prefix+x)
+annotate+=anns.join(',\n')+'\n'
+dedent()
+annotate+=prefix+'}\n'
+return annotate}else{return prefix+`var annotate\n`}}
 $B.ast.AnnAssign.prototype.to_js=function(scopes){compiler_check(this)
-var postpone_annotation=scopes.symtable.table.future.features &
-$B.CO_FUTURE_ANNOTATIONS
 var scope=last_scope(scopes)
 var js=''
-if(! scope.has_annotation){js+=prefix+'locals.__annotations__ = locals.__annotations__ || $B.empty_dict()\n'
-scope.has_annotation=true
-scope.locals.add('__annotations__')}
-if(this.target instanceof $B.ast.Name){var ann_value=postpone_annotation ?
-`'${annotation_to_str(this.annotation, scopes)}'` :
-$B.js_from_ast(this.annotation,scopes)}
+if(scopes.postpone_annotations){var inum=add_to_positions(scopes,this)}
+if(! scope.has_annotation){scope.has_annotation=true
+if(scopes.postpone_annotations){scope.locals.add('__annotations__')
+js+=prefix+'locals.__annotations__ = $B.empty_dict()\n'}else{scope.locals.add('__annotate__')
+scope.annotate=[]
+if(scope.type=='module'){js+=prefix+`$B.make_module_annotate(locals)\n`}}}
+if(this.target instanceof $B.ast.Name){var ann_value
+if(scopes.postpone_annotations){ann_value=`'${annotation_to_str(this.annotation, scopes)}'`}else{
+scopes.eval_annotation=true
+ann_value=$B.js_from_ast(this.annotation,scopes)
+delete scopes.eval_annotation}}
 if(this.value){js+=prefix+`var ann = ${$B.js_from_ast(this.value, scopes)}\n`
 if(this.target instanceof $B.ast.Name && this.simple){let scope=bind(this.target.id,scopes),mangled=mangle(scopes,scope,this.target.id)
 if(scope.type !="def"){
-js+=prefix+`$B.$setitem(locals.__annotations__, `+
-`'${mangled}', ${ann_value})\n`}
+if(! scopes.postpone_annotations){if(scope.type=='class'){scope.annotate.push(`${mangled}: [${this.lineno}, `+
+`() => ${ann_value}]`)}else{js+=prefix+
+`locals.$annotations.${mangled} = `+
+`[${this.lineno}, () => ${ann_value}]\n`}}else{js+=prefix+`$B.$setitem(locals.__annotations__, `+
+`'${mangled}', ${ann_value}, ${inum})\n`}}
 let target_ref=name_reference(this.target.id,scopes)
 js+=prefix+`${target_ref} = ann`}else if(this.target instanceof $B.ast.Attribute){js+=prefix+`$B.$setattr(${$B.js_from_ast(this.target.value, scopes)}`+
 `, "${this.target.attr}", ann)`}else if(this.target instanceof $B.ast.Subscript){js+=prefix+`$B.$setitem(${$B.js_from_ast(this.target.value, scopes)}`+
 `, ${$B.js_from_ast(this.target.slice, scopes)}, ann)`}}else{if(this.target instanceof $B.ast.Name){if(this.simple && scope.type !='def'){let mangled=mangle(scopes,scope,this.target.id)
-js+=prefix+`$B.$setitem(locals.__annotations__, `+
-`'${mangled}', ${ann_value})`}}}
+if(! scopes.postpone_annotations){if(scope.type=='class'){scope.annotate.push(`${mangled}: [${this.lineno}, `+
+`() => ${ann_value}]`)}else{js+=prefix+
+`locals.$annotations.${mangled} = [${this.lineno}, `+
+`() => ${ann_value}]\n`}}else{js+=prefix+`$B.$setitem(locals.__annotations__, `+
+`'${mangled}', ${ann_value}, ${inum})\n`}}}}
 return prefix+`$B.set_lineno(frame, ${this.lineno})\n`+js}
 $B.ast.AnnAssign.prototype._check=function(){check_assign_or_delete(this,this.target)}
 $B.ast.Assign.prototype.to_js=function(scopes){compiler_check(this)
-var js=this.lineno ? prefix+`$B.set_lineno(frame, ${this.lineno})\n` :'',value=$B.js_from_ast(this.value,scopes)
-function assign_one(target,value){if(target instanceof $B.ast.Name){return prefix+$B.js_from_ast(target,scopes)+' = '+value}else if(target instanceof $B.ast.Starred){return assign_one(target.value,value)}else if(target instanceof $B.ast.Subscript){return prefix+`$B.$setitem(${$B.js_from_ast(target.value, scopes)}`+
-`, ${$B.js_from_ast(target.slice, scopes)}, ${value})`}else if(target instanceof $B.ast.Attribute){if(target.value.id=='self'){maybe_add_static(target,scopes)}
+var js
+if(! this.lineno ||this.$loopvar){
+js=''}else{js=prefix+`$B.set_lineno(frame, ${this.lineno})\n`}
+var value=$B.js_from_ast(this.value,scopes)
+function assign_one(target,value){if(target instanceof $B.ast.Name){return prefix+$B.js_from_ast(target,scopes)+' = '+value}else if(target instanceof $B.ast.Starred){return assign_one(target.value,value)}else if(target instanceof $B.ast.Subscript){var inum=add_to_positions(scopes,target)
+return prefix+`$B.$setitem(${$B.js_from_ast(target.value, scopes)}`+
+`, ${$B.js_from_ast(target.slice, scopes)}, ${value}, ${inum})`}else if(target instanceof $B.ast.Attribute){if(target.value.id=='self'){maybe_add_static(target,scopes)}
+var inum=add_to_positions(scopes,target)
 var attr=mangle(scopes,last_scope(scopes),target.attr)
-return prefix+`$B.$setattr(${$B.js_from_ast(target.value, scopes)}`+
-`, "${attr}", ${value})`}}
+return prefix+`$B.$setattr1(${$B.js_from_ast(target.value, scopes)}`+
+`, "${attr}", ${value}, ${inum})`}}
 function assign_many(target,value){var js=''
 var nb_targets=target.elts.length,has_starred=false,nb_after_starred
 for(var i=0,len=nb_targets;i < len;i++){if(target.elts[i]instanceof $B.ast.Starred){has_starred=true
 nb_after_starred=len-i-1
 break}}
 var iter_id='it_'+make_id()
-var position=encode_position("'Unpack'",target.lineno,target.col_offset,target.end_lineno,target.end_col_offset)
 var inum=add_to_positions(scopes,target)
 js+=prefix+`var ${iter_id} = $B.unpacker(${value}, ${nb_targets}, `+
 `${has_starred}`
@@ -12486,7 +12875,6 @@ var has_generator=scope.is_generator
 for(let item of this.items.slice().reverse()){js=add_item(item,js)}
 return prefix+`$B.set_lineno(frame, ${this.lineno})\n`+js}
 $B.ast.Attribute.prototype.to_js=function(scopes){var attr=mangle(scopes,last_scope(scopes),this.attr)
-var position=encode_position("'Attr'",this.value.lineno,this.value.col_offset,this.end_col_offset)
 var inum=add_to_positions(scopes,this)
 return `$B.$getattr_pep657(${$B.js_from_ast(this.value, scopes)}, `+
 `'${attr}', ${inum})`}
@@ -12522,14 +12910,13 @@ ix--}
 if(scopes[ix].ast instanceof $B.ast.AsyncFunctionDef){scopes[ix].has_await=true
 return prefix+`await $B.promise(${$B.js_from_ast(this.value, scopes)})`}else if(scopes[ix].ast instanceof $B.ast.FunctionDef){compiler_error(this,"'await' outside async function",this.value)}else{compiler_error(this,"'await' outside function",this.value)}}
 $B.ast.BinOp.prototype.to_js=function(scopes){var res
-var position=encode_position("'BinOp'",this.lineno,this.col_offset,this.end_lineno,this.end_col_offset,this.left.lineno,this.left.col_offset,this.left.end_lineno,this.left.end_col_offset,this.right.lineno,this.right.col_offset,this.right.end_lineno,this.right.end_col_offset)
 var inum=add_to_positions(scopes,this)
 var name=this.op.constructor.$name
 var op=opclass2dunder[name]
 if(this.left instanceof $B.ast.Constant &&
 this.right instanceof $B.ast.Constant){
 try{res=$B.rich_op(op,this.left.value,this.right.value)
-if(typeof res=='string'){res=res.replace(new RegExp("'",'g'),"\\'")}
+if(typeof res=='string' && op !=='__add__'){throw Error()}
 var ast_obj=new $B.ast.Constant(res)
 return ast_obj.to_js(scopes)}catch(err){}}
 return `$B.rich_op('${op}', `+
@@ -12557,39 +12944,25 @@ break}}
 js+=prefix+`break`
 return js}
 $B.ast.Call.prototype.to_js=function(scopes){compiler_check(this)
-var position=encode_position("'Call'",this.lineno,this.col_offset,this.end_lineno,this.end_col_offset,this.func.end_lineno,this.func.end_col_offset)
 var inum=add_to_positions(scopes,this)
 var func=$B.js_from_ast(this.func,scopes),js=`$B.$call(${func}, ${inum})`
-var args=make_args.bind(this)(scopes),args_js=args.js.trim()
-return js+(args.has_starred ? `.apply(null, ${args_js})` :
-`(${args_js})`)}
+var args=make_args.bind(this)(scopes)
+return js+`(${args})`}
 $B.ast.Call.prototype._check=function(){for(var kw of this.keywords){if(kw.arg=='__debug__'){compiler_error(this,"cannot assign to __debug__",kw)}}}
-function make_args(scopes){var js='',named_args=[],named_kwargs=[],starred_kwargs=[],has_starred=false
-for(let arg of this.args){if(arg instanceof $B.ast.Starred){arg.$handled=true
-has_starred=true}else{named_args.push($B.js_from_ast(arg,scopes))}}
+function make_args(scopes){var js='',named_args=[],named_kwargs=[],starred_kwargs=[]
 var kwds=new Set()
 for(var keyword of this.keywords){if(keyword.arg){if(kwds.has(keyword.arg)){compiler_error(keyword,`keyword argument repeated: ${keyword.arg}`)}
 kwds.add(keyword.arg)
 named_kwargs.push(
 `${keyword.arg}: ${$B.js_from_ast(keyword.value, scopes)}`)}else{starred_kwargs.push($B.js_from_ast(keyword.value,scopes))}}
-var args=''
-named_args=named_args.join(', ')
-if(! has_starred){args+=`${named_args}`}else{var start=true,not_starred=[]
-for(let arg of this.args){if(arg instanceof $B.ast.Starred){if(not_starred.length > 0){let arg_list=not_starred.map(x=> $B.js_from_ast(x,scopes))
-if(start){args+=`[${arg_list.join(', ')}]`}else{args+=`.concat([${arg_list.join(', ')}])`}
-not_starred=[]}else if(args==''){args='[]'}
-var starred_arg=$B.js_from_ast(arg.value,scopes)
-args+=`.concat(_b_.list.$factory(${starred_arg}))`
-start=false}else{not_starred.push(arg)}}
-if(not_starred.length > 0){let arg_list=not_starred.map(x=> $B.js_from_ast(x,scopes))
-if(start){args+=`[${arg_list.join(', ')}]`
-start=false}else{args+=`.concat([${arg_list.join(', ')}])`}}
-if(args[0]=='.'){console.log('bizarre',args)}}
-if(named_kwargs.length+starred_kwargs.length==0){return{has_starred,js:js+`${args}`}}else{var kw=`{${named_kwargs.join(', ')}}`
+var args_list=[]
+for(let arg of this.args){if(arg instanceof $B.ast.Starred){var starred_arg=$B.js_from_ast(arg.value,scopes)
+args_list.push(`...$B.make_js_iterator(${starred_arg})`)}else{args_list.push($B.js_from_ast(arg,scopes))}}
+if(named_kwargs.length+starred_kwargs.length > 0){var kw=`{${named_kwargs.join(', ')}}`
 for(var starred_kwarg of starred_kwargs){kw+=`, ${starred_kwarg}`}
 kw=`{$kw:[${kw}]}`
-if(args.length > 0){if(has_starred){kw=`.concat([${kw}])`}else{kw=', '+kw}}
-return{has_starred,js:js+`${args}${kw}`}}}
+args_list.push(kw)}
+return js+`${args_list.join(', ')}`}
 $B.ast.ClassDef.prototype.to_js=function(scopes){var enclosing_scope=bind(this.name,scopes)
 var class_scope=new Scope(this.name,'class',this)
 var js='',locals_name=make_scope_name(scopes,class_scope),ref=this.name+make_id(),glob=scopes[0].name,globals_name=make_scope_name(scopes,scopes[0]),decorators=[],decorated=false
@@ -12646,9 +13019,9 @@ dedent(2)
 js+=prefix+`var ${locals_name} = $B.make_class_namespace(metaclass, `+
 `name, module, "${qualname}", bases, resolved_bases),\n`
 indent(2)
-js+=prefix+`locals = ${locals_name}\n`+
-prefix+`locals.__doc__ = ${docstring}\n`
+js+=prefix+`locals = ${locals_name}\n`
 dedent(2)
+js+=prefix+`locals.__doc__ = ${docstring}\n`
 js+=prefix+`var frame = [name, locals, module, ${globals_name}]\n`+
 prefix+`$B.enter_frame(frame, __file__, ${this.lineno})\n`+
 prefix+`var _frame_obj = $B.frame_obj\n`+
@@ -12667,10 +13040,12 @@ js.substr(index_for_positions)}
 scopes.pop()
 var static_attrs=[]
 if(class_scope.static_attributes){static_attrs=Array.from(class_scope.static_attributes).map(x=> `"${x}"`)}
-js+=prefix+'$B.trace_return_and_leave(frame, _b_.None)\n'+
-prefix+`return $B.$class_constructor('${this.name}', locals, metaclass, `+
+js+=annotation_code(class_scope,class_ref)
+js+=prefix+`var kls = $B.$class_constructor('${this.name}', frame, metaclass, `+
 `resolved_bases, bases, [${keywords.join(', ')}], `+
-`[${static_attrs}], ${this.lineno})\n`
+`[${static_attrs}], annotate, ${this.lineno})\n`+
+prefix+'$B.trace_return_and_leave(frame, _b_.None)\n'+
+prefix+'return kls\n'
 dedent()
 js+=prefix+`})('${this.name}',${globals_name}.__name__ ?? '${glob}', `+
 `$B.fast_tuple([${bases}])`+
@@ -12720,7 +13095,8 @@ js+=assign.to_js(scopes)+'\n'
 for(var _if of this.ifs){js+=prefix+`if($B.$bool(${$B.js_from_ast(_if, scopes)})){\n`
 indent()}
 return js}
-$B.ast.Constant.prototype.to_js=function(){if(this.value===true ||this.value===false){return this.value+''}else if(this.value===_b_.None){return '_b_.None'}else if(typeof this.value=="string"){var s=this.value,srg=$B.surrogates(s)
+$B.ast.Constant.prototype.to_js=function(){if(this.kind){console.log('constant kind',this.kind)}
+if(this.value===true ||this.value===false){return this.value+''}else if(this.value===_b_.None){return '_b_.None'}else if(typeof this.value=="string"){var s=this.value,srg=$B.surrogates(s)
 if(srg.length==0){return `'${s}'`}
 return `$B.make_String('${s}', [${srg}])`}else if(this.value.__class__===_b_.bytes){return `_b_.bytes.$factory([${this.value.source}])`}else if(typeof this.value=="number"){if(Number.isInteger(this.value)){return this.value}else{return `({__class__: _b_.float, value: ${this.value}})`}}else if(this.value.__class__===$B.long_int){return `$B.fast_long_int(${this.value.value}n)`}else if(this.value.__class__===_b_.float){return `({__class__: _b_.float, value: ${this.value.value}})`}else if(this.value.__class__===_b_.complex){return `$B.make_complex(${this.value.$real.value}, ${this.value.$imag.value})`}else if(this.value===_b_.Ellipsis){return `_b_.Ellipsis`}else{console.log('invalid value',this.value)
 throw SyntaxError('bad value',this.value)}}
@@ -12730,8 +13106,11 @@ $B.ast.Delete.prototype.to_js=function(scopes){compiler_check(this)
 var js=''
 for(var target of this.targets){var inum=add_to_positions(scopes,target)
 if(target instanceof $B.ast.Name){var scope=name_scope(target.id,scopes)
-if(scope.found){scope.found.locals.delete(target.id)}
-js+=`$B.$delete("${target.id}", ${inum})\n`}else if(target instanceof $B.ast.Subscript){js+=`$B.$delitem(${$B.js_from_ast(target.value, scopes)}, `+
+var locals_id='null'
+if(scope.found){scope.found.locals.delete(target.id)
+locals_id='locals_'+
+qualified_scope_name(scopes,scope.found)
+js+=`$B.$delete("${target.id}", ${locals_id}, ${inum})\n`}else{js+=`$B.$delete('${target.id}', '${scope.resolve}', ${inum})\n`}}else if(target instanceof $B.ast.Subscript){js+=`$B.$delitem(${$B.js_from_ast(target.value, scopes)}, `+
 `${$B.js_from_ast(target.slice, scopes)}, ${inum})\n`}else if(target instanceof $B.ast.Attribute){js+=`$B.$delattr(${$B.js_from_ast(target.value, scopes)}, `+
 `'${target.attr}', ${inum})\n`}}
 return prefix+`$B.set_lineno(frame, ${this.lineno})\n`+
@@ -12786,13 +13165,16 @@ prefix+tab+tab+`throw err\n`+
 prefix+tab+'}\n'+
 prefix+`}\n`
 dedent()}else{js+=prefix+`var no_break_${id} = true,\n`+
-prefix+tab+tab+`iterator_${id} = ${iter}\n`+
-prefix+`for(var next_${id} of $B.make_js_iterator(`+
+prefix+tab+tab+`iterator_${id} = ${iter}\n`
+if(this.iter.inum){js+=prefix+tab+tab+`iterator_${id}.$inum = ${this.iter.inum}\n`}
+js+=prefix+`for(var next_${id} of $B.make_js_iterator(`+
 `iterator_${id}, frame, ${this.lineno})){\n`}
 var name=new $B.ast.Name(`next_${id}`,new $B.ast.Load())
 copy_position(name,this.iter)
 name.to_js=function(){return `next_${id}`}
 var assign=new $B.ast.Assign([this.target],name)
+assign.$loopvar=true
+copy_position(assign,this.target)
 indent()
 js+=assign.to_js(scopes)+'\n'
 js+=add_body(this.body,scopes)
@@ -12925,7 +13307,8 @@ this.args.vararg===undefined &&
 this.args.kwarg===undefined){js+=prefix+`var ${locals_name} = locals = {};\n`
 js+=prefix+`if(arguments.length !== 0){\n`+
 prefix+tab+`${name2}.$args_parser(${parse_args.join(', ')})\n`+
-prefix+`}\n`}else{js+=prefix+`var ${locals_name} = locals = `+
+prefix+`}\n`}else if(this.name=='fxd51jy'){js+=prefix+`var ${locals_name} = locals = `+
+`$B.args_parser(${name2}, arguments)\n`}else{js+=prefix+`var ${locals_name} = locals = `+
 `${name2}.$args_parser(${parse_args.join(', ')})\n`}
 js+=prefix+`var frame = ["${this.$is_lambda ? '<lambda>': this.name}", `+
 `locals, "${gname}", ${globals_name}, ${name2}]\n`+
@@ -12984,21 +13367,28 @@ if(_scope==SF.FREE){free_vars.push(`'${ident}'`)}
 if(flag & SF.DEF_PARAM){parameters.push(`'${ident}'`)}else if(flag & SF.DEF_LOCAL){locals.push(`'${ident}'`)}}
 var varnames=parameters.concat(locals)
 if(in_class){js+=prefix+`${name2}.$is_method = true\n`}
-var anns
+var anns,anns_values,anns_strings,postponed
 if(this.returns ||parsed_args.annotations){var features=scopes.symtable.table.future.features,postponed=features & $B.CO_FUTURE_ANNOTATIONS
 if(postponed){
 var src=scopes.src
 if(src===undefined){console.log('no src, filename',scopes)}}
-var ann_items=[]
+var ann_items_values=[]
+var ann_items_strings=[]
 if(parsed_args.annotations){for(var arg_ann in parsed_args.annotations){var ann_ast=parsed_args.annotations[arg_ann]
 if(in_class){arg_ann=mangle(scopes,class_scope,arg_ann)}
-if(postponed){
 var ann_str=annotation_to_str(ann_ast,scopes)
-ann_items.push(`['${arg_ann}', '${ann_str}']`)}else{var value=ann_ast.to_js(scopes)
-ann_items.push(`['${arg_ann}', ${value}]`)}}}
-if(this.returns){if(postponed){var ann_str=annotation_to_str(this.returns,scopes)
-ann_items.push(`['return', '${ann_str}']`)}else{ann_items.push(`['return', ${this.returns.to_js(scopes)}]`)}}
-anns=`[${ann_items.join(', ')}]`}else{anns=`[]`}
+ann_items_strings.push(`['${arg_ann}', '${ann_str}']`)
+var value=ann_ast.to_js(scopes)
+ann_items_values.push(`['${arg_ann}', ${value}]`)}}
+if(this.returns){var ann_str=annotation_to_str(this.returns,scopes)
+ann_items_strings.push(`['return', '${ann_str}']`)
+var ann_value
+if(scopes.postpone_annotations){ann_value=`'${annotation_to_str(this.returns, scopes)}'`}else{ann_value=this.returns.to_js(scopes)}
+ann_items_values.push(`['return', ${ann_value}]`)}
+anns_values=`[${ann_items_values.join(', ')}]`
+anns_strings=`[${ann_items_strings.join(', ')}]`
+anns=ann_items_values.length > 0}else{anns=false}
+var annotations=postponed ? anns_strings :'false'
 js+=prefix+`${name2}.$function_infos = [`+
 `'${gname}', `+
 `'${this.$is_lambda ? '<lambda>': this.name}', `+
@@ -13017,9 +13407,34 @@ prefix+tab+`${positional.length}, `+
 `${this.args.kwonlyargs.length}, `+
 `${this.args.posonlyargs.length}, `+
 `[${varnames}], `+
-`${anns}, `+
+`${annotations}, `+
 `${has_type_params ? 'type_params' : '[]'}]\n`;
 js+=prefix+`${name2}.$args_parser = $B.make_args_parser_and_parse\n`
+if(anns && ! postponed){
+var inum=add_to_positions(scopes,this)
+js+=prefix+`${name2}.__annotate__ = function(format){\n`
+indent()
+js+=prefix+`var locals = {format}\n`+
+prefix+`var frame = ['__annotate__', locals, '${gname}', ${globals_name}]\n`+
+prefix+`$B.enter_frame(frame, __file__, ${this.lineno})\n`+
+prefix+`frame.positions = $B.frame_obj.prev.frame.positions\n`+
+prefix+`frame.positions.push([${this.lineno}, ${this.end_lineno}, ${this.col_offset}, ${this.end_col_offset}])\n`+
+prefix+'try{\n'
+indent()
+js+=prefix+`if(format == 1 || format == 2){\n`+
+prefix+tab+`var res = _b_.dict.$literal(${anns_values})\n`+
+prefix+tab+`return $B.trace_return_and_leave(frame, res)\n`+
+prefix+'}\n'+
+prefix+`frame.inum = 2 * frame.positions.length - 1\n`+
+prefix+`throw _b_.NotImplementedError.$factory('')\n`
+dedent()
+js+=prefix+`}catch(err){\n`
+indent()
+js+=prefix+`$B.set_exc_and_leave(frame, err)\n`
+dedent()
+js+=prefix+'}\n'
+dedent()
+js+=prefix+`}\n`}else{js+=prefix+`${name2}.__annotate__ = _b_.None\n`}
 if(is_async && ! is_generator){js+=prefix+`${name2} = $B.make_async(${name2})\n`}
 var mangled=mangle(scopes,func_name_scope,this.name),func_ref=`${make_scope_name(scopes, func_name_scope)}.${mangled}`
 if(decorated){func_ref=`decorated${make_id()}`
@@ -13131,8 +13546,9 @@ $B.js_from_ast(this.orelse,scopes)+')'}
 $B.ast.Import.prototype.to_js=function(scopes){var js=prefix+`$B.set_lineno(frame, ${this.lineno})\n`
 var inum=add_to_positions(scopes,this)
 for(var alias of this.names){js+=prefix+`$B.$import("${alias.name}", [], `
-if(alias.asname){js+=`{'${alias.name}' : '${alias.asname}'}, `
-bind(alias.asname,scopes)}else{js+='{}, '
+if(alias.asname){var binding_scope=bind(alias.asname,scopes)
+var scope_name=make_scope_name(scopes,binding_scope)
+js+=`{'${alias.name}': [${scope_name}, '${alias.asname}']}, `}else{js+='{}, '
 bind(alias.name,scopes)}
 var parts=alias.name.split('.')
 for(var i=0;i < parts.length;i++){scopes.imports[parts.slice(0,i+1).join(".")]=true}
@@ -13142,10 +13558,13 @@ $B.ast.ImportFrom.prototype.to_js=function(scopes){if(this.module==='__future__'
 var js=prefix+`$B.set_lineno(frame, ${this.lineno})\n`+
 prefix+`$B.$import_from("${this.module || ''}", `
 var names=this.names.map(x=> `"${x.name}"`).join(', '),aliases=[]
-for(var name of this.names){if(name.asname){aliases.push(`${name.name}: '${name.asname}'`)}}
+for(var name of this.names){if(name.asname){
+var binding_scope=bind(name.asname,scopes)
+var scope_name=make_scope_name(scopes,binding_scope)
+aliases.push(`${name.name}: [${scope_name}, '${name.asname}']`)}}
 var inum=add_to_positions(scopes,this)
 js+=`[${names}], {${aliases.join(', ')}}, ${this.level}, locals, ${inum});`
-for(var alias of this.names){if(alias.asname){bind(alias.asname,scopes)}else if(alias.name=='*'){
+for(var alias of this.names){if(alias.asname){}else if(alias.name=='*'){
 last_scope(scopes).blurred=true}else{bind(alias.name,scopes)}}
 return js}
 $B.ast.Interactive.prototype.to_js=function(scopes){mark_parents(this)
@@ -13174,6 +13593,9 @@ add_body(this.body,scopes)+'\n'+
 scopes.pop()
 console.log('Interactive',js)
 return js}
+$B.ast.Interpolation.prototype.to_js=function(scopes){var conversion=this.conversion==-1 ? "_b_.None" :`'${this.conversion}'`
+return `[${this.value.to_js(scopes)}, '${this.value.id}', `+
+`${conversion}, ${this.format_spec ?? "''"}]`}
 $B.ast.JoinedStr.prototype.to_js=function(scopes){var items=this.values.map(s=> $B.js_from_ast(s,scopes))
 if(items.length==0){return "''"}
 return items.join(' + ')}
@@ -13319,9 +13741,10 @@ js+=`\nvar __file__ = '${scopes.filename ?? "<string>"}'\n`+
 `locals.__name__ = '${name}'\n`+
 `locals.__doc__ = ${extract_docstring(this, scopes)}\n`
 var insert_positions=js.length
-if(! scopes.imported){js+=`locals.__annotations__ = locals.__annotations__ || $B.empty_dict()\n`}
 if(! namespaces){js+=`$B.enter_frame(frame, __file__, 1)\n`
 js+='\nvar _frame_obj = $B.frame_obj\n'}
+if(scopes.postpone_annotations){js+=`locals.__annotations__ = $B.empty_dict()\n`}else{js+=`locals.$annotations = {}\n`
+bind('__annotate__',scopes)}
 js+='var stack_length = $B.count_frames()\n'
 js+=`try{\n`
 indent()
@@ -13334,7 +13757,7 @@ js+=prefix+`$B.set_exc_and_trace(frame, err)\n`+
 prefix+`$B.leave_frame({locals, value: _b_.None})\n`+
 prefix+'throw err\n'
 dedent()
-js+=prefix+`}`
+js+=prefix+`}\n`
 var positions=scopes[scopes.length-1].positions
 if(positions && positions.length > 0){var rest=js.substr(insert_positions)
 js=js.substr(0,insert_positions)+
@@ -13348,7 +13771,10 @@ $B.ast.Name.prototype.to_js=function(scopes){if(this.ctx instanceof $B.ast.Store
 var scope=bind(this.id,scopes)
 if(scope===$B.last(scopes)&& scope.freevars.has(this.id)){
 scope.freevars.delete(this.id)}
-return reference(scopes,scope,this.id)}else if(this.ctx instanceof $B.ast.Load){var scope=name_scope(this.id,scopes)
+return reference(scopes,scope,this.id)}else if(this.ctx instanceof $B.ast.Load){
+if(this.id=='__debug__'){return '_b_.__debug__'}
+var scope=name_scope(this.id,scopes)
+if(this.id=='xzs'){console.log('Name.to_js, scope',scope)}
 if(scope.found===$B.last(scopes)){return 'locals.'+mangle(scopes,scope.found,this.id)}
 var res=name_reference(this.id,scopes,this)
 if(this.id=='__debugger__' && res.startsWith('$B.resolve_in_scopes')){
@@ -13398,9 +13824,13 @@ return `_b_.slice.$fast_slice(${lower}, ${upper}, ${step})`}
 $B.ast.Starred.prototype.to_js=function(scopes){if(this.$handled){return `_b_.list.$unpack(${$B.js_from_ast(this.value, scopes)})`}
 if(this.ctx instanceof $B.ast.Store){compiler_error(this,"starred assignment target must be in a list or tuple")}else{compiler_error(this,"can't use starred expression here")}}
 $B.ast.Subscript.prototype.to_js=function(scopes){var value=$B.js_from_ast(this.value,scopes),slice=$B.js_from_ast(this.slice,scopes)
-if(this.slice instanceof $B.ast.Slice){return `$B.getitem_slice(${value}, ${slice})`}else{var position=encode_position("'Subscript'",this.value.lineno,this.value.col_offset,this.value.end_lineno,this.value.end_col_offset,this.slice.lineno,this.slice.col_offset,this.end_lineno,this.end_col_offset)
-var inum=add_to_positions(scopes,this)
+if(this.slice instanceof $B.ast.Slice){return `$B.getitem_slice(${value}, ${slice})`}else{var inum=add_to_positions(scopes,this)
 return `$B.$getitem(${value}, ${slice}, ${inum})`}}
+$B.ast.TemplateStr.prototype.to_js=function(scopes){var js=prefix+'$B.Template('
+var items=[]
+var expect_str=true
+for(var value of this.values){if(value instanceof $B.ast.Constant){items.push(value.to_js(scopes))}else if(value instanceof $B.ast.Interpolation){items.push(value.to_js(scopes))}else{throw Error('unexpected type inf temmplate')}}
+return js+`${items.join(', ')})\n`}
 $B.ast.Try.prototype.to_js=function(scopes){compiler_check(this)
 var id=make_id(),has_except_handlers=this.handlers.length > 0,has_else=this.orelse.length > 0,has_finally=this.finalbody.length > 0
 var js=prefix+`$B.set_lineno(frame, ${this.lineno})\n`+
@@ -13629,12 +14059,13 @@ $B.js_from_ast(item.context_expr,scopes)+',\n'+
 prefix+`klass = $B.get_class(mgr_${id})\n`+
 prefix+`try{\n`
 indent()
-s+=prefix+`var exit_${id} = $B.$getattr(klass, '__exit__'),\n`+
+s+=prefix+`var exit_${id} = $B.$getattr(mgr_${id}, '__exit__'),\n`+
 prefix+tab+`enter_${id} = $B.$getattr(klass, '__enter__')\n`
 dedent()
 s+=prefix+`}catch(err){\n`
 indent()
 s+=prefix+`var klass_name = $B.class_name(mgr_${id})\n`+
+prefix+`frame.inum = ${inum}\n`+
 prefix+`throw _b_.TypeError.$factory("'" + klass_name + `+
 `"' object does not support the con`+
 `text manager protocol")\n`
@@ -13661,7 +14092,7 @@ indent()
 s+=prefix+`frame.$lineno = ${lineno}\n`+
 prefix+`exc_${id} = false\n`+
 prefix+`err_${id} = $B.exception(err_${id}, frame)\n`+
-prefix+`var $b = exit_${id}(mgr_${id}, err_${id}.__class__, `+
+prefix+`var $b = $B.$call(exit_${id})(err_${id}.__class__, `+
 `err_${id}, \n`+
 prefix+tab.repeat(4)+`$B.$getattr(err_${id}, '__traceback__'))\n`+
 prefix+`if(! $B.$bool($b)){\n`+
@@ -13677,7 +14108,7 @@ s+=prefix+`frame.$lineno = ${lineno}\n`+
 prefix+`if(exc_${id}){\n`
 indent()
 s+=prefix+`try{\n`+
-prefix+tab+`exit_${id}(mgr_${id}, _b_.None, _b_.None, _b_.None)\n`+
+prefix+tab+`$B.$call(exit_${id})(_b_.None, _b_.None, _b_.None)\n`+
 prefix+`}catch(err){\n`
 indent()
 s+=prefix+`if($B.count_frames() < stack_length){\n`+
@@ -13694,6 +14125,7 @@ return s}
 var _with=this,scope=last_scope(scopes),lineno=this.lineno
 scope.needs_stack_length=true
 indent(2)
+var inum=add_to_positions(scopes,this)
 var js=add_body(this.body,scopes)+'\n'
 dedent(2)
 var in_generator=scopes.symtable.table.blocks.get(fast_id(scope.ast)).generator
@@ -13824,6 +14256,8 @@ scopes.namespaces=namespaces
 scopes.imported=imported
 scopes.imports={}
 scopes.indent=0
+scopes.postpone_annotations=scopes.symtable.table.future.features &
+$B.CO_FUTURE_ANNOTATIONS
 var js_tab=$B.get_option('js_tab')
 tab=' '.repeat(js_tab)
 var js=ast_root.to_js(scopes)
@@ -13836,7 +14270,7 @@ console.log(ast)
 throw Error('no col offset')}}
 return ast.to_js(scopes)}
 console.log("unhandled",ast.constructor.$name,ast,typeof ast)
-return '// unhandled class ast.'+ast.constructor.$name}})(__BRYTHON__)
+return '// unhandled class ast.'+ast.constructor.$name}})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 var GLOBAL_PARAM="name '%s' is parameter and global",NONLOCAL_PARAM="name '%s' is parameter and nonlocal",GLOBAL_AFTER_ASSIGN="name '%s' is assigned to before global declaration",NONLOCAL_AFTER_ASSIGN="name '%s' is assigned to before nonlocal declaration",GLOBAL_AFTER_USE="name '%s' is used prior to global declaration",NONLOCAL_AFTER_USE="name '%s' is used prior to nonlocal declaration",GLOBAL_ANNOT="annotated name '%s' can't be global",NONLOCAL_ANNOT="annotated name '%s' can't be nonlocal",IMPORT_STAR_WARNING="import * only allowed at module level",NAMED_EXPR_COMP_IN_CLASS=
@@ -14432,39 +14866,39 @@ if(!symtable_handle_namedexpr(st,e))
 VISIT_QUIT(st,0);
 break;
 case $B.ast.BoolOp:
-VISIT_SEQ(st,'expr',e.values);
+VISIT_SEQ(st,expr,e.values);
 break;
 case $B.ast.BinOp:
-VISIT(st,'expr',e.left);
-VISIT(st,'expr',e.right);
+VISIT(st,expr,e.left);
+VISIT(st,expr,e.right);
 break;
 case $B.ast.UnaryOp:
-VISIT(st,'expr',e.operand);
+VISIT(st,expr,e.operand);
 break;
 case $B.ast.Lambda:{if(!GET_IDENTIFIER('lambda'))
 VISIT_QUIT(st,0);
 if(e.args.defaults)
-VISIT_SEQ(st,'expr',e.args.defaults);
+VISIT_SEQ(st,expr,e.args.defaults);
 if(e.args.kw_defaults)
-VISIT_SEQ_WITH_NULL(st,'expr',e.args.kw_defaults);
+VISIT_SEQ_WITH_NULL(st,expr,e.args.kw_defaults);
 if(!symtable_enter_block(st,lambda,FunctionBlock,e,e.lineno,e.col_offset,e.end_lineno,e.end_col_offset))
 VISIT_QUIT(st,0);
 VISIT(st,'arguments',e.args);
-VISIT(st,'expr',e.body);
+VISIT(st,expr,e.body);
 if(!symtable_exit_block(st))
 VISIT_QUIT(st,0);
 break;}
 case $B.ast.IfExp:
-VISIT(st,'expr',e.test);
-VISIT(st,'expr',e.body);
-VISIT(st,'expr',e.orelse);
+VISIT(st,expr,e.test);
+VISIT(st,expr,e.body);
+VISIT(st,expr,e.orelse);
 break;
 case $B.ast.Dict:
-VISIT_SEQ_WITH_NULL(st,'expr',e.keys);
-VISIT_SEQ(st,'expr',e.values);
+VISIT_SEQ_WITH_NULL(st,expr,e.keys);
+VISIT_SEQ(st,expr,e.values);
 break;
 case $B.ast.Set:
-VISIT_SEQ(st,'expr',e.elts);
+VISIT_SEQ(st,expr,e.elts);
 break;
 case $B.ast.GeneratorExp:
 if(!visitor.genexp(st,e))
@@ -14484,50 +14918,55 @@ VISIT_QUIT(st,0);
 break;
 case $B.ast.Yield:
 if(!symtable_raise_if_annotation_block(st,"yield expression",e)){VISIT_QUIT(st,0);}
-if(e.value)
-VISIT(st,'expr',e.value);
+if(e.value){VISIT(st,expr,e.value)}
 st.cur.generator=1;
-if(st.cur.comprehension){return symtable_raise_if_comprehension_block(st,e);}
+if(st.cur.comprehension){return symtable_raise_if_comprehension_block(st,e)}
 break;
 case $B.ast.YieldFrom:
-if(!symtable_raise_if_annotation_block(st,"yield expression",e)){VISIT_QUIT(st,0);}
-VISIT(st,'expr',e.value);
-st.cur.generator=1;
-if(st.cur.comprehension){return symtable_raise_if_comprehension_block(st,e);}
+if(!symtable_raise_if_annotation_block(st,"yield expression",e)){VISIT_QUIT(st,0)}
+VISIT(st,expr,e.value)
+st.cur.generator=1
+if(st.cur.comprehension){return symtable_raise_if_comprehension_block(st,e)}
 break;
 case $B.ast.Await:
-if(!symtable_raise_if_annotation_block(st,"await expression",e)){VISIT_QUIT(st,0);}
-VISIT(st,'expr',e.value);
-st.cur.coroutine=1;
+if(!symtable_raise_if_annotation_block(st,"await expression",e)){VISIT_QUIT(st,0)}
+VISIT(st,expr,e.value)
+st.cur.coroutine=1
 break;
 case $B.ast.Compare:
-VISIT(st,'expr',e.left);
-VISIT_SEQ(st,'expr',e.comparators);
+VISIT(st,expr,e.left);
+VISIT_SEQ(st,expr,e.comparators);
 break;
 case $B.ast.Call:
-VISIT(st,'expr',e.func);
-VISIT_SEQ(st,'expr',e.args);
-VISIT_SEQ_WITH_NULL(st,'keyword',e.keywords);
+VISIT(st,expr,e.func);
+VISIT_SEQ(st,expr,e.args);
+VISIT_SEQ_WITH_NULL(st,keyword,e.keywords);
 break;
 case $B.ast.FormattedValue:
-VISIT(st,'expr',e.value);
-if(e.format_spec)
-VISIT(st,'expr',e.format_spec);
+VISIT(st,expr,e.value);
+if(e.format_spec){VISIT(st,expr,e.format_spec);}
+break;
+case $B.ast.Interpolation:
+VISIT(st,expr,e.value);
+if(e.format_spec){VISIT(st,expr,e.format_spec);}
 break;
 case $B.ast.JoinedStr:
-VISIT_SEQ(st,'expr',e.values);
+VISIT_SEQ(st,expr,e.values);
+break;
+case $B.ast.TemplateStr:
+VISIT_SEQ(st,expr,e.values);
 break;
 case $B.ast.Constant:
 break;
 case $B.ast.Attribute:
-VISIT(st,'expr',e.value);
+VISIT(st,expr,e.value);
 break;
 case $B.ast.Subscript:
-VISIT(st,'expr',e.value);
-VISIT(st,'expr',e.slice);
+VISIT(st,expr,e.value);
+VISIT(st,expr,e.slice);
 break;
 case $B.ast.Starred:
-VISIT(st,'expr',e.value);
+VISIT(st,expr,e.value);
 break;
 case $B.ast.Slice:
 if(e.lower)
@@ -14657,8 +15096,8 @@ if(!symtable_add_def(st,eh.name,SF.DEF_LOCAL,LOCATION(eh)))
 return 0;
 VISIT_SEQ(st,stmt,eh.body);
 return 1;}
-visitor.withitem=function(st,item){VISIT(st,'expr',item.context_expr);
-if(item.optional_vars){VISIT(st,'expr',item.optional_vars);}
+visitor.withitem=function(st,item){VISIT(st,expr,item.context_expr);
+if(item.optional_vars){VISIT(st,expr,item.optional_vars);}
 return 1;}
 visitor.match_case=function(st,m){VISIT(st,pattern,m.pattern);
 if(m.guard){VISIT(st,expr,m.guard);}
@@ -14747,7 +15186,7 @@ var exc=PyErr_SetString(PyExc_SyntaxError,(type==ListComprehension)? "'yield' in
 "'yield' inside generator expression");
 exc.$frame_obj=$B.frame_obj
 set_exc_info(exc,st.filename,e.lineno,e.col_offset,e.end_lineno,e.end_col_offset);
-throw exc}})(__BRYTHON__)
+throw exc}})(__BRYTHON__);
 ;
 
 (function($B){var _b_=$B.builtins,NULL=undefined,DOT='.',ELLIPSIS='...'
@@ -14764,14 +15203,16 @@ s+=char
 escaped=false}}
 value=s}
 return value.substr(1,value.length-2)}
-function encode_bytestring(s){s=s.replace(/\\t/g,'\t')
-.replace(/\\n/g,'\n')
-.replace(/\\r/g,'\r')
-.replace(/\\f/g,'\f')
-.replace(/\\v/g,'\v')
-.replace(/\\\\/g,'\\')
+var escapeseq={a:'\a',b:'\b',f:'\f',n:'\n',r:'\r',t:'\t',v:'\v','"':'"',"'":"'"}
+function encode_bytestring(s){var s1=''
+var escape=false
+for(var char of s){if(char=='\\'){if(escape){s1+=char}
+escape=! escape}else if(escape){var repl=escapeseq[char]
+s1+=repl ?? char
+escape=false}else{s1+=char}}
+s=s1
 var t=[]
-for(var i=0,len=s.length;i < len;i++){var cp=s.codePointAt(i)
+for(var i=0,len=s1.length;i < len;i++){var cp=s1.codePointAt(i)
 if(cp > 255){throw Error()}
 t.push(cp)}
 return t}
@@ -14825,9 +15266,11 @@ function _seq_number_of_starred_exprs(seq){var n=0
 for(var k of seq){if(! k.is_keyword){n++;}}
 return n}
 $B._PyPegen={}
+$B._PyPegen.PyErr_Occurred=function(){
+return false}
 $B._PyPegen.constant_from_string=function(p,token){var prepared=$B.prepare_string(p,token)
 var is_bytes=prepared.value.startsWith('b')
-if(! is_bytes){var value=make_string_for_ast_value(prepared.value)}else{value=prepared.value.substr(2,prepared.value.length-3)
+if(! is_bytes){var value=make_string_for_ast_value(prepared.value)}else{var value=prepared.value.substr(2,prepared.value.length-3)
 try{value=_b_.bytes.$factory(encode_bytestring(value))}catch(err){$B._PyPegen.raise_error_known_location(p,_b_.SyntaxError,token.lineno,token.col_offset,token.end_lineno,token.end_col_offset,'bytes can only contain ASCII literal characters')}}
 var ast_obj=new $B.ast.Constant(value)
 set_position_from_token(ast_obj,token)
@@ -14837,6 +15280,39 @@ set_position_from_token(ast_obj,t)
 return ast_obj}
 $B._PyPegen.decoded_constant_from_token=function(p,t){var ast_obj=new $B.ast.Constant(t.string)
 set_position_from_token(ast_obj,t)
+return ast_obj}
+function is_whitespace(char){return ' \n\r\t\f'.includes(char)}
+function _get_interpolation_conversion(p,debug,conversion,format){if(conversion !=NULL){var conversion_expr=conversion.result
+return conversion_expr.id}else if(debug && !format){
+return 'r'}
+return-1;}
+function _strip_interpolation_expr(exprstr){var len=exprstr.length
+for(var c of exprstr){if(is_whitespace(c)||c=='='){len--}else{break}}
+return exprstr.substr(0,len)}
+$B._PyPegen.interpolation=function(p,expression,debug,conversion,format,closing_brace,position,arena){var lineno=position.lineno,col_offset=position.col_offset,end_lineno=position.end_lineno,end_col_offset=position.end_col_offset
+var conversion_val=_get_interpolation_conversion(p,debug,conversion,format);
+var debug_end_line,debug_end_offset;
+var debug_metadata;
+var exprstr;
+if(conversion){debug_end_line=conversion.result.lineno
+debug_end_offset=conversion.result.col_offset;
+debug_metadata=exprstr=conversion.metadata;}else if(format){debug_end_line=format.result.lineno;
+debug_end_offset=format.result.col_offset+1;
+debug_metadata=exprstr=format.metadata;}else{debug_end_line=end_lineno;
+debug_end_offset=end_col_offset;
+debug_metadata=exprstr=closing_brace.metadata;}
+var final_exprstr=_strip_interpolation_expr(exprstr);
+if(final_exprstr){p.arena.a_objects.push(final_exprstr)}
+var interpolation=$B._PyAST.Interpolation(
+expression,final_exprstr,conversion_val,format ? format.result :NULL)
+set_position_from_obj(interpolation,position)
+if(!debug){return interpolation;}
+var debug_text=$B._PyAST.Constant(debug_metadata)
+set_position_from_list(debug_text,[lineno,col_offset+1,debug_end_line,debug_end_offset-1])
+var values=[debug_text,interpolation]
+var ast_obj=$B._PyAST.JoinedStr(values)
+set_position_from_list(ast_obj,[lineno,col_offset,debug_end_line,debug_end_offset])
+console.log('JoinedStr',ast_obj)
 return ast_obj}
 $B._PyPegen.formatted_value=function(p,expression,debug,conversion,format,closing_brace,arena){var conversion_val=-1
 if(conversion){var conversion_expr=conversion.result,first=conversion_expr.id
@@ -14862,6 +15338,47 @@ var joined_str=new $B.ast.JoinedStr([debug,formatted_value])
 set_position_from_obj(joined_str,arena)
 return joined_str}
 return formatted_value}
+$B._PyPegen.decode_fstring_part=function(p,is_raw,constant,token){var bstr=constant.value
+var len;
+if(bstr=="{{" ||bstr=="}}"){len=1}else{len=bstr.length}
+is_raw=is_raw ||! bstr.includes('\\')
+var str=bstr 
+if(str==NULL){_Pypegen_raise_decode_error(p);
+return NULL;}
+p.arena.a_objects.push(str)
+return $B._PyAST.Constant(str,NULL,constant.lineno,constant.col_offset,constant.end_lineno,constant.end_col_offset,p.arena);}
+function _get_resized_exprs(p,a,raw_expressions,b,string_kind){var n_items=raw_expressions.length
+var total_items=n_items
+for(var item of raw_expressions){if(item instanceof $B.ast.JoinedStr){total_items+=item.values.length-1;}}
+var quote_str=a.bytes
+if(quote_str==NULL){return NULL;}
+var is_raw=quote_str.includes('r')||quote_str.includes('R')
+var seq=[]
+var index=0;
+for(var i=0;i < n_items;i++){var item=raw_expressions[i]
+if(item instanceof $B.ast.JoinedStr){var values=item.values
+if(values.length !=2){PyErr_Format(PyExc_SystemError,string_kind==TSTRING
+? "unexpected TemplateStr node without debug data in t-string at line %d"
+:"unexpected JoinedStr node without debug data in f-string at line %d",item.lineno);
+return NULL;}
+var first=values[0]
+seq[index++]=first
+var second=values[1]
+seq[index++]=second
+continue;}
+if(item instanceof $B.ast.Constant){item=$B._PyPegen.decode_fstring_part(p,is_raw,item,b);
+if(item==NULL){return NULL;}
+if(item.value.length==0){continue;}}
+seq[index++]=item}
+var resized_exprs
+if(index !=total_items){resized_exprs=_Py_asdl_expr_seq_new(index,p.arena);
+if(resized_exprs==NULL){return NULL;}
+for(var i=0;i < index;i++){resized_exprs[i]=seq[i]}}else{resized_exprs=seq;}
+return resized_exprs;}
+$B._PyPegen.template_str=function(p,a,raw_expressions,b){var resized_exprs=_get_resized_exprs(p,a,raw_expressions,b,'TSTRING')
+var ast_obj=new $B.ast.TemplateStr(resized_exprs)
+set_position_from_list(ast_obj,[a.lineno,a.col_offset,b.end_lineno,b.end_col_offset])
+return ast_obj}
 $B._PyPegen.joined_str=function(p,a,items,c){var ast_obj=new $B.ast.JoinedStr(items)
 ast_obj.lineno=a.lineno
 ast_obj.col_offset=a.col_offset
@@ -14898,8 +15415,7 @@ function _set_tuple_context(p,e,ctx){return $B._PyAST.Tuple(
 _set_seq_context(p,e.elts,ctx),ctx,EXTRA_EXPR(e,e));}
 function _set_list_context(p,e,ctx){return $B._PyAST.List(
 _set_seq_context(p,e.elts,ctx),ctx,EXTRA_EXPR(e,e));}
-function _set_subscript_context(p,e,ctx){console.log('set subscritp cntext',p,e)
-return $B._PyAST.Subscript(e.value,e.slice,ctx,EXTRA_EXPR(e,e));}
+function _set_subscript_context(p,e,ctx){return $B._PyAST.Subscript(e.value,e.slice,ctx,EXTRA_EXPR(e,e));}
 function _set_attribute_context(p,e,ctx){return $B._PyAST.Attribute(e.value,e.attr,ctx,EXTRA_EXPR(e,e));}
 function _set_starred_context(p,e,ctx){return $B._PyAST.Starred($B._PyPegen.set_expr_context(p,e.value,ctx),ctx,EXTRA_EXPR(e,e));}
 $B._PyPegen.set_expr_context=function(p,expr,ctx){var _new=NULL;
@@ -15089,8 +15605,52 @@ seq.push(fmt_ast)}
 var ast_obj=new $B.ast.JoinedStr(seq)
 set_position_from_obj(ast_obj,p.arena)
 return ast_obj}
-$B._PyPegen.concatenate_strings=function(p,strings){
-var res='',first=strings[0],last=$B.last(strings),type
+function _build_concatenated_str(p,strings){var len=strings.length
+var n_flattened_elements=0;
+for(var elem of strings){if(elem instanceof $B.ast.JoinedStr ||
+elem instanceof $B.ast.TemplateStr){n_flattened_elements+=elem.values.length}else{n_flattened_elements++}}
+var flattened=[]
+var current_pos=0;
+for(var elem of strings){if(elem instanceof $B.ast.JoinedStr ||
+elem instanceof $B.ast.TemplateStr){for(var subvalue of elem.values){flattened[current_pos++]=subvalue}}else{flattened[current_pos++]=elem}}
+var n_elements=0
+var prev_is_constant=0
+for(var elem of flattened){
+if(elem instanceof $B.ast.Constant &&
+typeof elem.value=='string' &&
+elem.value.length==0){continue}
+if(!prev_is_constant ||!(elem instanceof $B.ast.Constant)){n_elements++;}
+prev_is_constant=elem instanceof $B.ast.Constant}
+var values=[]
+current_pos=0;
+for(var i=0,len=flattened.length;i < len;i++){var elem=flattened[i]
+if(elem instanceof $B.ast.Constant){if(i+1 < n_flattened_elements &&
+flattened[i+1]instanceof $B.ast.Constant){var first_elem=elem;
+var kind=elem.__class__
+var concat_str=''
+var last_elem=elem;
+var j
+for(j=i;j < n_flattened_elements;j++){var current_elem=flattened[j]
+if(current_elem instanceof $B.ast.Constant){concat_str+=current_elem.value
+last_elem=current_elem;}else{break;}}
+i=j-1
+p.arena.a_objects.push(concat_str)
+elem=new $B.ast.Constant(concat_str,kind)
+set_position_from_list(elem,[first_elem.lineno,first_elem.col_offset,last_elem.end_lineno,last_elem.end_col_offset]);}
+if(elem.value.length==0){continue}}
+values[current_pos++]=elem}
+return values}
+function _build_concatenated_template_str(p,strings){var values=_build_concatenated_str(p,strings)
+var ast_obj=new $B.ast.TemplateStr(values)
+var last=strings[strings.length-1]
+set_position_from_list(ast_obj,[strings[0].lineno,strings[0].col_offset,last.end_lineno,last.end_col_offset])
+return ast_obj}
+function _build_concatenated_joined_str(p,strings){var values=_build_concatenated_str(p,strings)
+var ast_obj=new $B.ast.JoinedStr(values)
+var last=strings[strings.length-1]
+set_position_from_list(ast_obj,[strings[0].lineno,strings[0].col_offset,last.end_lineno,last.end_col_offset])
+return ast_obj}
+$B._PyPegen.concatenate_strings=function(p,strings){var res='',first=strings[0],last=$B.last(strings),type
 var state=NULL,value,values=[]
 function error(message){var a={lineno:first.start[0],col_offset:first.start[1],end_lineno :last.end[0],end_col_offset:last.end[1]}
 $B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a,message)}
@@ -15099,19 +15659,23 @@ ast_obj.lineno=first.lineno
 ast_obj.col_offset=first.col_offset
 ast_obj.end_lineno=last.end_lineno
 ast_obj.end_col_offset=last.end_col_offset}
-var items=[],has_fstring=false,state
-for(var token of strings){if(token instanceof $B.ast.JoinedStr){
-has_fstring=true
-if(state=='bytestring'){error('cannot mix bytes and nonbytes literals')}
-for(var fs_item of token.values){if(fs_item instanceof $B.ast.Constant){
+function escape_single_quotes(token){for(var fs_item of token.values){if(fs_item instanceof $B.ast.Constant){
 var parts=fs_item.value.split('\\\'')
 parts=parts.map(x=> x.replace(new RegExp("'","g"),"\\'"))
 fs_item.value=parts.join('\\\'')
 fs_item.value=fs_item.value.replace(/\n/g,'\\n')
-.replace(/\r/g,'\\r')}
-items.push(fs_item)}
-state='string'}else{items.push(token)
-var is_bytes=token.value.__class__===_b_.bytes
+.replace(/\r/g,'\\r')}}}
+var items=[],has_fstring=false,has_tstring=false,state
+for(var string of strings){if(string instanceof $B.ast.JoinedStr){
+has_fstring=true
+if(state=='bytestring'){error('cannot mix bytes and nonbytes literals')}
+escape_single_quotes(string)
+state='string'}else if(string instanceof $B.ast.TemplateStr){
+has_tstring=true
+if(state=='bytestring'){error('cannot mix bytes and nonbytes literals')}
+escape_single_quotes(string)
+state='string'}else{items.push(string)
+var is_bytes=string.value.__class__===_b_.bytes
 if((is_bytes && state=='string')||
 (state=='bytestring' && ! is_bytes)){error('cannot mix bytes and nonbytes literals')}
 state=is_bytes ? 'bytestring' :'string'}}
@@ -15134,11 +15698,22 @@ if(item instanceof $B.ast.Constant){consec_strs.push(item)}else{if(consec_strs.l
 consec_strs=[]
 items1.push(item)}}
 if(consec_strs.length > 0){items1.push(group_consec_strings(consec_strs))}
-if(! has_fstring){return items1[0]}
-var jstr_values=items1
-var ast_obj=new $B.ast.JoinedStr(jstr_values)
-set_position_from_list(ast_obj,strings)
-return ast_obj}
+if(! has_fstring && ! has_tstring){return items1[0]}
+if(has_tstring){return _build_concatenated_template_str(p,strings)}
+return _build_concatenated_joined_str(p,strings)}
+$B._PyPegen.concatenate_tstrings=$B._PyPegen.concatenate_strings
+$B._PyPegen.checked_future_import=function(p,module,names,level,lineno,col_offset,end_lineno,end_col_offset,arena){if(level==0 && module=="__future__"){for(var i=0;i < names.length;i++){var alias=names[i]
+if(alias.name=="barry_as_FLUFL"){p.flags |=PyPARSE_BARRY_AS_BDFL;}}}
+return $B._PyAST.ImportFrom(module,names,level,lineno,col_offset,end_lineno,end_col_offset,arena);}
+$B._PyPegen.register_stmts=function(p,stmts){if(! p.call_invalid_rules){return stmts}
+var len=stmts.length
+if(len==0){return stmts}
+var last_stmt=stmts[len-1]
+p.last_stmt_location.lineno=last_stmt.lineno
+p.last_stmt_location.col_offset=last_stmt.col_offset
+p.last_stmt_location.end_lineno=last_stmt.end_lineno
+p.last_stmt_location.end_col_offset=last_stmt.end_col_offset
+return stmts}
 $B._PyPegen.ensure_imaginary=function(p,exp){if(!(exp instanceof $B.ast.Constant)||
 exp.value.__class__ !=_b_.complex){$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(exp,"imaginary number required in complex literal");
 return NULL}
@@ -15192,7 +15767,7 @@ case $B.ast.Subscript:
 case $B.ast.Attribute:
 return NULL;
 default:
-return e;}}})(__BRYTHON__)
+return e;}}})(__BRYTHON__);
 ;
 (function($B){var _b_=$B.builtins
 var s_escaped='abfnrtvxuU"0123456789'+"'"+'\\',is_escaped={}
@@ -15207,7 +15782,7 @@ pos++}}
 return bytes}
 function string_error(p,token,msg){$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,token,msg)}
 function SurrogatePair(value){this.value=value}
-function test_escape(p,token,C,text,string_start,antislash_pos){
+function test_escape(p,token,context,text,string_start,antislash_pos){
 var seq_end,mo
 mo=/^[0-7]{1,3}/.exec(text.substr(antislash_pos+1))
 if(mo){if(mo[0].length==3 && mo[0][0]>='4'){$B.warn(_b_.SyntaxWarning,`invalid octal escape sequence '\\${mo[0]}'`,p.filename,token)}
@@ -15231,7 +15806,7 @@ string_error(p,token,["(unicode error) 'unicodeescape' codec can't decode "+
 `bytes in position ${antislash_pos}-${seq_end}: truncated `+
 "\\UXXXXXXXX escape"])}else{var value=parseInt(mo[0],16)
 if(value > 0x10FFFF){string_error(p,token,'invalid unicode escape '+mo[0])}else if(value >=0x10000){return[new SurrogatePair(value),2+mo[0].length]}else{return[String.fromCharCode(value),2+mo[0].length]}}}}
-$B.prepare_string=function(p,token){var s=token.string,len=s.length,pos=0,string_modifier,_type="string",quote,C={type:'str'}
+$B.prepare_string=function(p,token){var s=token.string,len=s.length,pos=0,string_modifier,_type="string",quote,inner,context={type:'str'}
 while(pos < len){if(s[pos]=='"' ||s[pos]=="'"){quote=s[pos]
 string_modifier=s.substr(0,pos)
 if(s.substr(pos,3)==quote.repeat(3)){_type="triple_string"
@@ -15241,7 +15816,7 @@ pos++}
 var result={quote}
 var mods={r:'raw',f:'fstring',b:'bytes'}
 for(var mod of string_modifier){result[mods[mod]]=true}
-var raw=C.type=='str' && C.raw,string_start=pos+1,bytes=false,fstring=false,sm_length,
+var raw=context.type=='str' && context.raw,string_start=pos+1,bytes=false,fstring=false,sm_length,
 end=null;
 if(string_modifier){switch(string_modifier){case 'r':
 raw=true
@@ -15297,7 +15872,7 @@ if(search===null){string_error(p,token,"(unicode error) "+
 "unknown Unicode character name")}
 var cp=parseInt(search[1],16)
 zone+=String.fromCodePoint(cp)
-end=end_lit+1}else{end++}}else{var esc=test_escape(p,token,C,src,string_start,end)
+end=end_lit+1}else{end++}}else{var esc=test_escape(p,token,context,src,string_start,end)
 if(esc){if(esc[0]=='\\'){zone+='\\\\'}else if(esc[0]instanceof SurrogatePair){zone+=String.fromCodePoint(esc[0].value)}else{zone+=esc[0]}
 end+=esc[1]}else{if(end < src.length-1 &&
 is_escaped[src.charAt(end+1)]===undefined){zone+='\\'}
@@ -15319,8 +15894,8 @@ if(fstring){try{var re=new RegExp("\\\\"+quote,"g"),string_no_bs=string.replace(
 var elts=$B.parse_fstring(string_no_bs)}catch(err){string_error(p,token,err.message)}}
 if(bytes){result.value='b'+quote+string+quote
 result.bytes=to_bytes(string)}else if(fstring){result.value=elts}else{result.value=quote+string+quote}
-C.raw=raw;
-return result}})(__BRYTHON__)
+context.raw=raw;
+return result}})(__BRYTHON__);
 ;
 (function($B){function test_num(num_lit){var len=num_lit.length,pos=0,char,elt=null,subtypes={b:'binary',o:'octal',x:'hexadecimal'},digits_re=/[_\d]/
 function error(message){throw SyntaxError(message)}
@@ -15371,7 +15946,7 @@ if(num.subtype=="float"){if(num.imaginary){return{
 type:'imaginary',value:$B.prepare_number(num.value)}}else{return{
 type:'float',value:num.value+''}}}else{if(num.imaginary){return{
 type:'imaginary',value:$B.prepare_number(num.value)}}else{return{
-type:'int',value:[10,num.value]}}}}}})(__BRYTHON__)
+type:'int',value:[10,num.value]}}}}}})(__BRYTHON__);
 ;
 
 (function($B){var _b_=$B.builtins,debug=0
@@ -15407,7 +15982,7 @@ return obj},INVALID_VERSION_CHECK:function(p,version,msg,node){if(node==NULL){p.
 return NULL;}
 if(p.feature_version < version){p.error_indicator=1;
 return helper_functions.RAISE_SYNTAX_ERROR("%s only supported in Python 3.%i and greater",msg,version);}
-return node;},NEW_TYPE_COMMENT:function(p,x){return x},RAISE_ERROR_KNOWN_LOCATION:function(p,errtype,lineno,col_offset,end_lineno,end_col_offset,errmsg){var va=[errmsg]
+return node;},NEW_TYPE_COMMENT:function(p,x){return x},PyErr_Occurred:function(){return false},RAISE_ERROR_KNOWN_LOCATION:function(p,errtype,lineno,col_offset,end_lineno,end_col_offset,errmsg){var va=[errmsg]
 $B._PyPegen.raise_error_known_location(p,errtype,lineno,col_offset,end_lineno,end_col_offset,errmsg,va);
 return NULL;},RAISE_ERROR:function(p,errtype,msg){var extra_args=[]
 for(var i=1,len=arguments.length;i < len;i++){extra_args.push(arguments[i])}
@@ -15445,7 +16020,7 @@ exc.args[1]=$B.fast_tuple([filename,exc.lineno,exc.offset,exc.text,exc.end_linen
 exc.$frame_obj=$B.frame_obj
 throw exc}
 $B.raise_error_known_location=raise_error_known_location
-function raise_error_known_token(type,filename,token,message){var exc=type.$factory(message)
+function make_error_known_token(type,filename,token,message){var exc=type.$factory(message)
 exc.filename=filename
 exc.lineno=token.lineno
 exc.offset=token.col_offset+1
@@ -15454,8 +16029,8 @@ exc.end_offset=token.end_col_offset+1
 exc.text=token.line
 exc.args[1]=$B.fast_tuple([filename,exc.lineno,exc.offset,exc.text,exc.end_lineno,exc.end_offset])
 exc.$frame_obj=$B.frame_obj
-throw exc}
-$B.raise_error_known_token=raise_error_known_token
+return exc}
+$B.make_error_known_token=make_error_known_token
 function set_position_from_EXTRA(ast_obj,EXTRA){for(var key in EXTRA){ast_obj[key]=EXTRA[key]}}
 var Parser=$B.Parser=function(src,filename,mode){
 this._tokens=$B.tokenizer(src,filename,mode,this)
@@ -15465,8 +16040,9 @@ this.mark=0
 this.fill=0
 this.level=0
 this.size=1
-this.starting_lineno=0;
-this.starting_col_offset=0;
+this.starting_lineno=0
+this.starting_col_offset=0
+this.last_stmt_location={}
 this.tokens=[]
 this.src=src
 this.filename=filename
@@ -15477,9 +16053,9 @@ if(filename){p.filename=filename}}
 Parser.prototype.read_token=function(){while(true){var next=this._tokens[this.pos++]
 if(next){var value=next
 if(! value.parser_ignored){
-if(value.$error_token){$B.raise_error_known_location(...value)}else if(value.$error_token_known_token){$B.raise_error_known_token(...value)}
+if(value.$error_token){$B.raise_error_known_location(...value)}else if(value.$error_token_known_token){throw make_error_known_token(...value)}
 this.tokens[this.tokens.length]=value
-return value}}else{throw Error('tokenizer exhausted')}}}})(__BRYTHON__)
+return value}}else{throw Error('tokenizer exhausted')}}}})(__BRYTHON__);
 ;
 (function($B){
 var _b_=__BRYTHON__.builtins
@@ -15746,7 +16322,7 @@ if(flags.cf_flags & PyCF_TYPE_COMMENTS){parser_flags |=PyPARSE_TYPE_COMMENTS;}
 if((flags.cf_flags & PyCF_ONLY_AST)&& flags.cf_feature_version < 7){parser_flags |=PyPARSE_ASYNC_HACKS;}
 if(flags.cf_flags & PyCF_ALLOW_INCOMPLETE_INPUT){parser_flags |=PyPARSE_ALLOW_INCOMPLETE_INPUT;}
 return parser_flags;}
-$B._PyPegen.Parser_New=function(tok,start_rule,flags,feature_version,errcode,arena){var p={}
+$B._PyPegen.Parser_New=function(tok,start_rule,flags,feature_version,errcode,source,arena){var p={}
 if(p==NULL){return PyErr_NoMemory();}
 tok.type_comments=(flags & PyPARSE_TYPE_COMMENTS)> 0;
 tok.async_hacks=(flags & PyPARSE_ASYNC_HACKS)> 0;
@@ -15781,34 +16357,51 @@ function reset_parser_state_for_error_pass(p){for(let i=0;i < p.fill;i++){p.toke
 p.mark=0;
 p.call_invalid_rules=1;}
 function _is_end_of_source(p){var err=p.tok.done;
-return p.tokens[p.tokens.length-1].type=='ENDMARKER'}
+return p.tokens[p.tokens.length-1].type==$B.py_tokens.ENDMARKER}
+function inside_fstring(p){var res=false
+for(var token of p.tokens){if(token.type==$B.py_tokens.FSTRING_START){res=true}else if(token.type==$B.py_tokens.FSTRING_END){res=false}}
+return res}
 $B._PyPegen.tokenize_full_source_to_check_for_errors=function(p){var last_token=p.tokens[p.fill-1]
 $B.tokenizer(p.src,p.filename,p.mode,p)
 p.tokens=p._tokens
 if(p.braces.length > 0){var brace=$B.last(p.braces),err_lineno,msg
 if('([{'.includes(brace.char)){err_lineno=brace.line_num}else{if(p.braces.length > 1){err_lineno=p.braces[p.braces.length-2].line_num}else{err_lineno=brace.line_num}}
 if(p.tokens.length==0 ||$B.last(p.tokens).lineno >=err_lineno){if('([{'.includes(brace.char)){msg=`'${brace.char}' was never closed`}else if(p.braces.length > 1){var closing=brace.char,opening=p.braces[p.braces.length-2].char
-msg=`closing parenthesis '${closing}' does not match `+
-`opening parenthesis '${opening}'`}else{msg=`unmatched '${brace.char}'`}
+if(inside_fstring(p)){msg=`f-string: unmatched '${closing}'`}else{msg=`closing parenthesis '${closing}' does not match `+
+`opening parenthesis '${opening}'`}}else{msg=`unmatched '${brace.char}'`}
 $B.raise_error_known_location(_b_.SyntaxError,p.filename,brace.line_num,brace.pos-brace.line_start,brace.line_num,brace.pos-brace.line_start+1,brace.line,msg)}}}
 $B._PyPegen.set_syntax_error=function(p,last_token){
 if(p.fill==0){$B.helper_functions.RAISE_SYNTAX_ERROR(p,"error at start before reading any input");}
 $B._PyPegen.tokenize_full_source_to_check_for_errors(p);
 if(last_token.num_type==ERRORTOKEN && p.tok.done==E_EOF){if(p.tok.level){raise_unclosed_parentheses_error(p);}else{
 $B.helper_functions.RAISE_SYNTAX_ERROR(p,"unexpected EOF while parsing");}
-return;}
+return}
 if(last_token.num_type==INDENT ||last_token.num_type==DEDENT){$B.helper_functions.RAISE_INDENTATION_ERROR(p,last_token.num_type==INDENT ? "unexpected indent" :"unexpected unindent");
-return;}
+return}
 $B._PyPegen.tokenize_full_source_to_check_for_errors(p);
-$B.raise_error_known_token(_b_.SyntaxError,p.filename,last_token,"invalid syntax");}
+return $B.make_error_known_token(_b_.SyntaxError,p.filename,last_token,"invalid syntax");}
+$B._PyPegen.set_syntax_error_metadata=function(p,exc){if(! exc ||! $B.is_exc(exc,[_b_.SyntaxError])){return}
+var source=NULL;
+if(p.src !=NULL){source=p.src;}
+if(!source && p.tok.fp_interactive && p.tok.interactive_src_start){source=p.tok.interactive_src_start;}
+var the_source=NULL;
+if(source){the_source=source}
+if(!the_source){the_source=_b_.None;}
+var metadata=[exc.lineno,exc.offset,the_source 
+]
+if(!metadata){return;}
+exc._metadata=metadata;}
 $B._PyPegen.run_parser=function(p){var res=$B._PyPegen.parse(p);
+$B.python_keywords=p.keywords
 if(res==NULL){if((p.flags & $B.PyCF_ALLOW_INCOMPLETE_INPUT)&& _is_end_of_source(p)){return $B.helper_functions.RAISE_ERROR(p,_b_._IncompleteInputError,"incomplete input");}
 var last_token=p.tokens[p.fill-1];
 reset_parser_state_for_error_pass(p);
 try{$B._PyPegen.parse(p);}catch(err){last_token=p.tokens[p.fill-1]
 $B._PyPegen.tokenize_full_source_to_check_for_errors(p)
 throw err}
-$B._PyPegen.set_syntax_error(p,last_token);}
+var exc=$B._PyPegen.set_syntax_error(p,last_token);
+if($B.is_exc(exc,[_b_.SyntaxError])){$B._PyPegen.set_syntax_error_metadata(p,exc);}
+throw exc}
 if(p.start_rule==Py_single_input && bad_single_statement(p)){p.tok.done=E_BADSINGLE;
 return RAISE_SYNTAX_ERROR("multiple statements found while compiling a single statement");}
 return res;}
@@ -15821,7 +16414,7 @@ PyUnicode_CompareWithASCIIString(filename_ob,"<stdin>")==0){tok.fp_interactive=1
 tok.filename=Py_NewRef(filename_ob);
 var result=NULL;
 var parser_flags=compute_parser_flags(flags);
-var p=$B._PyPegen.Parser_New(tok,start_rule,parser_flags,PY_MINOR_VERSION,errcode,arena);
+var p=$B._PyPegen.Parser_New(tok,start_rule,parser_flags,PY_MINOR_VERSION,errcode,NULL,arena);
 if(p==NULL){return error()}
 result=_PyPegen_run_parser(p);
 _PyPegen_Parser_Free(p);
@@ -15838,13 +16431,13 @@ var result=NULL;
 var parser_flags=compute_parser_flags(flags);
 var feature_version=flags &&(flags.cf_flags & PyCF_ONLY_AST)?
 flags.cf_feature_version :PY_MINOR_VERSION;
-var p=$B._PyPegen.Parser_New(tok,start_rule,parser_flags,feature_version,NULL,arena);
+var p=$B._PyPegen.Parser_New(tok,start_rule,parser_flags,feature_version,NULL,str,arena);
 if(p==NULL){return error()}
 result=_PyPegen_run_parser(p);
 _PyPegen_Parser_Free(p);
 function error(){
 return result;}}
-$B.PyPegen={first_item:function(a,type){return a[0]},last_item:function(a,ptype){return a[a.length-1]}}})(__BRYTHON__)
+$B.PyPegen={first_item:function(a,type){return a[0]},last_item:function(a,ptype){return a[a.length-1]}}})(__BRYTHON__);
 ;
 
 function fprintf(dest,format){var args=Array.from(arguments).slice(2)
@@ -15856,15 +16449,16 @@ function UNUSED(){}
 function strcmp(x,y){return x==y ? 0 :x < y ?-1 :1}
 const MAXSTACK=6000,NULL=undefined
 function NEW_TYPE_COMMENT(){}
+var $B=__BRYTHON__
 const Store=new $B.ast.Store(),Load=new $B.ast.Load
 const EXTRA={}
-const ENDMARKER=0,NAME=1,NUMBER=2,STRING=3,NEWLINE=4,INDENT=5,DEDENT=6,LPAR=7,RPAR=8,LSQB=9,RSQB=10,COLON=11,COMMA=12,SEMI=13,PLUS=14,MINUS=15,STAR=16,SLASH=17,VBAR=18,AMPER=19,LESS=20,GREATER=21,EQUAL=22,DOT=23,PERCENT=24,LBRACE=25,RBRACE=26,EQEQUAL=27,NOTEQUAL=28,LESSEQUAL=29,GREATEREQUAL=30,TILDE=31,CIRCUMFLEX=32,LEFTSHIFT=33,RIGHTSHIFT=34,DOUBLESTAR=35,PLUSEQUAL=36,MINEQUAL=37,STAREQUAL=38,SLASHEQUAL=39,PERCENTEQUAL=40,AMPEREQUAL=41,VBAREQUAL=42,CIRCUMFLEXEQUAL=43,LEFTSHIFTEQUAL=44,RIGHTSHIFTEQUAL=45,DOUBLESTAREQUAL=46,DOUBLESLASH=47,DOUBLESLASHEQUAL=48,AT=49,ATEQUAL=50,RARROW=51,ELLIPSIS=52,COLONEQUAL=53,EXCLAMATION=54,OP=55,TYPE_IGNORE=56,TYPE_COMMENT=57,SOFT_KEYWORD=58,FSTRING_START=59,FSTRING_MIDDLE=60,FSTRING_END=61,COMMENT=62,NL=63,ERRORTOKEN=64,ENCODING=65
+const ENDMARKER=0,NAME=1,NUMBER=2,STRING=3,NEWLINE=4,INDENT=5,DEDENT=6,LPAR=7,RPAR=8,LSQB=9,RSQB=10,COLON=11,COMMA=12,SEMI=13,PLUS=14,MINUS=15,STAR=16,SLASH=17,VBAR=18,AMPER=19,LESS=20,GREATER=21,EQUAL=22,DOT=23,PERCENT=24,LBRACE=25,RBRACE=26,EQEQUAL=27,NOTEQUAL=28,LESSEQUAL=29,GREATEREQUAL=30,TILDE=31,CIRCUMFLEX=32,LEFTSHIFT=33,RIGHTSHIFT=34,DOUBLESTAR=35,PLUSEQUAL=36,MINEQUAL=37,STAREQUAL=38,SLASHEQUAL=39,PERCENTEQUAL=40,AMPEREQUAL=41,VBAREQUAL=42,CIRCUMFLEXEQUAL=43,LEFTSHIFTEQUAL=44,RIGHTSHIFTEQUAL=45,DOUBLESTAREQUAL=46,DOUBLESLASH=47,DOUBLESLASHEQUAL=48,AT=49,ATEQUAL=50,RARROW=51,ELLIPSIS=52,COLONEQUAL=53,EXCLAMATION=54,OP=55,TYPE_IGNORE=56,TYPE_COMMENT=57,SOFT_KEYWORD=58,FSTRING_START=59,FSTRING_MIDDLE=60,FSTRING_END=61,TSTRING_START=62,TSTRING_MIDDLE=63,TSTRING_END=64,COMMENT=65,NL=66,ERRORTOKEN=67,ENCODING=68
 const n_keyword_lists=9;
-const _reserved_keywords={if:660,as:658,in:671,or:581,is:589,del:616,def:675,for:670,try:642,and:582,not:679,from:621,pass:504,with:633,elif:662,else:663,None:614,True:613,raise:525,yield:580,break:508,async:674,class:677,while:665,False:615,await:590,return:522,import:622,assert:529,global:526,except:655,lambda:612,finally:651,continue:509,nonlocal:527,};
+const _reserved_keywords={if:682,as:680,in:695,or:588,is:596,del:625,def:699,for:694,try:656,and:589,not:703,from:633,pass:526,with:647,elif:687,else:686,None:623,True:622,raise:525,yield:587,break:527,async:698,class:701,while:689,False:624,await:597,return:522,import:634,assert:532,global:529,except:677,lambda:621,finally:673,continue:528,nonlocal:530,};
 const reserved_keywords=Object.create(null)
 for(var item of Object.entries(_reserved_keywords)){reserved_keywords[item[0]]=item[1]}
 const soft_keywords=["_","case","match","type",NULL,];
-const file_type=1000,interactive_type=1001,eval_type=1002,func_type_type=1003,statements_type=1004,statement_type=1005,statement_newline_type=1006,simple_stmts_type=1007,simple_stmt_type=1008,compound_stmt_type=1009,assignment_type=1010,annotated_rhs_type=1011,augassign_type=1012,return_stmt_type=1013,raise_stmt_type=1014,global_stmt_type=1015,nonlocal_stmt_type=1016,del_stmt_type=1017,yield_stmt_type=1018,assert_stmt_type=1019,import_stmt_type=1020,import_name_type=1021,import_from_type=1022,import_from_targets_type=1023,import_from_as_names_type=1024,import_from_as_name_type=1025,dotted_as_names_type=1026,dotted_as_name_type=1027,dotted_name_type=1028,block_type=1029,decorators_type=1030,class_def_type=1031,class_def_raw_type=1032,function_def_type=1033,function_def_raw_type=1034,params_type=1035,parameters_type=1036,slash_no_default_type=1037,slash_with_default_type=1038,star_etc_type=1039,kwds_type=1040,param_no_default_type=1041,param_no_default_star_annotation_type=1042,param_with_default_type=1043,param_maybe_default_type=1044,param_type=1045,param_star_annotation_type=1046,annotation_type=1047,star_annotation_type=1048,default_type=1049,if_stmt_type=1050,elif_stmt_type=1051,else_block_type=1052,while_stmt_type=1053,for_stmt_type=1054,with_stmt_type=1055,with_item_type=1056,try_stmt_type=1057,except_block_type=1058,except_star_block_type=1059,finally_block_type=1060,match_stmt_type=1061,subject_expr_type=1062,case_block_type=1063,guard_type=1064,patterns_type=1065,pattern_type=1066,as_pattern_type=1067,or_pattern_type=1068,closed_pattern_type=1069,literal_pattern_type=1070,literal_expr_type=1071,complex_number_type=1072,signed_number_type=1073,signed_real_number_type=1074,real_number_type=1075,imaginary_number_type=1076,capture_pattern_type=1077,pattern_capture_target_type=1078,wildcard_pattern_type=1079,value_pattern_type=1080,attr_type=1081,name_or_attr_type=1082,group_pattern_type=1083,sequence_pattern_type=1084,open_sequence_pattern_type=1085,maybe_sequence_pattern_type=1086,maybe_star_pattern_type=1087,star_pattern_type=1088,mapping_pattern_type=1089,items_pattern_type=1090,key_value_pattern_type=1091,double_star_pattern_type=1092,class_pattern_type=1093,positional_patterns_type=1094,keyword_patterns_type=1095,keyword_pattern_type=1096,type_alias_type=1097,type_params_type=1098,type_param_seq_type=1099,type_param_type=1100,type_param_bound_type=1101,type_param_default_type=1102,type_param_starred_default_type=1103,expressions_type=1104,expression_type=1105,yield_expr_type=1106,star_expressions_type=1107,star_expression_type=1108,star_named_expressions_type=1109,star_named_expression_type=1110,assignment_expression_type=1111,named_expression_type=1112,disjunction_type=1113,conjunction_type=1114,inversion_type=1115,comparison_type=1116,compare_op_bitwise_or_pair_type=1117,eq_bitwise_or_type=1118,noteq_bitwise_or_type=1119,lte_bitwise_or_type=1120,lt_bitwise_or_type=1121,gte_bitwise_or_type=1122,gt_bitwise_or_type=1123,notin_bitwise_or_type=1124,in_bitwise_or_type=1125,isnot_bitwise_or_type=1126,is_bitwise_or_type=1127,bitwise_or_type=1128,bitwise_xor_type=1129,bitwise_and_type=1130,shift_expr_type=1131,sum_type=1132,term_type=1133,factor_type=1134,power_type=1135,await_primary_type=1136,primary_type=1137,slices_type=1138,slice_type=1139,atom_type=1140,group_type=1141,lambdef_type=1142,lambda_params_type=1143,lambda_parameters_type=1144,lambda_slash_no_default_type=1145,lambda_slash_with_default_type=1146,lambda_star_etc_type=1147,lambda_kwds_type=1148,lambda_param_no_default_type=1149,lambda_param_with_default_type=1150,lambda_param_maybe_default_type=1151,lambda_param_type=1152,fstring_middle_type=1153,fstring_replacement_field_type=1154,fstring_conversion_type=1155,fstring_full_format_spec_type=1156,fstring_format_spec_type=1157,fstring_type=1158,string_type=1159,strings_type=1160,list_type=1161,tuple_type=1162,set_type=1163,dict_type=1164,double_starred_kvpairs_type=1165,double_starred_kvpair_type=1166,kvpair_type=1167,for_if_clauses_type=1168,for_if_clause_type=1169,listcomp_type=1170,setcomp_type=1171,genexp_type=1172,dictcomp_type=1173,arguments_type=1174,args_type=1175,kwargs_type=1176,starred_expression_type=1177,kwarg_or_starred_type=1178,kwarg_or_double_starred_type=1179,star_targets_type=1180,star_targets_list_seq_type=1181,star_targets_tuple_seq_type=1182,star_target_type=1183,target_with_star_atom_type=1184,star_atom_type=1185,single_target_type=1186,single_subscript_attribute_target_type=1187,t_primary_type=1188,t_lookahead_type=1189,del_targets_type=1190,del_target_type=1191,del_t_atom_type=1192,type_expressions_type=1193,func_type_comment_type=1194,invalid_arguments_type=1195,invalid_kwarg_type=1196,expression_without_invalid_type=1197,invalid_legacy_expression_type=1198,invalid_expression_type=1199,invalid_named_expression_type=1200,invalid_assignment_type=1201,invalid_ann_assign_target_type=1202,invalid_del_stmt_type=1203,invalid_block_type=1204,invalid_comprehension_type=1205,invalid_dict_comprehension_type=1206,invalid_parameters_type=1207,invalid_default_type=1208,invalid_star_etc_type=1209,invalid_kwds_type=1210,invalid_parameters_helper_type=1211,invalid_lambda_parameters_type=1212,invalid_lambda_parameters_helper_type=1213,invalid_lambda_star_etc_type=1214,invalid_lambda_kwds_type=1215,invalid_double_type_comments_type=1216,invalid_with_item_type=1217,invalid_for_target_type=1218,invalid_group_type=1219,invalid_import_type=1220,invalid_import_from_targets_type=1221,invalid_with_stmt_type=1222,invalid_with_stmt_indent_type=1223,invalid_try_stmt_type=1224,invalid_except_stmt_type=1225,invalid_finally_stmt_type=1226,invalid_except_stmt_indent_type=1227,invalid_except_star_stmt_indent_type=1228,invalid_match_stmt_type=1229,invalid_case_block_type=1230,invalid_as_pattern_type=1231,invalid_class_pattern_type=1232,invalid_class_argument_pattern_type=1233,invalid_if_stmt_type=1234,invalid_elif_stmt_type=1235,invalid_else_stmt_type=1236,invalid_while_stmt_type=1237,invalid_for_stmt_type=1238,invalid_def_raw_type=1239,invalid_class_def_raw_type=1240,invalid_double_starred_kvpairs_type=1241,invalid_kvpair_type=1242,invalid_starred_expression_type=1243,invalid_replacement_field_type=1244,invalid_conversion_character_type=1245,invalid_arithmetic_type=1246,invalid_factor_type=1247,invalid_type_params_type=1248,_loop0_1_type=1249,_loop0_2_type=1250,_loop1_3_type=1251,_loop0_5_type=1252,_gather_4_type=1253,_tmp_6_type=1254,_tmp_7_type=1255,_tmp_8_type=1256,_tmp_9_type=1257,_tmp_10_type=1258,_tmp_11_type=1259,_tmp_12_type=1260,_tmp_13_type=1261,_loop1_14_type=1262,_tmp_15_type=1263,_tmp_16_type=1264,_tmp_17_type=1265,_loop0_19_type=1266,_gather_18_type=1267,_loop0_21_type=1268,_gather_20_type=1269,_tmp_22_type=1270,_tmp_23_type=1271,_loop0_24_type=1272,_loop1_25_type=1273,_loop0_27_type=1274,_gather_26_type=1275,_tmp_28_type=1276,_loop0_30_type=1277,_gather_29_type=1278,_tmp_31_type=1279,_loop1_32_type=1280,_tmp_33_type=1281,_tmp_34_type=1282,_tmp_35_type=1283,_loop0_36_type=1284,_loop0_37_type=1285,_loop0_38_type=1286,_loop1_39_type=1287,_loop0_40_type=1288,_loop1_41_type=1289,_loop1_42_type=1290,_loop1_43_type=1291,_loop0_44_type=1292,_loop1_45_type=1293,_loop0_46_type=1294,_loop1_47_type=1295,_loop0_48_type=1296,_loop0_49_type=1297,_loop1_50_type=1298,_loop0_52_type=1299,_gather_51_type=1300,_loop0_54_type=1301,_gather_53_type=1302,_loop0_56_type=1303,_gather_55_type=1304,_loop0_58_type=1305,_gather_57_type=1306,_tmp_59_type=1307,_loop1_60_type=1308,_loop1_61_type=1309,_tmp_62_type=1310,_tmp_63_type=1311,_loop1_64_type=1312,_loop0_66_type=1313,_gather_65_type=1314,_tmp_67_type=1315,_tmp_68_type=1316,_tmp_69_type=1317,_tmp_70_type=1318,_loop0_72_type=1319,_gather_71_type=1320,_loop0_74_type=1321,_gather_73_type=1322,_tmp_75_type=1323,_loop0_77_type=1324,_gather_76_type=1325,_loop0_79_type=1326,_gather_78_type=1327,_loop0_81_type=1328,_gather_80_type=1329,_loop1_82_type=1330,_loop1_83_type=1331,_loop0_85_type=1332,_gather_84_type=1333,_loop1_86_type=1334,_loop1_87_type=1335,_loop1_88_type=1336,_tmp_89_type=1337,_loop0_91_type=1338,_gather_90_type=1339,_tmp_92_type=1340,_tmp_93_type=1341,_tmp_94_type=1342,_tmp_95_type=1343,_tmp_96_type=1344,_tmp_97_type=1345,_loop0_98_type=1346,_loop0_99_type=1347,_loop0_100_type=1348,_loop1_101_type=1349,_loop0_102_type=1350,_loop1_103_type=1351,_loop1_104_type=1352,_loop1_105_type=1353,_loop0_106_type=1354,_loop1_107_type=1355,_loop0_108_type=1356,_loop1_109_type=1357,_loop0_110_type=1358,_loop1_111_type=1359,_loop0_112_type=1360,_loop0_113_type=1361,_loop1_114_type=1362,_tmp_115_type=1363,_loop0_117_type=1364,_gather_116_type=1365,_loop1_118_type=1366,_loop0_119_type=1367,_loop0_120_type=1368,_tmp_121_type=1369,_tmp_122_type=1370,_loop0_124_type=1371,_gather_123_type=1372,_tmp_125_type=1373,_loop0_127_type=1374,_gather_126_type=1375,_loop0_129_type=1376,_gather_128_type=1377,_loop0_131_type=1378,_gather_130_type=1379,_loop0_133_type=1380,_gather_132_type=1381,_loop0_134_type=1382,_loop0_136_type=1383,_gather_135_type=1384,_loop1_137_type=1385,_tmp_138_type=1386,_loop0_140_type=1387,_gather_139_type=1388,_loop0_142_type=1389,_gather_141_type=1390,_loop0_144_type=1391,_gather_143_type=1392,_loop0_146_type=1393,_gather_145_type=1394,_loop0_148_type=1395,_gather_147_type=1396,_tmp_149_type=1397,_tmp_150_type=1398,_loop0_152_type=1399,_gather_151_type=1400,_tmp_153_type=1401,_tmp_154_type=1402,_tmp_155_type=1403,_tmp_156_type=1404,_tmp_157_type=1405,_tmp_158_type=1406,_tmp_159_type=1407,_tmp_160_type=1408,_tmp_161_type=1409,_tmp_162_type=1410,_loop0_163_type=1411,_loop0_164_type=1412,_loop0_165_type=1413,_tmp_166_type=1414,_tmp_167_type=1415,_tmp_168_type=1416,_tmp_169_type=1417,_loop0_170_type=1418,_loop0_171_type=1419,_loop0_172_type=1420,_loop1_173_type=1421,_tmp_174_type=1422,_loop0_175_type=1423,_tmp_176_type=1424,_loop0_177_type=1425,_loop1_178_type=1426,_tmp_179_type=1427,_tmp_180_type=1428,_tmp_181_type=1429,_loop0_182_type=1430,_tmp_183_type=1431,_tmp_184_type=1432,_loop1_185_type=1433,_tmp_186_type=1434,_loop0_187_type=1435,_loop0_188_type=1436,_loop0_189_type=1437,_loop0_191_type=1438,_gather_190_type=1439,_tmp_192_type=1440,_loop0_193_type=1441,_tmp_194_type=1442,_loop0_195_type=1443,_loop1_196_type=1444,_loop1_197_type=1445,_tmp_198_type=1446,_tmp_199_type=1447,_loop0_200_type=1448,_tmp_201_type=1449,_tmp_202_type=1450,_tmp_203_type=1451,_loop0_205_type=1452,_gather_204_type=1453,_loop0_207_type=1454,_gather_206_type=1455,_loop0_209_type=1456,_gather_208_type=1457,_loop0_211_type=1458,_gather_210_type=1459,_loop0_213_type=1460,_gather_212_type=1461,_tmp_214_type=1462,_loop0_215_type=1463,_loop1_216_type=1464,_tmp_217_type=1465,_loop0_218_type=1466,_loop1_219_type=1467,_tmp_220_type=1468,_tmp_221_type=1469,_tmp_222_type=1470,_tmp_223_type=1471,_tmp_224_type=1472,_tmp_225_type=1473,_tmp_226_type=1474,_tmp_227_type=1475,_tmp_228_type=1476,_tmp_229_type=1477,_tmp_230_type=1478,_loop0_232_type=1479,_gather_231_type=1480,_tmp_233_type=1481,_tmp_234_type=1482,_tmp_235_type=1483,_tmp_236_type=1484,_tmp_237_type=1485,_tmp_238_type=1486,_tmp_239_type=1487,_loop0_240_type=1488,_tmp_241_type=1489,_tmp_242_type=1490,_tmp_243_type=1491,_tmp_244_type=1492,_tmp_245_type=1493,_tmp_246_type=1494,_tmp_247_type=1495,_tmp_248_type=1496,_tmp_249_type=1497,_tmp_250_type=1498,_tmp_251_type=1499,_tmp_252_type=1500,_tmp_253_type=1501,_tmp_254_type=1502,_tmp_255_type=1503,_tmp_256_type=1504,_loop0_257_type=1505,_tmp_258_type=1506,_tmp_259_type=1507,_tmp_260_type=1508,_tmp_261_type=1509,_tmp_262_type=1510,_tmp_263_type=1511,_tmp_264_type=1512,_tmp_265_type=1513,_tmp_266_type=1514,_tmp_267_type=1515,_tmp_268_type=1516,_tmp_269_type=1517,_tmp_270_type=1518,_tmp_271_type=1519,_tmp_272_type=1520,_tmp_273_type=1521,_loop0_275_type=1522,_gather_274_type=1523,_tmp_276_type=1524,_tmp_277_type=1525,_tmp_278_type=1526,_tmp_279_type=1527,_tmp_280_type=1528,_tmp_281_type=1529
+const file_type=1000,interactive_type=1001,eval_type=1002,func_type_type=1003,statements_type=1004,statement_type=1005,single_compound_stmt_type=1006,statement_newline_type=1007,simple_stmts_type=1008,simple_stmt_type=1009,compound_stmt_type=1010,assignment_type=1011,annotated_rhs_type=1012,augassign_type=1013,return_stmt_type=1014,raise_stmt_type=1015,pass_stmt_type=1016,break_stmt_type=1017,continue_stmt_type=1018,global_stmt_type=1019,nonlocal_stmt_type=1020,del_stmt_type=1021,yield_stmt_type=1022,assert_stmt_type=1023,import_stmt_type=1024,import_name_type=1025,import_from_type=1026,import_from_targets_type=1027,import_from_as_names_type=1028,import_from_as_name_type=1029,dotted_as_names_type=1030,dotted_as_name_type=1031,dotted_name_type=1032,block_type=1033,decorators_type=1034,class_def_type=1035,class_def_raw_type=1036,function_def_type=1037,function_def_raw_type=1038,params_type=1039,parameters_type=1040,slash_no_default_type=1041,slash_with_default_type=1042,star_etc_type=1043,kwds_type=1044,param_no_default_type=1045,param_no_default_star_annotation_type=1046,param_with_default_type=1047,param_maybe_default_type=1048,param_type=1049,param_star_annotation_type=1050,annotation_type=1051,star_annotation_type=1052,default_type=1053,if_stmt_type=1054,elif_stmt_type=1055,else_block_type=1056,while_stmt_type=1057,for_stmt_type=1058,with_stmt_type=1059,with_item_type=1060,try_stmt_type=1061,except_block_type=1062,except_star_block_type=1063,finally_block_type=1064,match_stmt_type=1065,subject_expr_type=1066,case_block_type=1067,guard_type=1068,patterns_type=1069,pattern_type=1070,as_pattern_type=1071,or_pattern_type=1072,closed_pattern_type=1073,literal_pattern_type=1074,literal_expr_type=1075,complex_number_type=1076,signed_number_type=1077,signed_real_number_type=1078,real_number_type=1079,imaginary_number_type=1080,capture_pattern_type=1081,pattern_capture_target_type=1082,wildcard_pattern_type=1083,value_pattern_type=1084,attr_type=1085,name_or_attr_type=1086,group_pattern_type=1087,sequence_pattern_type=1088,open_sequence_pattern_type=1089,maybe_sequence_pattern_type=1090,maybe_star_pattern_type=1091,star_pattern_type=1092,mapping_pattern_type=1093,items_pattern_type=1094,key_value_pattern_type=1095,double_star_pattern_type=1096,class_pattern_type=1097,positional_patterns_type=1098,keyword_patterns_type=1099,keyword_pattern_type=1100,type_alias_type=1101,type_params_type=1102,type_param_seq_type=1103,type_param_type=1104,type_param_bound_type=1105,type_param_default_type=1106,type_param_starred_default_type=1107,expressions_type=1108,expression_type=1109,yield_expr_type=1110,star_expressions_type=1111,star_expression_type=1112,star_named_expressions_type=1113,star_named_expression_type=1114,assignment_expression_type=1115,named_expression_type=1116,disjunction_type=1117,conjunction_type=1118,inversion_type=1119,comparison_type=1120,compare_op_bitwise_or_pair_type=1121,eq_bitwise_or_type=1122,noteq_bitwise_or_type=1123,lte_bitwise_or_type=1124,lt_bitwise_or_type=1125,gte_bitwise_or_type=1126,gt_bitwise_or_type=1127,notin_bitwise_or_type=1128,in_bitwise_or_type=1129,isnot_bitwise_or_type=1130,is_bitwise_or_type=1131,bitwise_or_type=1132,bitwise_xor_type=1133,bitwise_and_type=1134,shift_expr_type=1135,sum_type=1136,term_type=1137,factor_type=1138,power_type=1139,await_primary_type=1140,primary_type=1141,slices_type=1142,slice_type=1143,atom_type=1144,group_type=1145,lambdef_type=1146,lambda_params_type=1147,lambda_parameters_type=1148,lambda_slash_no_default_type=1149,lambda_slash_with_default_type=1150,lambda_star_etc_type=1151,lambda_kwds_type=1152,lambda_param_no_default_type=1153,lambda_param_with_default_type=1154,lambda_param_maybe_default_type=1155,lambda_param_type=1156,fstring_middle_type=1157,fstring_replacement_field_type=1158,fstring_conversion_type=1159,fstring_full_format_spec_type=1160,fstring_format_spec_type=1161,fstring_type=1162,tstring_format_spec_replacement_field_type=1163,tstring_format_spec_type=1164,tstring_full_format_spec_type=1165,tstring_replacement_field_type=1166,tstring_middle_type=1167,tstring_type=1168,string_type=1169,strings_type=1170,list_type=1171,tuple_type=1172,set_type=1173,dict_type=1174,double_starred_kvpairs_type=1175,double_starred_kvpair_type=1176,kvpair_type=1177,for_if_clauses_type=1178,for_if_clause_type=1179,listcomp_type=1180,setcomp_type=1181,genexp_type=1182,dictcomp_type=1183,arguments_type=1184,args_type=1185,kwargs_type=1186,starred_expression_type=1187,kwarg_or_starred_type=1188,kwarg_or_double_starred_type=1189,star_targets_type=1190,star_targets_list_seq_type=1191,star_targets_tuple_seq_type=1192,star_target_type=1193,target_with_star_atom_type=1194,star_atom_type=1195,single_target_type=1196,single_subscript_attribute_target_type=1197,t_primary_type=1198,t_lookahead_type=1199,del_targets_type=1200,del_target_type=1201,del_t_atom_type=1202,type_expressions_type=1203,func_type_comment_type=1204,invalid_arguments_type=1205,invalid_kwarg_type=1206,expression_without_invalid_type=1207,invalid_legacy_expression_type=1208,invalid_type_param_type=1209,invalid_expression_type=1210,invalid_named_expression_type=1211,invalid_assignment_type=1212,invalid_ann_assign_target_type=1213,invalid_del_stmt_type=1214,invalid_block_type=1215,invalid_comprehension_type=1216,invalid_dict_comprehension_type=1217,invalid_parameters_type=1218,invalid_default_type=1219,invalid_star_etc_type=1220,invalid_kwds_type=1221,invalid_parameters_helper_type=1222,invalid_lambda_parameters_type=1223,invalid_lambda_parameters_helper_type=1224,invalid_lambda_star_etc_type=1225,invalid_lambda_kwds_type=1226,invalid_double_type_comments_type=1227,invalid_with_item_type=1228,invalid_for_if_clause_type=1229,invalid_for_target_type=1230,invalid_group_type=1231,invalid_import_type=1232,invalid_dotted_as_name_type=1233,invalid_import_from_as_name_type=1234,invalid_import_from_targets_type=1235,invalid_with_stmt_type=1236,invalid_with_stmt_indent_type=1237,invalid_try_stmt_type=1238,invalid_except_stmt_type=1239,invalid_except_star_stmt_type=1240,invalid_finally_stmt_type=1241,invalid_except_stmt_indent_type=1242,invalid_except_star_stmt_indent_type=1243,invalid_match_stmt_type=1244,invalid_case_block_type=1245,invalid_as_pattern_type=1246,invalid_class_pattern_type=1247,invalid_class_argument_pattern_type=1248,invalid_if_stmt_type=1249,invalid_elif_stmt_type=1250,invalid_else_stmt_type=1251,invalid_while_stmt_type=1252,invalid_for_stmt_type=1253,invalid_def_raw_type=1254,invalid_class_def_raw_type=1255,invalid_double_starred_kvpairs_type=1256,invalid_kvpair_type=1257,invalid_starred_expression_unpacking_type=1258,invalid_starred_expression_type=1259,invalid_fstring_replacement_field_type=1260,invalid_fstring_conversion_character_type=1261,invalid_tstring_replacement_field_type=1262,invalid_tstring_conversion_character_type=1263,invalid_string_tstring_concat_type=1264,invalid_arithmetic_type=1265,invalid_factor_type=1266,invalid_type_params_type=1267,_loop0_1_type=1268,_loop0_2_type=1269,_loop1_3_type=1270,_loop0_5_type=1271,_gather_4_type=1272,_tmp_6_type=1273,_tmp_7_type=1274,_tmp_8_type=1275,_tmp_9_type=1276,_tmp_10_type=1277,_tmp_11_type=1278,_tmp_12_type=1279,_tmp_13_type=1280,_loop1_14_type=1281,_tmp_15_type=1282,_loop0_17_type=1283,_gather_16_type=1284,_loop0_19_type=1285,_gather_18_type=1286,_tmp_20_type=1287,_tmp_21_type=1288,_loop0_22_type=1289,_loop1_23_type=1290,_loop0_25_type=1291,_gather_24_type=1292,_tmp_26_type=1293,_loop0_28_type=1294,_gather_27_type=1295,_tmp_29_type=1296,_loop1_30_type=1297,_tmp_31_type=1298,_tmp_32_type=1299,_tmp_33_type=1300,_loop0_34_type=1301,_loop0_35_type=1302,_loop0_36_type=1303,_loop1_37_type=1304,_loop0_38_type=1305,_loop1_39_type=1306,_loop1_40_type=1307,_loop1_41_type=1308,_loop0_42_type=1309,_loop1_43_type=1310,_loop0_44_type=1311,_loop1_45_type=1312,_loop0_46_type=1313,_loop0_47_type=1314,_loop1_48_type=1315,_loop0_50_type=1316,_gather_49_type=1317,_loop0_52_type=1318,_gather_51_type=1319,_loop0_54_type=1320,_gather_53_type=1321,_loop0_56_type=1322,_gather_55_type=1323,_tmp_57_type=1324,_loop1_58_type=1325,_loop1_59_type=1326,_loop1_60_type=1327,_loop0_62_type=1328,_gather_61_type=1329,_tmp_63_type=1330,_tmp_64_type=1331,_tmp_65_type=1332,_tmp_66_type=1333,_tmp_67_type=1334,_loop0_69_type=1335,_gather_68_type=1336,_loop0_71_type=1337,_gather_70_type=1338,_tmp_72_type=1339,_loop0_74_type=1340,_gather_73_type=1341,_loop0_76_type=1342,_gather_75_type=1343,_loop0_78_type=1344,_gather_77_type=1345,_loop1_79_type=1346,_loop1_80_type=1347,_loop0_82_type=1348,_gather_81_type=1349,_loop1_83_type=1350,_loop1_84_type=1351,_loop1_85_type=1352,_tmp_86_type=1353,_loop0_88_type=1354,_gather_87_type=1355,_tmp_89_type=1356,_tmp_90_type=1357,_tmp_91_type=1358,_tmp_92_type=1359,_tmp_93_type=1360,_tmp_94_type=1361,_loop0_95_type=1362,_loop0_96_type=1363,_loop0_97_type=1364,_loop1_98_type=1365,_loop0_99_type=1366,_loop1_100_type=1367,_loop1_101_type=1368,_loop1_102_type=1369,_loop0_103_type=1370,_loop1_104_type=1371,_loop0_105_type=1372,_loop1_106_type=1373,_loop0_107_type=1374,_loop1_108_type=1375,_loop0_109_type=1376,_loop0_110_type=1377,_loop0_111_type=1378,_loop0_112_type=1379,_loop1_113_type=1380,_loop1_114_type=1381,_tmp_115_type=1382,_loop0_117_type=1383,_gather_116_type=1384,_loop1_118_type=1385,_loop0_119_type=1386,_loop0_120_type=1387,_tmp_121_type=1388,_loop0_123_type=1389,_gather_122_type=1390,_tmp_124_type=1391,_loop0_126_type=1392,_gather_125_type=1393,_loop0_128_type=1394,_gather_127_type=1395,_loop0_130_type=1396,_gather_129_type=1397,_loop0_132_type=1398,_gather_131_type=1399,_loop0_133_type=1400,_loop0_135_type=1401,_gather_134_type=1402,_loop1_136_type=1403,_tmp_137_type=1404,_loop0_139_type=1405,_gather_138_type=1406,_loop0_141_type=1407,_gather_140_type=1408,_loop0_143_type=1409,_gather_142_type=1410,_loop0_145_type=1411,_gather_144_type=1412,_loop0_147_type=1413,_gather_146_type=1414,_tmp_148_type=1415,_tmp_149_type=1416,_loop0_151_type=1417,_gather_150_type=1418,_tmp_152_type=1419,_tmp_153_type=1420,_tmp_154_type=1421,_tmp_155_type=1422,_tmp_156_type=1423,_loop1_157_type=1424,_tmp_158_type=1425,_tmp_159_type=1426,_tmp_160_type=1427,_tmp_161_type=1428,_tmp_162_type=1429,_tmp_163_type=1430,_loop0_164_type=1431,_loop0_165_type=1432,_loop0_166_type=1433,_tmp_167_type=1434,_tmp_168_type=1435,_tmp_169_type=1436,_tmp_170_type=1437,_loop0_171_type=1438,_loop0_172_type=1439,_loop0_173_type=1440,_loop1_174_type=1441,_tmp_175_type=1442,_loop0_176_type=1443,_tmp_177_type=1444,_loop0_178_type=1445,_loop1_179_type=1446,_tmp_180_type=1447,_tmp_181_type=1448,_tmp_182_type=1449,_loop0_183_type=1450,_tmp_184_type=1451,_tmp_185_type=1452,_loop1_186_type=1453,_tmp_187_type=1454,_loop0_188_type=1455,_loop0_189_type=1456,_loop0_190_type=1457,_loop0_192_type=1458,_gather_191_type=1459,_tmp_193_type=1460,_loop0_194_type=1461,_tmp_195_type=1462,_loop0_196_type=1463,_loop1_197_type=1464,_loop1_198_type=1465,_tmp_199_type=1466,_tmp_200_type=1467,_loop0_201_type=1468,_tmp_202_type=1469,_tmp_203_type=1470,_tmp_204_type=1471,_tmp_205_type=1472,_loop0_207_type=1473,_gather_206_type=1474,_tmp_208_type=1475,_tmp_209_type=1476,_loop0_211_type=1477,_gather_210_type=1478,_loop0_213_type=1479,_gather_212_type=1480,_loop0_215_type=1481,_gather_214_type=1482,_loop0_217_type=1483,_gather_216_type=1484,_tmp_218_type=1485,_loop0_219_type=1486,_loop1_220_type=1487,_tmp_221_type=1488,_loop0_222_type=1489,_loop1_223_type=1490,_tmp_224_type=1491,_tmp_225_type=1492,_tmp_226_type=1493,_tmp_227_type=1494,_tmp_228_type=1495,_tmp_229_type=1496,_tmp_230_type=1497,_tmp_231_type=1498,_tmp_232_type=1499,_tmp_233_type=1500,_tmp_234_type=1501,_loop0_236_type=1502,_gather_235_type=1503,_tmp_237_type=1504,_tmp_238_type=1505,_tmp_239_type=1506,_tmp_240_type=1507,_tmp_241_type=1508,_tmp_242_type=1509,_tmp_243_type=1510,_loop0_244_type=1511,_tmp_245_type=1512,_tmp_246_type=1513,_tmp_247_type=1514,_tmp_248_type=1515,_tmp_249_type=1516,_tmp_250_type=1517,_tmp_251_type=1518,_loop0_252_type=1519,_tmp_253_type=1520,_tmp_254_type=1521,_loop1_255_type=1522,_loop1_256_type=1523,_tmp_257_type=1524,_tmp_258_type=1525,_tmp_259_type=1526,_tmp_260_type=1527,_tmp_261_type=1528,_tmp_262_type=1529,_tmp_263_type=1530,_tmp_264_type=1531,_tmp_265_type=1532,_tmp_266_type=1533,_tmp_267_type=1534,_tmp_268_type=1535,_tmp_269_type=1536,_tmp_270_type=1537,_tmp_271_type=1538,_tmp_272_type=1539,_tmp_273_type=1540,_tmp_274_type=1541,_tmp_275_type=1542,_tmp_276_type=1543,_tmp_277_type=1544,_tmp_278_type=1545,_tmp_279_type=1546,_tmp_280_type=1547,_tmp_281_type=1548,_loop0_282_type=1549,_tmp_283_type=1550,_tmp_284_type=1551,_tmp_285_type=1552,_tmp_286_type=1553,_tmp_287_type=1554,_tmp_288_type=1555,_tmp_289_type=1556,_tmp_290_type=1557,_tmp_291_type=1558,_loop0_293_type=1559,_gather_292_type=1560,_tmp_294_type=1561,_tmp_295_type=1562,_tmp_296_type=1563,_tmp_297_type=1564,_tmp_298_type=1565,_tmp_299_type=1566,_tmp_300_type=1567
 function file_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
@@ -15982,7 +16576,7 @@ var a;
 if(
 (a=compound_stmt_rule(p))
 )
-{_res=$B._PyPegen.singleton_seq(p,a);
+{_res=$B._PyPegen.register_stmts(p,$B._PyPegen.singleton_seq(p,a ));
 break;}
 p.mark=_mark;}
 {
@@ -15997,25 +16591,39 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
+function single_compound_stmt_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var a;
+if(
+(a=compound_stmt_rule(p))
+)
+{_res=$B._PyPegen.register_stmts(p,$B._PyPegen.singleton_seq(p,a ));
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
 function statement_newline_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var a;
 var newline_var;
 if(
-(a=compound_stmt_rule(p))
+(a=single_compound_stmt_rule(p))
 &&
 (newline_var=$B._PyPegen.expect_token(p,NEWLINE))
 )
-{_res=$B._PyPegen.singleton_seq(p,a);
+{_res=a;
 break;}
 p.mark=_mark;}
 {
@@ -16097,9 +16705,7 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var assignment_var;
@@ -16168,22 +16774,20 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _keyword;
+var pass_stmt_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,504))
+$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,526)
+&&
+(pass_stmt_var=pass_stmt_rule(p))
 )
-{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
-if(_token==NULL){return NULL;}
-EXTRA.end_lineno=_token.end_lineno;
-EXTRA.end_col_offset=_token.end_col_offset;
-_res=new $B._PyAST.Pass(EXTRA);
+{_res=pass_stmt_var;
 break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var del_stmt_var;
 if(
-$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,616)
+$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,625)
 &&
 (del_stmt_var=del_stmt_rule(p))
 )
@@ -16194,7 +16798,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var yield_stmt_var;
 if(
-$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,580)
+$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,587)
 &&
 (yield_stmt_var=yield_stmt_rule(p))
 )
@@ -16205,7 +16809,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var assert_stmt_var;
 if(
-$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,529)
+$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,532)
 &&
 (assert_stmt_var=assert_stmt_rule(p))
 )
@@ -16214,35 +16818,31 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _keyword;
+var break_stmt_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,508))
+$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,527)
+&&
+(break_stmt_var=break_stmt_rule(p))
 )
-{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
-if(_token==NULL){return NULL;}
-EXTRA.end_lineno=_token.end_lineno;
-EXTRA.end_col_offset=_token.end_col_offset;
-_res=new $B._PyAST.Break(EXTRA);
+{_res=break_stmt_var;
 break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _keyword;
+var continue_stmt_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,509))
+$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,528)
+&&
+(continue_stmt_var=continue_stmt_rule(p))
 )
-{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
-if(_token==NULL){return NULL;}
-EXTRA.end_lineno=_token.end_lineno;
-EXTRA.end_col_offset=_token.end_col_offset;
-_res=new $B._PyAST.Continue(EXTRA);
+{_res=continue_stmt_var;
 break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var global_stmt_var;
 if(
-$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,526)
+$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,529)
 &&
 (global_stmt_var=global_stmt_rule(p))
 )
@@ -16253,7 +16853,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var nonlocal_stmt_var;
 if(
-$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,527)
+$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,530)
 &&
 (nonlocal_stmt_var=nonlocal_stmt_rule(p))
 )
@@ -16283,7 +16883,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var if_stmt_var;
 if(
-$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,660)
+$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,682)
 &&
 (if_stmt_var=if_stmt_rule(p))
 )
@@ -16327,7 +16927,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var try_stmt_var;
 if(
-$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,642)
+$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,656)
 &&
 (try_stmt_var=try_stmt_rule(p))
 )
@@ -16338,7 +16938,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var while_stmt_var;
 if(
-$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,665)
+$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,689)
 &&
 (while_stmt_var=while_stmt_rule(p))
 )
@@ -16363,9 +16963,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -16418,7 +17016,7 @@ var tc;
 if(
 (a=_loop1_14_rule(p))
 &&
-(b=_tmp_15_rule(p))
+(b=annotated_rhs_rule(p))
 &&
 $B._PyPegen.lookahead_with_int(0,$B._PyPegen.expect_token,p,22)
 &&
@@ -16444,7 +17042,7 @@ if(
 &&
 (_cut_var=1)
 &&
-(c=_tmp_16_rule(p))
+(c=annotated_rhs_rule(p))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -16621,9 +17219,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
@@ -16649,9 +17245,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
@@ -16662,7 +17256,7 @@ if(
 &&
 (a=expression_rule(p))
 &&
-(b=_tmp_17_rule(p),!p.error_indicator)
+(b=_tmp_15_rule(p),!p.error_indicator)
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -16687,23 +17281,90 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
+function pass_stmt_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
+return NULL;}
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+if(
+(_keyword=$B._PyPegen.expect_token(p,526))
+)
+{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
+if(_token==NULL){return NULL;}
+EXTRA.end_lineno=_token.end_lineno;
+EXTRA.end_col_offset=_token.end_col_offset;
+_res=new $B._PyAST.Pass(EXTRA);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function break_stmt_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
+return NULL;}
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+if(
+(_keyword=$B._PyPegen.expect_token(p,527))
+)
+{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
+if(_token==NULL){return NULL;}
+EXTRA.end_lineno=_token.end_lineno;
+EXTRA.end_col_offset=_token.end_col_offset;
+_res=new $B._PyAST.Break(EXTRA);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function continue_stmt_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
+return NULL;}
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+if(
+(_keyword=$B._PyPegen.expect_token(p,528))
+)
+{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
+if(_token==NULL){return NULL;}
+EXTRA.end_lineno=_token.end_lineno;
+EXTRA.end_col_offset=_token.end_col_offset;
+_res=new $B._PyAST.Continue(EXTRA);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
 function global_stmt_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,526))
+(_keyword=$B._PyPegen.expect_token(p,529))
 &&
-(a=_gather_18_rule(p))
+(a=_gather_16_rule(p))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -16721,17 +17382,15 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,527))
+(_keyword=$B._PyPegen.expect_token(p,530))
 &&
-(a=_gather_20_rule(p))
+(a=_gather_18_rule(p))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -16749,19 +17408,17 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,616))
+(_keyword=$B._PyPegen.expect_token(p,625))
 &&
 (a=del_targets_rule(p))
 &&
-$B._PyPegen.lookahead(1,_tmp_22_rule,p)
+$B._PyPegen.lookahead(1,_tmp_20_rule,p)
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -16788,9 +17445,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var y;
@@ -16813,20 +17468,18 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
 var a;
 var b;
 if(
-(_keyword=$B._PyPegen.expect_token(p,529))
+(_keyword=$B._PyPegen.expect_token(p,532))
 &&
 (a=expression_rule(p))
 &&
-(b=_tmp_23_rule(p),!p.error_indicator)
+(b=_tmp_21_rule(p),!p.error_indicator)
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -16878,15 +17531,13 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,622))
+(_keyword=$B._PyPegen.expect_token(p,634))
 &&
 (a=dotted_as_names_rule(p))
 )
@@ -16906,9 +17557,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
@@ -16917,13 +17566,13 @@ var a;
 var b;
 var c;
 if(
-(_keyword=$B._PyPegen.expect_token(p,621))
+(_keyword=$B._PyPegen.expect_token(p,633))
 &&
-(a=_loop0_24_rule(p))
+(a=_loop0_22_rule(p))
 &&
 (b=dotted_name_rule(p))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,622))
+(_keyword_1=$B._PyPegen.expect_token(p,634))
 &&
 (c=import_from_targets_rule(p))
 )
@@ -16931,7 +17580,7 @@ if(
 if(_token==NULL){return NULL;}
 EXTRA.end_lineno=_token.end_lineno;
 EXTRA.end_col_offset=_token.end_col_offset;
-_res=new $B._PyAST.ImportFrom(b. id,c,$B._PyPegen.seq_count_dots(a ),EXTRA);
+_res=$B._PyPegen.checked_future_import(p,b. id,c,$B._PyPegen.seq_count_dots(a ),EXTRA);
 break;}
 p.mark=_mark;}
 {
@@ -16941,11 +17590,11 @@ var _keyword_1;
 var a;
 var b;
 if(
-(_keyword=$B._PyPegen.expect_token(p,621))
+(_keyword=$B._PyPegen.expect_token(p,633))
 &&
-(a=_loop1_25_rule(p))
+(a=_loop1_23_rule(p))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,622))
+(_keyword_1=$B._PyPegen.expect_token(p,634))
 &&
 (b=import_from_targets_rule(p))
 )
@@ -16965,9 +17614,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -17031,7 +17678,7 @@ var _mark=p.mark;
 if(p.error_indicator){return NULL;}
 var a;
 if(
-(a=_gather_26_rule(p))
+(a=_gather_24_rule(p))
 )
 {_res=a;
 break;}
@@ -17045,9 +17692,16 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
+if(p.call_invalid_rules){
+if(p.error_indicator){return NULL;}
+var invalid_import_from_as_name_var;
+if(
+(invalid_import_from_as_name_var=invalid_import_from_as_name_rule(p))
+)
+{_res=invalid_import_from_as_name_var;
+break;}
+p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -17055,7 +17709,7 @@ var b;
 if(
 (a=$B._PyPegen.name_token(p))
 &&
-(b=_tmp_28_rule(p),!p.error_indicator)
+(b=_tmp_26_rule(p),!p.error_indicator)
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -17075,7 +17729,7 @@ var _mark=p.mark;
 if(p.error_indicator){return NULL;}
 var a;
 if(
-(a=_gather_29_rule(p))
+(a=_gather_27_rule(p))
 )
 {_res=a;
 break;}
@@ -17089,9 +17743,16 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
+if(p.call_invalid_rules){
+if(p.error_indicator){return NULL;}
+var invalid_dotted_as_name_var;
+if(
+(invalid_dotted_as_name_var=invalid_dotted_as_name_rule(p))
+)
+{_res=invalid_dotted_as_name_var;
+break;}
+p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -17099,7 +17760,7 @@ var b;
 if(
 (a=dotted_name_rule(p))
 &&
-(b=_tmp_31_rule(p),!p.error_indicator)
+(b=_tmp_29_rule(p),!p.error_indicator)
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -17214,7 +17875,7 @@ var _mark=p.mark;
 if(p.error_indicator){return NULL;}
 var a;
 if(
-(a=_loop1_32_rule(p))
+(a=_loop1_30_rule(p))
 )
 {_res=a;
 break;}
@@ -17256,9 +17917,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
 var invalid_class_def_raw_var;
@@ -17277,13 +17936,13 @@ var b;
 var c;
 var t;
 if(
-(_keyword=$B._PyPegen.expect_token(p,677))
+(_keyword=$B._PyPegen.expect_token(p,701))
 &&
 (a=$B._PyPegen.name_token(p))
 &&
 (t=type_params_rule(p),!p.error_indicator)
 &&
-(b=_tmp_33_rule(p),!p.error_indicator)
+(b=_tmp_31_rule(p),!p.error_indicator)
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
@@ -17333,9 +17992,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
 var invalid_def_raw_var;
@@ -17358,7 +18015,7 @@ var params;
 var t;
 var tc;
 if(
-(_keyword=$B._PyPegen.expect_token(p,675))
+(_keyword=$B._PyPegen.expect_token(p,699))
 &&
 (n=$B._PyPegen.name_token(p))
 &&
@@ -17370,7 +18027,7 @@ if(
 &&
 (_literal_1=$B._PyPegen.expect_token(p,8))
 &&
-(a=_tmp_34_rule(p),!p.error_indicator)
+(a=_tmp_32_rule(p),!p.error_indicator)
 &&
 (_literal_2=$B._PyPegen.expect_token(p,11))
 &&
@@ -17399,9 +18056,9 @@ var params;
 var t;
 var tc;
 if(
-(_keyword=$B._PyPegen.expect_token(p,674))
+(_keyword=$B._PyPegen.expect_token(p,698))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,675))
+(_keyword_1=$B._PyPegen.expect_token(p,699))
 &&
 (n=$B._PyPegen.name_token(p))
 &&
@@ -17413,7 +18070,7 @@ if(
 &&
 (_literal_1=$B._PyPegen.expect_token(p,8))
 &&
-(a=_tmp_35_rule(p),!p.error_indicator)
+(a=_tmp_33_rule(p),!p.error_indicator)
 &&
 (_literal_2=$B._PyPegen.expect_token(p,11))
 &&
@@ -17469,9 +18126,9 @@ var d;
 if(
 (a=slash_no_default_rule(p))
 &&
-(b=_loop0_36_rule(p))
+(b=_loop0_34_rule(p))
 &&
-(c=_loop0_37_rule(p))
+(c=_loop0_35_rule(p))
 &&
 (d=star_etc_rule(p),!p.error_indicator)
 )
@@ -17486,7 +18143,7 @@ var c;
 if(
 (a=slash_with_default_rule(p))
 &&
-(b=_loop0_38_rule(p))
+(b=_loop0_36_rule(p))
 &&
 (c=star_etc_rule(p),!p.error_indicator)
 )
@@ -17499,9 +18156,9 @@ var a;
 var b;
 var c;
 if(
-(a=_loop1_39_rule(p))
+(a=_loop1_37_rule(p))
 &&
-(b=_loop0_40_rule(p))
+(b=_loop0_38_rule(p))
 &&
 (c=star_etc_rule(p),!p.error_indicator)
 )
@@ -17513,7 +18170,7 @@ if(p.error_indicator){return NULL;}
 var a;
 var b;
 if(
-(a=_loop1_41_rule(p))
+(a=_loop1_39_rule(p))
 &&
 (b=star_etc_rule(p),!p.error_indicator)
 )
@@ -17542,7 +18199,7 @@ var _literal;
 var _literal_1;
 var a;
 if(
-(a=_loop1_42_rule(p))
+(a=_loop1_40_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,17))
 &&
@@ -17556,7 +18213,7 @@ if(p.error_indicator){return NULL;}
 var _literal;
 var a;
 if(
-(a=_loop1_43_rule(p))
+(a=_loop1_41_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,17))
 &&
@@ -17579,9 +18236,9 @@ var _literal_1;
 var a;
 var b;
 if(
-(a=_loop0_44_rule(p))
+(a=_loop0_42_rule(p))
 &&
-(b=_loop1_45_rule(p))
+(b=_loop1_43_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,17))
 &&
@@ -17596,9 +18253,9 @@ var _literal;
 var a;
 var b;
 if(
-(a=_loop0_46_rule(p))
+(a=_loop0_44_rule(p))
 &&
-(b=_loop1_47_rule(p))
+(b=_loop1_45_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,17))
 &&
@@ -17634,7 +18291,7 @@ if(
 &&
 (a=param_no_default_rule(p))
 &&
-(b=_loop0_48_rule(p))
+(b=_loop0_46_rule(p))
 &&
 (c=kwds_rule(p),!p.error_indicator)
 )
@@ -17652,7 +18309,7 @@ if(
 &&
 (a=param_no_default_star_annotation_rule(p))
 &&
-(b=_loop0_49_rule(p))
+(b=_loop0_47_rule(p))
 &&
 (c=kwds_rule(p),!p.error_indicator)
 )
@@ -17670,7 +18327,7 @@ if(
 &&
 (_literal_1=$B._PyPegen.expect_token(p,12))
 &&
-(b=_loop1_50_rule(p))
+(b=_loop1_48_rule(p))
 &&
 (c=kwds_rule(p),!p.error_indicator)
 )
@@ -17879,9 +18536,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -17907,9 +18562,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -18001,9 +18654,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
 var invalid_if_stmt_var;
@@ -18021,7 +18672,7 @@ var a;
 var b;
 var c;
 if(
-(_keyword=$B._PyPegen.expect_token(p,660))
+(_keyword=$B._PyPegen.expect_token(p,682))
 &&
 (a=named_expression_rule(p))
 &&
@@ -18046,7 +18697,7 @@ var a;
 var b;
 var c;
 if(
-(_keyword=$B._PyPegen.expect_token(p,660))
+(_keyword=$B._PyPegen.expect_token(p,682))
 &&
 (a=named_expression_rule(p))
 &&
@@ -18072,9 +18723,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
 var invalid_elif_stmt_var;
@@ -18092,7 +18741,7 @@ var a;
 var b;
 var c;
 if(
-(_keyword=$B._PyPegen.expect_token(p,662))
+(_keyword=$B._PyPegen.expect_token(p,687))
 &&
 (a=named_expression_rule(p))
 &&
@@ -18117,7 +18766,7 @@ var a;
 var b;
 var c;
 if(
-(_keyword=$B._PyPegen.expect_token(p,662))
+(_keyword=$B._PyPegen.expect_token(p,687))
 &&
 (a=named_expression_rule(p))
 &&
@@ -18156,7 +18805,7 @@ var _keyword;
 var _literal;
 var b;
 if(
-(_keyword=$B._PyPegen.expect_token(p,663))
+(_keyword=$B._PyPegen.expect_token(p,686))
 &&
 (_literal=$B._PyPegen.expect_forced_token(p,11,":"))
 &&
@@ -18174,9 +18823,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
 var invalid_while_stmt_var;
@@ -18194,7 +18841,7 @@ var a;
 var b;
 var c;
 if(
-(_keyword=$B._PyPegen.expect_token(p,665))
+(_keyword=$B._PyPegen.expect_token(p,689))
 &&
 (a=named_expression_rule(p))
 &&
@@ -18220,9 +18867,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
 var invalid_for_stmt_var;
@@ -18244,11 +18889,11 @@ var ex;
 var t;
 var tc;
 if(
-(_keyword=$B._PyPegen.expect_token(p,670))
+(_keyword=$B._PyPegen.expect_token(p,694))
 &&
 (t=star_targets_rule(p))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,671))
+(_keyword_1=$B._PyPegen.expect_token(p,695))
 &&
 (_cut_var=1)
 &&
@@ -18283,13 +18928,13 @@ var ex;
 var t;
 var tc;
 if(
-(_keyword=$B._PyPegen.expect_token(p,674))
+(_keyword=$B._PyPegen.expect_token(p,698))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,670))
+(_keyword_1=$B._PyPegen.expect_token(p,694))
 &&
 (t=star_targets_rule(p))
 &&
-(_keyword_2=$B._PyPegen.expect_token(p,671))
+(_keyword_2=$B._PyPegen.expect_token(p,695))
 &&
 (_cut_var=1)
 &&
@@ -18329,9 +18974,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
 var invalid_with_stmt_indent_var;
@@ -18353,11 +18996,11 @@ var a;
 var b;
 var tc;
 if(
-(_keyword=$B._PyPegen.expect_token(p,633))
+(_keyword=$B._PyPegen.expect_token(p,647))
 &&
 (_literal=$B._PyPegen.expect_token(p,7))
 &&
-(a=_gather_51_rule(p))
+(a=_gather_49_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 &&
@@ -18384,9 +19027,9 @@ var a;
 var b;
 var tc;
 if(
-(_keyword=$B._PyPegen.expect_token(p,633))
+(_keyword=$B._PyPegen.expect_token(p,647))
 &&
-(a=_gather_53_rule(p))
+(a=_gather_51_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
@@ -18413,13 +19056,13 @@ UNUSED(_opt_var);
 var a;
 var b;
 if(
-(_keyword=$B._PyPegen.expect_token(p,674))
+(_keyword=$B._PyPegen.expect_token(p,698))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,633))
+(_keyword_1=$B._PyPegen.expect_token(p,647))
 &&
 (_literal=$B._PyPegen.expect_token(p,7))
 &&
-(a=_gather_55_rule(p))
+(a=_gather_53_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 &&
@@ -18445,11 +19088,11 @@ var a;
 var b;
 var tc;
 if(
-(_keyword=$B._PyPegen.expect_token(p,674))
+(_keyword=$B._PyPegen.expect_token(p,698))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,633))
+(_keyword_1=$B._PyPegen.expect_token(p,647))
 &&
-(a=_gather_57_rule(p))
+(a=_gather_55_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
@@ -18488,11 +19131,11 @@ var t;
 if(
 (e=expression_rule(p))
 &&
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (t=star_target_rule(p))
 &&
-$B._PyPegen.lookahead(1,_tmp_59_rule,p)
+$B._PyPegen.lookahead(1,_tmp_57_rule,p)
 )
 {_res=new $B._PyAST.withitem(e,t,p.arena);
 break;}
@@ -18524,9 +19167,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
 var invalid_try_stmt_var;
@@ -18543,7 +19184,7 @@ var _literal;
 var b;
 var f;
 if(
-(_keyword=$B._PyPegen.expect_token(p,642))
+(_keyword=$B._PyPegen.expect_token(p,656))
 &&
 (_literal=$B._PyPegen.expect_forced_token(p,11,":"))
 &&
@@ -18567,13 +19208,13 @@ var el;
 var ex;
 var f;
 if(
-(_keyword=$B._PyPegen.expect_token(p,642))
+(_keyword=$B._PyPegen.expect_token(p,656))
 &&
 (_literal=$B._PyPegen.expect_forced_token(p,11,":"))
 &&
 (b=block_rule(p))
 &&
-(ex=_loop1_60_rule(p))
+(ex=_loop1_58_rule(p))
 &&
 (el=else_block_rule(p),!p.error_indicator)
 &&
@@ -18595,13 +19236,13 @@ var el;
 var ex;
 var f;
 if(
-(_keyword=$B._PyPegen.expect_token(p,642))
+(_keyword=$B._PyPegen.expect_token(p,656))
 &&
 (_literal=$B._PyPegen.expect_forced_token(p,11,":"))
 &&
 (b=block_rule(p))
 &&
-(ex=_loop1_61_rule(p))
+(ex=_loop1_59_rule(p))
 &&
 (el=else_block_rule(p),!p.error_indicator)
 &&
@@ -18623,9 +19264,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
 var invalid_except_stmt_indent_var;
@@ -18641,13 +19280,10 @@ var _keyword;
 var _literal;
 var b;
 var e;
-var t;
 if(
-(_keyword=$B._PyPegen.expect_token(p,655))
+(_keyword=$B._PyPegen.expect_token(p,677))
 &&
 (e=expression_rule(p))
-&&
-(t=_tmp_62_rule(p),!p.error_indicator)
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
@@ -18657,7 +19293,57 @@ if(
 if(_token==NULL){return NULL;}
 EXTRA.end_lineno=_token.end_lineno;
 EXTRA.end_col_offset=_token.end_col_offset;
-_res=new $B._PyAST.ExceptHandler(e,(t )?(t ). id :$B.parser_constants.NULL,b,EXTRA);
+_res=new $B._PyAST.ExceptHandler(e,$B.parser_constants.NULL,b,EXTRA);
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+var _keyword_1;
+var _literal;
+var b;
+var e;
+var t;
+if(
+(_keyword=$B._PyPegen.expect_token(p,677))
+&&
+(e=expression_rule(p))
+&&
+(_keyword_1=$B._PyPegen.expect_token(p,680))
+&&
+(t=$B._PyPegen.name_token(p))
+&&
+(_literal=$B._PyPegen.expect_token(p,11))
+&&
+(b=block_rule(p))
+)
+{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
+if(_token==NULL){return NULL;}
+EXTRA.end_lineno=_token.end_lineno;
+EXTRA.end_col_offset=_token.end_col_offset;
+_res=new $B._PyAST.ExceptHandler(e,(t ). id,b,EXTRA);
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+var _literal;
+var b;
+var e;
+if(
+(_keyword=$B._PyPegen.expect_token(p,677))
+&&
+(e=expressions_rule(p))
+&&
+(_literal=$B._PyPegen.expect_token(p,11))
+&&
+(b=block_rule(p))
+)
+{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
+if(_token==NULL){return NULL;}
+EXTRA.end_lineno=_token.end_lineno;
+EXTRA.end_col_offset=_token.end_col_offset;
+_res=$B.helper_functions.CHECK_VERSION($B.ast.excepthandler,14,"except expressions without parentheses are",new $B._PyAST.ExceptHandler(e,$B.parser_constants.NULL,b,EXTRA ));
 break;}
 p.mark=_mark;}
 {
@@ -18666,7 +19352,7 @@ var _keyword;
 var _literal;
 var b;
 if(
-(_keyword=$B._PyPegen.expect_token(p,655))
+(_keyword=$B._PyPegen.expect_token(p,677))
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
@@ -18697,9 +19383,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
 var invalid_except_star_stmt_indent_var;
@@ -18716,15 +19400,12 @@ var _literal;
 var _literal_1;
 var b;
 var e;
-var t;
 if(
-(_keyword=$B._PyPegen.expect_token(p,655))
+(_keyword=$B._PyPegen.expect_token(p,677))
 &&
 (_literal=$B._PyPegen.expect_token(p,16))
 &&
 (e=expression_rule(p))
-&&
-(t=_tmp_63_rule(p),!p.error_indicator)
 &&
 (_literal_1=$B._PyPegen.expect_token(p,11))
 &&
@@ -18734,16 +19415,72 @@ if(
 if(_token==NULL){return NULL;}
 EXTRA.end_lineno=_token.end_lineno;
 EXTRA.end_col_offset=_token.end_col_offset;
-_res=new $B._PyAST.ExceptHandler(e,(t )?(t ). id :$B.parser_constants.NULL,b,EXTRA);
+_res=new $B._PyAST.ExceptHandler(e,$B.parser_constants.NULL,b,EXTRA);
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+var _keyword_1;
+var _literal;
+var _literal_1;
+var b;
+var e;
+var t;
+if(
+(_keyword=$B._PyPegen.expect_token(p,677))
+&&
+(_literal=$B._PyPegen.expect_token(p,16))
+&&
+(e=expression_rule(p))
+&&
+(_keyword_1=$B._PyPegen.expect_token(p,680))
+&&
+(t=$B._PyPegen.name_token(p))
+&&
+(_literal_1=$B._PyPegen.expect_token(p,11))
+&&
+(b=block_rule(p))
+)
+{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
+if(_token==NULL){return NULL;}
+EXTRA.end_lineno=_token.end_lineno;
+EXTRA.end_col_offset=_token.end_col_offset;
+_res=new $B._PyAST.ExceptHandler(e,(t ). id,b,EXTRA);
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+var _literal;
+var _literal_1;
+var b;
+var e;
+if(
+(_keyword=$B._PyPegen.expect_token(p,677))
+&&
+(_literal=$B._PyPegen.expect_token(p,16))
+&&
+(e=expressions_rule(p))
+&&
+(_literal_1=$B._PyPegen.expect_token(p,11))
+&&
+(b=block_rule(p))
+)
+{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
+if(_token==NULL){return NULL;}
+EXTRA.end_lineno=_token.end_lineno;
+EXTRA.end_col_offset=_token.end_col_offset;
+_res=$B.helper_functions.CHECK_VERSION($B.ast.excepthandler,14,"except expressions without parentheses are",new $B._PyAST.ExceptHandler(e,$B.parser_constants.NULL,b,EXTRA ));
 break;}
 p.mark=_mark;}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
-var invalid_except_stmt_var;
+var invalid_except_star_stmt_var;
 if(
-(invalid_except_stmt_var=invalid_except_stmt_rule(p))
+(invalid_except_star_stmt_var=invalid_except_star_stmt_rule(p))
 )
-{_res=invalid_except_stmt_var;
+{_res=invalid_except_star_stmt_var;
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -18768,7 +19505,7 @@ var _keyword;
 var _literal;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,651))
+(_keyword=$B._PyPegen.expect_token(p,673))
 &&
 (_literal=$B._PyPegen.expect_forced_token(p,11,":"))
 &&
@@ -18786,9 +19523,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
@@ -18809,7 +19544,7 @@ if(
 &&
 (indent_var=$B._PyPegen.expect_token(p,INDENT))
 &&
-(cases=_loop1_64_rule(p))
+(cases=_loop1_60_rule(p))
 &&
 (dedent_var=$B._PyPegen.expect_token(p,DEDENT))
 )
@@ -18838,9 +19573,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -18918,7 +19651,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var guard;
 if(
-(_keyword=$B._PyPegen.expect_token(p,660))
+(_keyword=$B._PyPegen.expect_token(p,682))
 &&
 (guard=named_expression_rule(p))
 )
@@ -18934,9 +19667,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var patterns;
@@ -18993,9 +19724,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
@@ -19004,7 +19733,7 @@ var target;
 if(
 (pattern=or_pattern_rule(p))
 &&
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (target=pattern_capture_target_rule(p))
 )
@@ -19033,14 +19762,12 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var patterns;
 if(
-(patterns=_gather_65_rule(p))
+(patterns=_gather_61_rule(p))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -19140,16 +19867,14 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var value;
 if(
 (value=signed_number_rule(p))
 &&
-$B._PyPegen.lookahead(0,_tmp_67_rule,p)
+$B._PyPegen.lookahead(0,_tmp_63_rule,p)
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -19188,7 +19913,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,614))
+(_keyword=$B._PyPegen.expect_token(p,623))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -19201,7 +19926,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,613))
+(_keyword=$B._PyPegen.expect_token(p,622))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -19214,7 +19939,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,615))
+(_keyword=$B._PyPegen.expect_token(p,624))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -19232,16 +19957,14 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var signed_number_var;
 if(
 (signed_number_var=signed_number_rule(p))
 &&
-$B._PyPegen.lookahead(0,_tmp_68_rule,p)
+$B._PyPegen.lookahead(0,_tmp_64_rule,p)
 )
 {_res=signed_number_var;
 break;}
@@ -19259,6 +19982,8 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var strings_var;
 if(
+$B._PyPegen.lookahead(1,_tmp_65_rule,p)
+&&
 (strings_var=strings_rule(p))
 )
 {_res=strings_var;
@@ -19268,7 +19993,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,614))
+(_keyword=$B._PyPegen.expect_token(p,623))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -19281,7 +20006,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,613))
+(_keyword=$B._PyPegen.expect_token(p,622))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -19294,7 +20019,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,615))
+(_keyword=$B._PyPegen.expect_token(p,624))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -19312,9 +20037,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -19362,9 +20085,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var number_var;
@@ -19399,9 +20120,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var real_number_var;
@@ -19468,9 +20187,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var target;
@@ -19499,7 +20216,7 @@ $B._PyPegen.lookahead_with_string(0,$B._PyPegen.expect_soft_keyword,p,"_")
 &&
 (name=$B._PyPegen.name_token(p))
 &&
-$B._PyPegen.lookahead(0,_tmp_69_rule,p)
+$B._PyPegen.lookahead(0,_tmp_66_rule,p)
 )
 {_res=$B._PyPegen.set_expr_context(p,name,$B.parser_constants.Store);
 break;}
@@ -19513,9 +20230,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
@@ -19538,16 +20253,14 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var attr;
 if(
 (attr=attr_rule(p))
 &&
-$B._PyPegen.lookahead(0,_tmp_70_rule,p)
+$B._PyPegen.lookahead(0,_tmp_67_rule,p)
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -19583,9 +20296,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -19661,9 +20372,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -19737,7 +20446,7 @@ var _opt_var;
 UNUSED(_opt_var);
 var patterns;
 if(
-(patterns=_gather_71_rule(p))
+(patterns=_gather_68_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 )
@@ -19780,9 +20489,7 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -19825,9 +20532,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -19928,11 +20633,11 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _gather_73_var;
+var _gather_70_var;
 if(
-(_gather_73_var=_gather_73_rule(p))
+(_gather_70_var=_gather_70_rule(p))
 )
-{_res=_gather_73_var;
+{_res=_gather_70_var;
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -19948,7 +20653,7 @@ var _literal;
 var key;
 var pattern;
 if(
-(key=_tmp_75_rule(p))
+(key=_tmp_72_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
@@ -19985,9 +20690,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -20111,7 +20814,7 @@ var _mark=p.mark;
 if(p.error_indicator){return NULL;}
 var args;
 if(
-(args=_gather_76_rule(p))
+(args=_gather_73_rule(p))
 )
 {_res=args;
 break;}
@@ -20125,11 +20828,11 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _gather_78_var;
+var _gather_75_var;
 if(
-(_gather_78_var=_gather_78_rule(p))
+(_gather_75_var=_gather_75_rule(p))
 )
-{_res=_gather_78_var;
+{_res=_gather_75_var;
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -20163,9 +20866,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
@@ -20235,7 +20936,7 @@ var _opt_var;
 UNUSED(_opt_var);
 var a;
 if(
-(a=_gather_80_rule(p))
+(a=_gather_77_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 )
@@ -20253,9 +20954,7 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -20275,22 +20974,13 @@ EXTRA.end_col_offset=_token.end_col_offset;
 _res=new $B._PyAST.TypeVar(a. id,b,c,EXTRA);
 break;}
 p.mark=_mark;}
-{
+if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
-var _literal;
-var a;
-var colon;
-var e;
+var invalid_type_param_var;
 if(
-(_literal=$B._PyPegen.expect_token(p,16))
-&&
-(a=$B._PyPegen.name_token(p))
-&&
-(colon=$B._PyPegen.expect_token(p,11))
-&&
-(e=expression_rule(p))
+(invalid_type_param_var=invalid_type_param_rule(p))
 )
-{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_STARTING_FROM(p,colon,e.kind==Tuple_kind ? "cannot use constraints with TypeVarTuple" :"cannot use bound with TypeVarTuple");
+{_res=invalid_type_param_var;
 break;}
 p.mark=_mark;}
 {
@@ -20310,24 +21000,6 @@ if(_token==NULL){return NULL;}
 EXTRA.end_lineno=_token.end_lineno;
 EXTRA.end_col_offset=_token.end_col_offset;
 _res=new $B._PyAST.TypeVarTuple(a. id,b,EXTRA);
-break;}
-p.mark=_mark;}
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-var a;
-var colon;
-var e;
-if(
-(_literal=$B._PyPegen.expect_token(p,35))
-&&
-(a=$B._PyPegen.name_token(p))
-&&
-(colon=$B._PyPegen.expect_token(p,11))
-&&
-(e=expression_rule(p))
-)
-{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_STARTING_FROM(p,colon,e.kind==Tuple_kind ? "cannot use constraints with ParamSpec" :"cannot use bound with ParamSpec");
 break;}
 p.mark=_mark;}
 {
@@ -20416,9 +21088,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _opt_var;
@@ -20428,7 +21098,7 @@ var b;
 if(
 (a=expression_rule(p))
 &&
-(b=_loop1_82_rule(p))
+(b=_loop1_79_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 )
@@ -20475,9 +21145,7 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
 var invalid_expression_var;
@@ -20506,11 +21174,11 @@ var c;
 if(
 (a=disjunction_rule(p))
 &&
-(_keyword=$B._PyPegen.expect_token(p,660))
+(_keyword=$B._PyPegen.expect_token(p,682))
 &&
 (b=disjunction_rule(p))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,663))
+(_keyword_1=$B._PyPegen.expect_token(p,686))
 &&
 (c=expression_rule(p))
 )
@@ -20549,18 +21217,16 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
 var _keyword_1;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,580))
+(_keyword=$B._PyPegen.expect_token(p,587))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,621))
+(_keyword_1=$B._PyPegen.expect_token(p,633))
 &&
 (a=expression_rule(p))
 )
@@ -20576,7 +21242,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,580))
+(_keyword=$B._PyPegen.expect_token(p,587))
 &&
 (a=star_expressions_rule(p),!p.error_indicator)
 )
@@ -20596,9 +21262,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _opt_var;
@@ -20608,7 +21272,7 @@ var b;
 if(
 (a=star_expression_rule(p))
 &&
-(b=_loop1_83_rule(p))
+(b=_loop1_80_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 )
@@ -20655,9 +21319,7 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -20697,7 +21359,7 @@ var _opt_var;
 UNUSED(_opt_var);
 var a;
 if(
-(a=_gather_84_rule(p))
+(a=_gather_81_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 )
@@ -20713,9 +21375,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -20750,9 +21410,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _cut_var=0;
@@ -20823,9 +21481,7 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -20833,7 +21489,7 @@ var b;
 if(
 (a=conjunction_rule(p))
 &&
-(b=_loop1_86_rule(p))
+(b=_loop1_83_rule(p))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -20863,9 +21519,7 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -20873,7 +21527,7 @@ var b;
 if(
 (a=inversion_rule(p))
 &&
-(b=_loop1_87_rule(p))
+(b=_loop1_84_rule(p))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -20903,15 +21557,13 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,679))
+(_keyword=$B._PyPegen.expect_token(p,703))
 &&
 (a=inversion_rule(p))
 )
@@ -20941,9 +21593,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -20951,7 +21601,7 @@ var b;
 if(
 (a=bitwise_or_rule(p))
 &&
-(b=_loop1_88_rule(p))
+(b=_loop1_85_rule(p))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -21094,10 +21744,10 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_89_var;
+var _tmp_86_var;
 var a;
 if(
-(_tmp_89_var=_tmp_89_rule(p))
+(_tmp_86_var=_tmp_86_rule(p))
 &&
 (a=bitwise_or_rule(p))
 )
@@ -21193,9 +21843,9 @@ var _keyword;
 var _keyword_1;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,679))
+(_keyword=$B._PyPegen.expect_token(p,703))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,671))
+(_keyword_1=$B._PyPegen.expect_token(p,695))
 &&
 (a=bitwise_or_rule(p))
 )
@@ -21214,7 +21864,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,671))
+(_keyword=$B._PyPegen.expect_token(p,695))
 &&
 (a=bitwise_or_rule(p))
 )
@@ -21234,9 +21884,9 @@ var _keyword;
 var _keyword_1;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,589))
+(_keyword=$B._PyPegen.expect_token(p,596))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,679))
+(_keyword_1=$B._PyPegen.expect_token(p,703))
 &&
 (a=bitwise_or_rule(p))
 )
@@ -21255,7 +21905,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,589))
+(_keyword=$B._PyPegen.expect_token(p,596))
 &&
 (a=bitwise_or_rule(p))
 )
@@ -21289,9 +21939,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -21347,9 +21995,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -21405,9 +22051,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -21463,9 +22107,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -21549,9 +22191,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -21626,9 +22266,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -21753,9 +22391,7 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -21823,9 +22459,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -21865,15 +22499,13 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,590))
+(_keyword=$B._PyPegen.expect_token(p,597))
 &&
 (a=primary_rule(p))
 )
@@ -21921,9 +22553,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -22021,9 +22651,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -22041,7 +22669,7 @@ var _opt_var;
 UNUSED(_opt_var);
 var a;
 if(
-(a=_gather_90_rule(p))
+(a=_gather_87_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 )
@@ -22061,9 +22689,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -22077,7 +22703,7 @@ if(
 &&
 (b=expression_rule(p),!p.error_indicator)
 &&
-(c=_tmp_92_rule(p),!p.error_indicator)
+(c=_tmp_89_rule(p),!p.error_indicator)
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -22104,9 +22730,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var name_var;
@@ -22120,7 +22744,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,613))
+(_keyword=$B._PyPegen.expect_token(p,622))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -22133,7 +22757,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,615))
+(_keyword=$B._PyPegen.expect_token(p,624))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -22146,7 +22770,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,614))
+(_keyword=$B._PyPegen.expect_token(p,623))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -22159,7 +22783,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var strings_var;
 if(
-$B._PyPegen.lookahead(1,_tmp_93_rule,p)
+$B._PyPegen.lookahead(1,_tmp_90_rule,p)
 &&
 (strings_var=strings_rule(p))
 )
@@ -22177,35 +22801,35 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _tmp_94_var;
+var _tmp_91_var;
 if(
 $B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,7)
 &&
-(_tmp_94_var=_tmp_94_rule(p))
+(_tmp_91_var=_tmp_91_rule(p))
 )
-{_res=_tmp_94_var;
+{_res=_tmp_91_var;
 break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _tmp_95_var;
+var _tmp_92_var;
 if(
 $B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,9)
 &&
-(_tmp_95_var=_tmp_95_rule(p))
+(_tmp_92_var=_tmp_92_rule(p))
 )
-{_res=_tmp_95_var;
+{_res=_tmp_92_var;
 break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _tmp_96_var;
+var _tmp_93_var;
 if(
 $B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,25)
 &&
-(_tmp_96_var=_tmp_96_rule(p))
+(_tmp_93_var=_tmp_93_rule(p))
 )
-{_res=_tmp_96_var;
+{_res=_tmp_93_var;
 break;}
 p.mark=_mark;}
 {
@@ -22236,7 +22860,7 @@ var a;
 if(
 (_literal=$B._PyPegen.expect_token(p,7))
 &&
-(a=_tmp_97_rule(p))
+(a=_tmp_94_rule(p))
 &&
 (_literal_1=$B._PyPegen.expect_token(p,8))
 )
@@ -22261,9 +22885,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
@@ -22271,7 +22893,7 @@ var _literal;
 var a;
 var b;
 if(
-(_keyword=$B._PyPegen.expect_token(p,612))
+(_keyword=$B._PyPegen.expect_token(p,621))
 &&
 (a=lambda_params_rule(p),!p.error_indicator)
 &&
@@ -22327,9 +22949,9 @@ var d;
 if(
 (a=lambda_slash_no_default_rule(p))
 &&
-(b=_loop0_98_rule(p))
+(b=_loop0_95_rule(p))
 &&
-(c=_loop0_99_rule(p))
+(c=_loop0_96_rule(p))
 &&
 (d=lambda_star_etc_rule(p),!p.error_indicator)
 )
@@ -22344,7 +22966,7 @@ var c;
 if(
 (a=lambda_slash_with_default_rule(p))
 &&
-(b=_loop0_100_rule(p))
+(b=_loop0_97_rule(p))
 &&
 (c=lambda_star_etc_rule(p),!p.error_indicator)
 )
@@ -22357,9 +22979,9 @@ var a;
 var b;
 var c;
 if(
-(a=_loop1_101_rule(p))
+(a=_loop1_98_rule(p))
 &&
-(b=_loop0_102_rule(p))
+(b=_loop0_99_rule(p))
 &&
 (c=lambda_star_etc_rule(p),!p.error_indicator)
 )
@@ -22371,7 +22993,7 @@ if(p.error_indicator){return NULL;}
 var a;
 var b;
 if(
-(a=_loop1_103_rule(p))
+(a=_loop1_100_rule(p))
 &&
 (b=lambda_star_etc_rule(p),!p.error_indicator)
 )
@@ -22400,7 +23022,7 @@ var _literal;
 var _literal_1;
 var a;
 if(
-(a=_loop1_104_rule(p))
+(a=_loop1_101_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,17))
 &&
@@ -22414,7 +23036,7 @@ if(p.error_indicator){return NULL;}
 var _literal;
 var a;
 if(
-(a=_loop1_105_rule(p))
+(a=_loop1_102_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,17))
 &&
@@ -22437,9 +23059,9 @@ var _literal_1;
 var a;
 var b;
 if(
-(a=_loop0_106_rule(p))
+(a=_loop0_103_rule(p))
 &&
-(b=_loop1_107_rule(p))
+(b=_loop1_104_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,17))
 &&
@@ -22454,9 +23076,9 @@ var _literal;
 var a;
 var b;
 if(
-(a=_loop0_108_rule(p))
+(a=_loop0_105_rule(p))
 &&
-(b=_loop1_109_rule(p))
+(b=_loop1_106_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,17))
 &&
@@ -22492,7 +23114,7 @@ if(
 &&
 (a=lambda_param_no_default_rule(p))
 &&
-(b=_loop0_110_rule(p))
+(b=_loop0_107_rule(p))
 &&
 (c=lambda_kwds_rule(p),!p.error_indicator)
 )
@@ -22510,7 +23132,7 @@ if(
 &&
 (_literal_1=$B._PyPegen.expect_token(p,12))
 &&
-(b=_loop1_111_rule(p))
+(b=_loop1_108_rule(p))
 &&
 (c=lambda_kwds_rule(p),!p.error_indicator)
 )
@@ -22665,9 +23287,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -22715,9 +23335,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -22748,11 +23366,11 @@ break;}
 p.mark=_mark;}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
-var invalid_replacement_field_var;
+var invalid_fstring_replacement_field_var;
 if(
-(invalid_replacement_field_var=invalid_replacement_field_rule(p))
+(invalid_fstring_replacement_field_var=invalid_fstring_replacement_field_rule(p))
 )
-{_res=invalid_replacement_field_var;
+{_res=invalid_fstring_replacement_field_var;
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -22783,9 +23401,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var colon;
@@ -22793,7 +23409,7 @@ var spec;
 if(
 (colon=$B._PyPegen.expect_token(p,11))
 &&
-(spec=_loop0_112_rule(p))
+(spec=_loop0_109_rule(p))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -22842,7 +23458,7 @@ var c;
 if(
 (a=$B._PyPegen.expect_token(p,FSTRING_START))
 &&
-(b=_loop0_113_rule(p))
+(b=_loop0_110_rule(p))
 &&
 (c=$B._PyPegen.expect_token(p,FSTRING_END))
 )
@@ -22851,6 +23467,201 @@ break;}
 p.mark=_mark;}
 _res=NULL;
 break;}
+return _res;}
+function tstring_format_spec_replacement_field_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
+return NULL;}
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var a;
+var conversion;
+var debug_expr;
+var format;
+var rbrace;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(a=annotated_rhs_rule(p))
+&&
+(debug_expr=$B._PyPegen.expect_token(p,22),!p.error_indicator)
+&&
+(conversion=fstring_conversion_rule(p),!p.error_indicator)
+&&
+(format=tstring_full_format_spec_rule(p),!p.error_indicator)
+&&
+(rbrace=$B._PyPegen.expect_token(p,26))
+)
+{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
+if(_token==NULL){return NULL;}
+EXTRA.end_lineno=_token.end_lineno;
+EXTRA.end_col_offset=_token.end_col_offset;
+_res=$B._PyPegen.formatted_value(p,a,debug_expr,conversion,format,rbrace,EXTRA);
+break;}
+p.mark=_mark;}
+if(p.call_invalid_rules){
+if(p.error_indicator){return NULL;}
+var invalid_tstring_replacement_field_var;
+if(
+(invalid_tstring_replacement_field_var=invalid_tstring_replacement_field_rule(p))
+)
+{_res=invalid_tstring_replacement_field_var;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function tstring_format_spec_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var t;
+if(
+(t=$B._PyPegen.expect_token(p,TSTRING_MIDDLE))
+)
+{_res=$B._PyPegen.decoded_constant_from_token(p,t);
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var tstring_format_spec_replacement_field_var;
+if(
+(tstring_format_spec_replacement_field_var=tstring_format_spec_replacement_field_rule(p))
+)
+{_res=tstring_format_spec_replacement_field_var;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function tstring_full_format_spec_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
+return NULL;}
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
+{
+if(p.error_indicator){return NULL;}
+var colon;
+var spec;
+if(
+(colon=$B._PyPegen.expect_token(p,11))
+&&
+(spec=_loop0_111_rule(p))
+)
+{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
+if(_token==NULL){return NULL;}
+EXTRA.end_lineno=_token.end_lineno;
+EXTRA.end_col_offset=_token.end_col_offset;
+_res=$B._PyPegen.setup_full_format_spec(p,colon,spec,EXTRA);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function tstring_replacement_field_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
+return NULL;}
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var a;
+var conversion;
+var debug_expr;
+var format;
+var rbrace;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(a=annotated_rhs_rule(p))
+&&
+(debug_expr=$B._PyPegen.expect_token(p,22),!p.error_indicator)
+&&
+(conversion=fstring_conversion_rule(p),!p.error_indicator)
+&&
+(format=tstring_full_format_spec_rule(p),!p.error_indicator)
+&&
+(rbrace=$B._PyPegen.expect_token(p,26))
+)
+{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
+if(_token==NULL){return NULL;}
+EXTRA.end_lineno=_token.end_lineno;
+EXTRA.end_col_offset=_token.end_col_offset;
+_res=$B._PyPegen.interpolation(p,a,debug_expr,conversion,format,rbrace,EXTRA);
+break;}
+p.mark=_mark;}
+if(p.call_invalid_rules){
+if(p.error_indicator){return NULL;}
+var invalid_tstring_replacement_field_var;
+if(
+(invalid_tstring_replacement_field_var=invalid_tstring_replacement_field_rule(p))
+)
+{_res=invalid_tstring_replacement_field_var;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function tstring_middle_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var tstring_replacement_field_var;
+if(
+(tstring_replacement_field_var=tstring_replacement_field_rule(p))
+)
+{_res=tstring_replacement_field_var;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var t;
+if(
+(t=$B._PyPegen.expect_token(p,TSTRING_MIDDLE))
+)
+{_res=$B._PyPegen.constant_from_token(p,t);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function tstring_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res={value:NULL};
+if($B._PyPegen.is_memoized(p,tstring_type,_res)){return _res.value;}
+_res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var a;
+var b;
+var c;
+if(
+(a=$B._PyPegen.expect_token(p,TSTRING_START))
+&&
+(b=_loop0_112_rule(p))
+&&
+(c=$B._PyPegen.expect_token(p,TSTRING_END))
+)
+{_res=$B.helper_functions.CHECK_VERSION($B.ast.expr,14,"t-strings are",$B._PyPegen.template_str(p,a,b,c ));
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+$B._PyPegen.insert_memo(p,_mark,tstring_type,_res);
 return _res;}
 function string_rule(p)
 {if(p.error_indicator){return NULL;}
@@ -22876,9 +23687,29 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
+if(p.call_invalid_rules){
+if(p.error_indicator){return NULL;}
+var invalid_string_tstring_concat_var;
+if(
+(invalid_string_tstring_concat_var=invalid_string_tstring_concat_rule(p))
+)
+{_res=invalid_string_tstring_concat_var;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var a;
+if(
+(a=_loop1_113_rule(p))
+)
+{var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
+if(_token==NULL){return NULL;}
+EXTRA.end_lineno=_token.end_lineno;
+EXTRA.end_col_offset=_token.end_col_offset;
+_res=$B._PyPegen.concatenate_strings(p,a,EXTRA);
+break;}
+p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -22889,7 +23720,7 @@ if(
 if(_token==NULL){return NULL;}
 EXTRA.end_lineno=_token.end_lineno;
 EXTRA.end_col_offset=_token.end_col_offset;
-_res=$B._PyPegen.concatenate_strings(p,a,EXTRA);
+_res=$B._PyPegen.concatenate_tstrings(p,a,EXTRA);
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -22902,9 +23733,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -22933,9 +23762,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -22964,9 +23791,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -22995,9 +23820,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -23135,13 +23958,13 @@ var a;
 var b;
 var c;
 if(
-(_keyword=$B._PyPegen.expect_token(p,674))
+(_keyword=$B._PyPegen.expect_token(p,698))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,670))
+(_keyword_1=$B._PyPegen.expect_token(p,694))
 &&
 (a=star_targets_rule(p))
 &&
-(_keyword_2=$B._PyPegen.expect_token(p,671))
+(_keyword_2=$B._PyPegen.expect_token(p,695))
 &&
 (_cut_var=1)
 &&
@@ -23162,11 +23985,11 @@ var a;
 var b;
 var c;
 if(
-(_keyword=$B._PyPegen.expect_token(p,670))
+(_keyword=$B._PyPegen.expect_token(p,694))
 &&
 (a=star_targets_rule(p))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,671))
+(_keyword_1=$B._PyPegen.expect_token(p,695))
 &&
 (_cut_var=1)
 &&
@@ -23178,22 +24001,13 @@ if(
 break;}
 p.mark=_mark;
 if(_cut_var){return NULL;}}
-{
+if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
-var _keyword;
-var _opt_var;
-UNUSED(_opt_var);
-var _tmp_121_var;
+var invalid_for_if_clause_var;
 if(
-(_opt_var=$B._PyPegen.expect_token(p,674),!p.error_indicator)
-&&
-(_keyword=$B._PyPegen.expect_token(p,670))
-&&
-(_tmp_121_var=_tmp_121_rule(p))
-&&
-$B._PyPegen.lookahead_with_int(0,$B._PyPegen.expect_token,p,671)
+(invalid_for_if_clause_var=invalid_for_if_clause_rule(p))
 )
-{_res=$B.helper_functions.RAISE_SYNTAX_ERROR(p,"'in' expected after for-loop variables");
+{_res=invalid_for_if_clause_var;
 break;}
 p.mark=_mark;}
 if(p.call_invalid_rules){
@@ -23214,9 +24028,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -23257,9 +24069,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -23300,9 +24110,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -23312,7 +24120,7 @@ var b;
 if(
 (_literal=$B._PyPegen.expect_token(p,7))
 &&
-(a=_tmp_122_rule(p))
+(a=_tmp_121_rule(p))
 &&
 (b=for_if_clauses_rule(p))
 &&
@@ -23343,9 +24151,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -23420,17 +24226,15 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var a;
 var b;
 if(
-(a=_gather_123_rule(p))
+(a=_gather_122_rule(p))
 &&
-(b=_tmp_125_rule(p),!p.error_indicator)
+(b=_tmp_124_rule(p),!p.error_indicator)
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -23465,31 +24269,31 @@ var _literal;
 var a;
 var b;
 if(
-(a=_gather_126_rule(p))
+(a=_gather_125_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
-(b=_gather_128_rule(p))
+(b=_gather_127_rule(p))
 )
 {_res=$B._PyPegen.join_sequences(p,a,b);
 break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _gather_130_var;
+var _gather_129_var;
 if(
-(_gather_130_var=_gather_130_rule(p))
+(_gather_129_var=_gather_129_rule(p))
 )
-{_res=_gather_130_var;
+{_res=_gather_129_var;
 break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _gather_132_var;
+var _gather_131_var;
 if(
-(_gather_132_var=_gather_132_rule(p))
+(_gather_131_var=_gather_131_rule(p))
 )
-{_res=_gather_132_var;
+{_res=_gather_131_var;
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -23501,16 +24305,14 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
-var invalid_starred_expression_var;
+var invalid_starred_expression_unpacking_var;
 if(
-(invalid_starred_expression_var=invalid_starred_expression_rule(p))
+(invalid_starred_expression_unpacking_var=invalid_starred_expression_unpacking_rule(p))
 )
-{_res=invalid_starred_expression_var;
+{_res=invalid_starred_expression_unpacking_var;
 break;}
 p.mark=_mark;}
 {
@@ -23529,13 +24331,13 @@ EXTRA.end_col_offset=_token.end_col_offset;
 _res=new $B._PyAST.Starred(a,$B.parser_constants.Load,EXTRA);
 break;}
 p.mark=_mark;}
-{
+if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
-var _literal;
+var invalid_starred_expression_var;
 if(
-(_literal=$B._PyPegen.expect_token(p,16))
+(invalid_starred_expression_var=invalid_starred_expression_rule(p))
 )
-{_res=$B.helper_functions.RAISE_SYNTAX_ERROR(p,"Invalid star expression");
+{_res=invalid_starred_expression_var;
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -23547,9 +24349,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
 var invalid_kwarg_var;
@@ -23596,9 +24396,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 if(p.call_invalid_rules){
 if(p.error_indicator){return NULL;}
 var invalid_kwarg_var;
@@ -23652,9 +24450,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -23675,7 +24471,7 @@ var b;
 if(
 (a=star_target_rule(p))
 &&
-(b=_loop0_134_rule(p))
+(b=_loop0_133_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 )
@@ -23699,7 +24495,7 @@ var _opt_var;
 UNUSED(_opt_var);
 var a;
 if(
-(a=_gather_135_rule(p))
+(a=_gather_134_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 )
@@ -23722,7 +24518,7 @@ var b;
 if(
 (a=star_target_rule(p))
 &&
-(b=_loop1_137_rule(p))
+(b=_loop1_136_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 )
@@ -23752,9 +24548,7 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -23762,7 +24556,7 @@ var a;
 if(
 (_literal=$B._PyPegen.expect_token(p,16))
 &&
-(a=_tmp_138_rule(p))
+(a=_tmp_137_rule(p))
 )
 {var _token=$B._PyPegen.get_last_nonnwhitespace_token(p);
 if(_token==NULL){return NULL;}
@@ -23792,9 +24586,7 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -23859,9 +24651,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -23973,9 +24763,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -24048,9 +24836,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -24196,7 +24982,7 @@ var _opt_var;
 UNUSED(_opt_var);
 var a;
 if(
-(a=_gather_139_rule(p))
+(a=_gather_138_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 )
@@ -24214,9 +25000,7 @@ _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
@@ -24281,9 +25065,7 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -24363,7 +25145,7 @@ var a;
 var b;
 var c;
 if(
-(a=_gather_141_rule(p))
+(a=_gather_140_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
@@ -24387,7 +25169,7 @@ var _literal_1;
 var a;
 var b;
 if(
-(a=_gather_143_rule(p))
+(a=_gather_142_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
@@ -24405,7 +25187,7 @@ var _literal_1;
 var a;
 var b;
 if(
-(a=_gather_145_rule(p))
+(a=_gather_144_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
@@ -24465,7 +25247,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var a;
 if(
-(a=_gather_147_rule(p))
+(a=_gather_146_rule(p))
 )
 {_res=a;
 break;}
@@ -24486,7 +25268,7 @@ if(
 &&
 (t=$B._PyPegen.expect_token(p,TYPE_COMMENT))
 &&
-$B._PyPegen.lookahead(1,_tmp_149_rule,p)
+$B._PyPegen.lookahead(1,_tmp_148_rule,p)
 )
 {_res=t;
 break;}
@@ -24518,15 +25300,15 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _gather_151_var;
-var _tmp_150_var;
+var _gather_150_var;
+var _tmp_149_var;
 var a;
 if(
-(_tmp_150_var=_tmp_150_rule(p))
+(_tmp_149_var=_tmp_149_rule(p))
 &&
 (a=$B._PyPegen.expect_token(p,12))
 &&
-(_gather_151_var=_gather_151_rule(p))
+(_gather_150_var=_gather_150_rule(p))
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_STARTING_FROM(p,a,"iterable argument unpacking follows keyword argument unpacking");
 break;}
@@ -24545,7 +25327,7 @@ if(
 &&
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
-(_opt_var=_tmp_153_rule(p),!p.error_indicator)
+(_opt_var=_tmp_152_rule(p),!p.error_indicator)
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_RANGE(p,a,$B._PyPegen.get_last_comprehension_item($B.PyPegen.last_item(b,$B.ast.comprehension )),"Generator expression must be parenthesized");
 break;}
@@ -24575,13 +25357,13 @@ UNUSED(_opt_var);
 var a;
 var b;
 if(
-(_opt_var=_tmp_154_rule(p),!p.error_indicator)
+(_opt_var=_tmp_153_rule(p),!p.error_indicator)
 &&
 (a=$B._PyPegen.name_token(p))
 &&
 (b=$B._PyPegen.expect_token(p,22))
 &&
-$B._PyPegen.lookahead(1,_tmp_155_rule,p)
+$B._PyPegen.lookahead(1,_tmp_154_rule,p)
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_RANGE(p,a,b,"expected argument value expression");
 break;}
@@ -24643,7 +25425,7 @@ if(p.error_indicator){return NULL;}
 var a;
 var b;
 if(
-(a=_tmp_156_rule(p))
+(a=_tmp_155_rule(p))
 &&
 (b=$B._PyPegen.expect_token(p,22))
 )
@@ -24673,7 +25455,7 @@ if(p.error_indicator){return NULL;}
 var a;
 var b;
 if(
-$B._PyPegen.lookahead(0,_tmp_157_rule,p)
+$B._PyPegen.lookahead(0,_tmp_156_rule,p)
 &&
 (a=expression_rule(p))
 &&
@@ -24713,9 +25495,7 @@ var _mark=p.mark;
 if(p.mark==p.fill && $B._PyPegen.fill_token(p)< 0){p.error_indicator=1;
 p.call_invalid_rules=_prev_call_invalid;
 return NULL;}
-var EXTRA={}
-EXTRA.lineno=p.tokens[_mark].lineno;
-EXTRA.col_offset=p.tokens[_mark].col_offset;
+var EXTRA={lineno:p.tokens[_mark].lineno,col_offset:p.tokens[_mark].col_offset}
 {
 if(p.error_indicator){p.call_invalid_rules=_prev_call_invalid;
 return NULL;}
@@ -24727,11 +25507,11 @@ var c;
 if(
 (a=disjunction_rule(p))
 &&
-(_keyword=$B._PyPegen.expect_token(p,660))
+(_keyword=$B._PyPegen.expect_token(p,682))
 &&
 (b=disjunction_rule(p))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,663))
+(_keyword_1=$B._PyPegen.expect_token(p,686))
 &&
 (c=expression_rule(p))
 )
@@ -24788,10 +25568,68 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
+function invalid_type_param_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var a;
+var colon;
+var e;
+if(
+(_literal=$B._PyPegen.expect_token(p,16))
+&&
+(a=$B._PyPegen.name_token(p))
+&&
+(colon=$B._PyPegen.expect_token(p,11))
+&&
+(e=expression_rule(p))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_STARTING_FROM(p,colon,e.kind==Tuple_kind ? "cannot use bound with TypeVarTuple" :"cannot use constraints with TypeVarTuple");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var a;
+var colon;
+var e;
+if(
+(_literal=$B._PyPegen.expect_token(p,35))
+&&
+(a=$B._PyPegen.name_token(p))
+&&
+(colon=$B._PyPegen.expect_token(p,11))
+&&
+(e=expression_rule(p))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_STARTING_FROM(p,colon,e.kind==Tuple_kind ? "cannot use bound with ParamSpec" :"cannot use constraints with ParamSpec");
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
 function invalid_expression_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var a;
+var string_var;
+var string_var_1;
+if(
+(string_var=$B._PyPegen.string_token(p))
+&&
+(a=_loop1_157_rule(p))
+&&
+(string_var_1=$B._PyPegen.string_token(p))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_RANGE(p,$B.PyPegen.first_item(a,$B.ast.expr ),$B.PyPegen.last_item(a,$B.ast.expr ),"invalid syntax. Is this intended to be part of the string?");
+break;}
+p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var a;
@@ -24814,7 +25652,7 @@ var b;
 if(
 (a=disjunction_rule(p))
 &&
-(_keyword=$B._PyPegen.expect_token(p,660))
+(_keyword=$B._PyPegen.expect_token(p,682))
 &&
 (b=disjunction_rule(p))
 &&
@@ -24825,12 +25663,53 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
+var _keyword;
+var _keyword_1;
+var a;
+var b;
+if(
+(a=disjunction_rule(p))
+&&
+(_keyword=$B._PyPegen.expect_token(p,682))
+&&
+(b=disjunction_rule(p))
+&&
+(_keyword_1=$B._PyPegen.expect_token(p,686))
+&&
+$B._PyPegen.lookahead(0,expression_rule,p)
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"expected expression after 'else', but statement is given");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+var _keyword_1;
+var a;
+var b;
+var c;
+if(
+(a=_tmp_160_rule(p))
+&&
+(_keyword=$B._PyPegen.expect_token(p,682))
+&&
+(b=disjunction_rule(p))
+&&
+(_keyword_1=$B._PyPegen.expect_token(p,686))
+&&
+(c=simple_stmt_rule(p))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"expected expression before 'if', but statement is given");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
 var _opt_var;
 UNUSED(_opt_var);
 var a;
 var b;
 if(
-(a=$B._PyPegen.expect_token(p,612))
+(a=$B._PyPegen.expect_token(p,621))
 &&
 (_opt_var=lambda_params_rule(p),!p.error_indicator)
 &&
@@ -24839,6 +25718,24 @@ if(
 $B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,FSTRING_MIDDLE)
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_RANGE(p,a,b,"f-string: lambda expressions are not allowed without parentheses");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _opt_var;
+UNUSED(_opt_var);
+var a;
+var b;
+if(
+(a=$B._PyPegen.expect_token(p,621))
+&&
+(_opt_var=lambda_params_rule(p),!p.error_indicator)
+&&
+(b=$B._PyPegen.expect_token(p,11))
+&&
+$B._PyPegen.lookahead_with_int(1,$B._PyPegen.expect_token,p,TSTRING_MIDDLE)
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_RANGE(p,a,b,"t-string: lambda expressions are not allowed without parentheses");
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -24877,7 +25774,7 @@ if(
 &&
 (b=bitwise_or_rule(p))
 &&
-$B._PyPegen.lookahead(0,_tmp_160_rule,p)
+$B._PyPegen.lookahead(0,_tmp_161_rule,p)
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_RANGE(p,a,b,"invalid syntax. Maybe you meant '==' or ':=' instead of '='?");
 break;}
@@ -24888,7 +25785,7 @@ var a;
 var b;
 var bitwise_or_var;
 if(
-$B._PyPegen.lookahead(0,_tmp_161_rule,p)
+$B._PyPegen.lookahead(0,_tmp_162_rule,p)
 &&
 (a=bitwise_or_rule(p))
 &&
@@ -24896,7 +25793,7 @@ $B._PyPegen.lookahead(0,_tmp_161_rule,p)
 &&
 (bitwise_or_var=bitwise_or_rule(p))
 &&
-$B._PyPegen.lookahead(0,_tmp_162_rule,p)
+$B._PyPegen.lookahead(0,_tmp_163_rule,p)
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"cannot assign to %s here. Maybe you meant '==' instead of '='?",$B._PyPegen.get_expr_name(a ));
 break;}
@@ -24928,7 +25825,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _literal;
 var _literal_1;
-var _loop0_163_var;
+var _loop0_164_var;
 var a;
 var expression_var;
 if(
@@ -24936,7 +25833,7 @@ if(
 &&
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
-(_loop0_163_var=_loop0_163_rule(p))
+(_loop0_164_var=_loop0_164_rule(p))
 &&
 (_literal_1=$B._PyPegen.expect_token(p,11))
 &&
@@ -24963,10 +25860,10 @@ p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
-var _loop0_164_var;
+var _loop0_165_var;
 var a;
 if(
-(_loop0_164_var=_loop0_164_rule(p))
+(_loop0_165_var=_loop0_165_rule(p))
 &&
 (a=star_expressions_rule(p))
 &&
@@ -24978,10 +25875,10 @@ p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
-var _loop0_165_var;
+var _loop0_166_var;
 var a;
 if(
-(_loop0_165_var=_loop0_165_rule(p))
+(_loop0_166_var=_loop0_166_rule(p))
 &&
 (a=yield_expr_rule(p))
 &&
@@ -25057,7 +25954,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,616))
+(_keyword=$B._PyPegen.expect_token(p,625))
 &&
 (a=star_expressions_rule(p))
 )
@@ -25091,11 +25988,11 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_166_var;
+var _tmp_167_var;
 var a;
 var for_if_clauses_var;
 if(
-(_tmp_166_var=_tmp_166_rule(p))
+(_tmp_167_var=_tmp_167_rule(p))
 &&
 (a=starred_expression_rule(p))
 &&
@@ -25107,12 +26004,12 @@ p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
-var _tmp_167_var;
+var _tmp_168_var;
 var a;
 var b;
 var for_if_clauses_var;
 if(
-(_tmp_167_var=_tmp_167_rule(p))
+(_tmp_168_var=_tmp_168_rule(p))
 &&
 (a=star_named_expression_rule(p))
 &&
@@ -25127,12 +26024,12 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _tmp_168_var;
+var _tmp_169_var;
 var a;
 var b;
 var for_if_clauses_var;
 if(
-(_tmp_168_var=_tmp_168_rule(p))
+(_tmp_169_var=_tmp_169_rule(p))
 &&
 (a=star_named_expression_rule(p))
 &&
@@ -25192,13 +26089,13 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _loop0_170_var;
-var _tmp_169_var;
+var _loop0_171_var;
+var _tmp_170_var;
 var a;
 if(
-(_tmp_169_var=_tmp_169_rule(p))
+(_tmp_170_var=_tmp_170_rule(p))
 &&
-(_loop0_170_var=_loop0_170_rule(p))
+(_loop0_171_var=_loop0_171_rule(p))
 &&
 (a=$B._PyPegen.expect_token(p,17))
 )
@@ -25207,7 +26104,7 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _loop0_171_var;
+var _loop0_172_var;
 var _opt_var;
 UNUSED(_opt_var);
 var a;
@@ -25215,7 +26112,7 @@ var invalid_parameters_helper_var;
 if(
 (_opt_var=slash_no_default_rule(p),!p.error_indicator)
 &&
-(_loop0_171_var=_loop0_171_rule(p))
+(_loop0_172_var=_loop0_172_rule(p))
 &&
 (invalid_parameters_helper_var=invalid_parameters_helper_rule(p))
 &&
@@ -25226,18 +26123,18 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _loop0_172_var;
-var _loop1_173_var;
+var _loop0_173_var;
+var _loop1_174_var;
 var _opt_var;
 UNUSED(_opt_var);
 var a;
 var b;
 if(
-(_loop0_172_var=_loop0_172_rule(p))
+(_loop0_173_var=_loop0_173_rule(p))
 &&
 (a=$B._PyPegen.expect_token(p,7))
 &&
-(_loop1_173_var=_loop1_173_rule(p))
+(_loop1_174_var=_loop1_174_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 &&
@@ -25249,22 +26146,22 @@ p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
-var _loop0_175_var;
-var _loop0_177_var;
+var _loop0_176_var;
+var _loop0_178_var;
 var _opt_var;
 UNUSED(_opt_var);
-var _tmp_176_var;
+var _tmp_177_var;
 var a;
 if(
-(_opt_var=_tmp_174_rule(p),!p.error_indicator)
+(_opt_var=_tmp_175_rule(p),!p.error_indicator)
 &&
-(_loop0_175_var=_loop0_175_rule(p))
+(_loop0_176_var=_loop0_176_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,16))
 &&
-(_tmp_176_var=_tmp_176_rule(p))
+(_tmp_177_var=_tmp_177_rule(p))
 &&
-(_loop0_177_var=_loop0_177_rule(p))
+(_loop0_178_var=_loop0_178_rule(p))
 &&
 (a=$B._PyPegen.expect_token(p,17))
 )
@@ -25274,10 +26171,10 @@ p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
-var _loop1_178_var;
+var _loop1_179_var;
 var a;
 if(
-(_loop1_178_var=_loop1_178_rule(p))
+(_loop1_179_var=_loop1_179_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,17))
 &&
@@ -25299,7 +26196,7 @@ var a;
 if(
 (a=$B._PyPegen.expect_token(p,22))
 &&
-$B._PyPegen.lookahead(1,_tmp_179_rule,p)
+$B._PyPegen.lookahead(1,_tmp_180_rule,p)
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"expected default value expression");
 break;}
@@ -25313,12 +26210,12 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_180_var;
+var _tmp_181_var;
 var a;
 if(
 (a=$B._PyPegen.expect_token(p,16))
 &&
-(_tmp_180_var=_tmp_180_rule(p))
+(_tmp_181_var=_tmp_181_rule(p))
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"named arguments must follow bare *");
 break;}
@@ -25356,20 +26253,20 @@ p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
-var _loop0_182_var;
-var _tmp_181_var;
-var _tmp_183_var;
+var _loop0_183_var;
+var _tmp_182_var;
+var _tmp_184_var;
 var a;
 if(
 (_literal=$B._PyPegen.expect_token(p,16))
 &&
-(_tmp_181_var=_tmp_181_rule(p))
+(_tmp_182_var=_tmp_182_rule(p))
 &&
-(_loop0_182_var=_loop0_182_rule(p))
+(_loop0_183_var=_loop0_183_rule(p))
 &&
 (a=$B._PyPegen.expect_token(p,16))
 &&
-(_tmp_183_var=_tmp_183_rule(p))
+(_tmp_184_var=_tmp_184_rule(p))
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"* argument may appear only once");
 break;}
@@ -25427,7 +26324,7 @@ if(
 &&
 (_literal_1=$B._PyPegen.expect_token(p,12))
 &&
-(a=_tmp_184_rule(p))
+(a=_tmp_185_rule(p))
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"arguments cannot follow var-keyword argument");
 break;}
@@ -25450,11 +26347,11 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _loop1_185_var;
+var _loop1_186_var;
 if(
-(_loop1_185_var=_loop1_185_rule(p))
+(_loop1_186_var=_loop1_186_rule(p))
 )
-{_res=_loop1_185_var;
+{_res=_loop1_186_var;
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -25478,13 +26375,13 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _loop0_187_var;
-var _tmp_186_var;
+var _loop0_188_var;
+var _tmp_187_var;
 var a;
 if(
-(_tmp_186_var=_tmp_186_rule(p))
+(_tmp_187_var=_tmp_187_rule(p))
 &&
-(_loop0_187_var=_loop0_187_rule(p))
+(_loop0_188_var=_loop0_188_rule(p))
 &&
 (a=$B._PyPegen.expect_token(p,17))
 )
@@ -25493,7 +26390,7 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _loop0_188_var;
+var _loop0_189_var;
 var _opt_var;
 UNUSED(_opt_var);
 var a;
@@ -25501,7 +26398,7 @@ var invalid_lambda_parameters_helper_var;
 if(
 (_opt_var=lambda_slash_no_default_rule(p),!p.error_indicator)
 &&
-(_loop0_188_var=_loop0_188_rule(p))
+(_loop0_189_var=_loop0_189_rule(p))
 &&
 (invalid_lambda_parameters_helper_var=invalid_lambda_parameters_helper_rule(p))
 &&
@@ -25512,18 +26409,18 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _gather_190_var;
-var _loop0_189_var;
+var _gather_191_var;
+var _loop0_190_var;
 var _opt_var;
 UNUSED(_opt_var);
 var a;
 var b;
 if(
-(_loop0_189_var=_loop0_189_rule(p))
+(_loop0_190_var=_loop0_190_rule(p))
 &&
 (a=$B._PyPegen.expect_token(p,7))
 &&
-(_gather_190_var=_gather_190_rule(p))
+(_gather_191_var=_gather_191_rule(p))
 &&
 (_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 &&
@@ -25535,22 +26432,22 @@ p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
-var _loop0_193_var;
-var _loop0_195_var;
+var _loop0_194_var;
+var _loop0_196_var;
 var _opt_var;
 UNUSED(_opt_var);
-var _tmp_194_var;
+var _tmp_195_var;
 var a;
 if(
-(_opt_var=_tmp_192_rule(p),!p.error_indicator)
+(_opt_var=_tmp_193_rule(p),!p.error_indicator)
 &&
-(_loop0_193_var=_loop0_193_rule(p))
+(_loop0_194_var=_loop0_194_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,16))
 &&
-(_tmp_194_var=_tmp_194_rule(p))
+(_tmp_195_var=_tmp_195_rule(p))
 &&
-(_loop0_195_var=_loop0_195_rule(p))
+(_loop0_196_var=_loop0_196_rule(p))
 &&
 (a=$B._PyPegen.expect_token(p,17))
 )
@@ -25560,10 +26457,10 @@ p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
-var _loop1_196_var;
+var _loop1_197_var;
 var a;
 if(
-(_loop1_196_var=_loop1_196_rule(p))
+(_loop1_197_var=_loop1_197_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,17))
 &&
@@ -25590,11 +26487,11 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _loop1_197_var;
+var _loop1_198_var;
 if(
-(_loop1_197_var=_loop1_197_rule(p))
+(_loop1_198_var=_loop1_198_rule(p))
 )
-{_res=_loop1_197_var;
+{_res=_loop1_198_var;
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -25607,11 +26504,11 @@ var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
 var _literal;
-var _tmp_198_var;
+var _tmp_199_var;
 if(
 (_literal=$B._PyPegen.expect_token(p,16))
 &&
-(_tmp_198_var=_tmp_198_rule(p))
+(_tmp_199_var=_tmp_199_rule(p))
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR(p,"named arguments must follow bare *");
 break;}
@@ -25634,20 +26531,20 @@ p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
-var _loop0_200_var;
-var _tmp_199_var;
-var _tmp_201_var;
+var _loop0_201_var;
+var _tmp_200_var;
+var _tmp_202_var;
 var a;
 if(
 (_literal=$B._PyPegen.expect_token(p,16))
 &&
-(_tmp_199_var=_tmp_199_rule(p))
+(_tmp_200_var=_tmp_200_rule(p))
 &&
-(_loop0_200_var=_loop0_200_rule(p))
+(_loop0_201_var=_loop0_201_rule(p))
 &&
 (a=$B._PyPegen.expect_token(p,16))
 &&
-(_tmp_201_var=_tmp_201_rule(p))
+(_tmp_202_var=_tmp_202_rule(p))
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"* argument may appear only once");
 break;}
@@ -25705,7 +26602,7 @@ if(
 &&
 (_literal_1=$B._PyPegen.expect_token(p,12))
 &&
-(a=_tmp_202_rule(p))
+(a=_tmp_203_rule(p))
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"arguments cannot follow var-keyword argument");
 break;}
@@ -25753,13 +26650,38 @@ var expression_var;
 if(
 (expression_var=expression_rule(p))
 &&
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (a=expression_rule(p))
 &&
-$B._PyPegen.lookahead(1,_tmp_203_rule,p)
+$B._PyPegen.lookahead(1,_tmp_204_rule,p)
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_INVALID_TARGET(p,$B.parser_constants.STAR_TARGETS,a);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function invalid_for_if_clause_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+var _opt_var;
+UNUSED(_opt_var);
+var _tmp_205_var;
+if(
+(_opt_var=$B._PyPegen.expect_token(p,698),!p.error_indicator)
+&&
+(_keyword=$B._PyPegen.expect_token(p,694))
+&&
+(_tmp_205_var=_tmp_205_rule(p))
+&&
+$B._PyPegen.lookahead_with_int(0,$B._PyPegen.expect_token,p,695)
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR(p,"'in' expected after for-loop variables");
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -25776,9 +26698,9 @@ var _opt_var;
 UNUSED(_opt_var);
 var a;
 if(
-(_opt_var=$B._PyPegen.expect_token(p,674),!p.error_indicator)
+(_opt_var=$B._PyPegen.expect_token(p,698),!p.error_indicator)
 &&
-(_keyword=$B._PyPegen.expect_token(p,670))
+(_keyword=$B._PyPegen.expect_token(p,694))
 &&
 (a=star_expressions_rule(p))
 )
@@ -25834,16 +26756,16 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _gather_204_var;
+var _gather_206_var;
 var _keyword;
 var a;
 var dotted_name_var;
 if(
-(a=$B._PyPegen.expect_token(p,622))
+(a=$B._PyPegen.expect_token(p,634))
 &&
-(_gather_204_var=_gather_204_rule(p))
+(_gather_206_var=_gather_206_rule(p))
 &&
-(_keyword=$B._PyPegen.expect_token(p,621))
+(_keyword=$B._PyPegen.expect_token(p,633))
 &&
 (dotted_name_var=dotted_name_rule(p))
 )
@@ -25855,11 +26777,59 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var token;
 if(
-(_keyword=$B._PyPegen.expect_token(p,622))
+(_keyword=$B._PyPegen.expect_token(p,634))
 &&
 (token=$B._PyPegen.expect_token(p,NEWLINE))
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_STARTING_FROM(p,token,"Expected one or more names after 'import'");
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function invalid_dotted_as_name_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+var a;
+var dotted_name_var;
+if(
+(dotted_name_var=dotted_name_rule(p))
+&&
+(_keyword=$B._PyPegen.expect_token(p,680))
+&&
+$B._PyPegen.lookahead(0,_tmp_208_rule,p)
+&&
+(a=expression_rule(p))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"cannot use %s as import target",$B._PyPegen.get_expr_name(a ));
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function invalid_import_from_as_name_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+var a;
+var name_var;
+if(
+(name_var=$B._PyPegen.name_token(p))
+&&
+(_keyword=$B._PyPegen.expect_token(p,680))
+&&
+$B._PyPegen.lookahead(0,_tmp_209_rule,p)
+&&
+(a=expression_rule(p))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"cannot use %s as import target",$B._PyPegen.get_expr_name(a ));
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -25902,17 +26872,17 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _gather_206_var;
+var _gather_210_var;
 var _keyword;
 var _opt_var;
 UNUSED(_opt_var);
 var newline_var;
 if(
-(_opt_var=$B._PyPegen.expect_token(p,674),!p.error_indicator)
+(_opt_var=$B._PyPegen.expect_token(p,698),!p.error_indicator)
 &&
-(_keyword=$B._PyPegen.expect_token(p,633))
+(_keyword=$B._PyPegen.expect_token(p,647))
 &&
-(_gather_206_var=_gather_206_rule(p))
+(_gather_210_var=_gather_210_rule(p))
 &&
 (newline_var=$B._PyPegen.expect_token(p,NEWLINE))
 )
@@ -25921,7 +26891,7 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _gather_208_var;
+var _gather_212_var;
 var _keyword;
 var _literal;
 var _literal_1;
@@ -25931,13 +26901,13 @@ var _opt_var_1;
 UNUSED(_opt_var_1);
 var newline_var;
 if(
-(_opt_var=$B._PyPegen.expect_token(p,674),!p.error_indicator)
+(_opt_var=$B._PyPegen.expect_token(p,698),!p.error_indicator)
 &&
-(_keyword=$B._PyPegen.expect_token(p,633))
+(_keyword=$B._PyPegen.expect_token(p,647))
 &&
 (_literal=$B._PyPegen.expect_token(p,7))
 &&
-(_gather_208_var=_gather_208_rule(p))
+(_gather_212_var=_gather_212_rule(p))
 &&
 (_opt_var_1=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 &&
@@ -25957,18 +26927,18 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _gather_210_var;
+var _gather_214_var;
 var _literal;
 var _opt_var;
 UNUSED(_opt_var);
 var a;
 var newline_var;
 if(
-(_opt_var=$B._PyPegen.expect_token(p,674),!p.error_indicator)
+(_opt_var=$B._PyPegen.expect_token(p,698),!p.error_indicator)
 &&
-(a=$B._PyPegen.expect_token(p,633))
+(a=$B._PyPegen.expect_token(p,647))
 &&
-(_gather_210_var=_gather_210_rule(p))
+(_gather_214_var=_gather_214_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
@@ -25981,7 +26951,7 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _gather_212_var;
+var _gather_216_var;
 var _literal;
 var _literal_1;
 var _literal_2;
@@ -25992,13 +26962,13 @@ UNUSED(_opt_var_1);
 var a;
 var newline_var;
 if(
-(_opt_var=$B._PyPegen.expect_token(p,674),!p.error_indicator)
+(_opt_var=$B._PyPegen.expect_token(p,698),!p.error_indicator)
 &&
-(a=$B._PyPegen.expect_token(p,633))
+(a=$B._PyPegen.expect_token(p,647))
 &&
 (_literal=$B._PyPegen.expect_token(p,7))
 &&
-(_gather_212_var=_gather_212_rule(p))
+(_gather_216_var=_gather_216_rule(p))
 &&
 (_opt_var_1=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 &&
@@ -26026,7 +26996,7 @@ var _literal;
 var a;
 var newline_var;
 if(
-(a=$B._PyPegen.expect_token(p,642))
+(a=$B._PyPegen.expect_token(p,656))
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
@@ -26043,13 +27013,13 @@ var _keyword;
 var _literal;
 var block_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,642))
+(_keyword=$B._PyPegen.expect_token(p,656))
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
 (block_var=block_rule(p))
 &&
-$B._PyPegen.lookahead(0,_tmp_214_rule,p)
+$B._PyPegen.lookahead(0,_tmp_218_rule,p)
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR(p,"expected 'except' or 'finally' block");
 break;}
@@ -26059,29 +27029,29 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var _literal;
 var _literal_1;
-var _loop0_215_var;
-var _loop1_216_var;
+var _loop0_219_var;
+var _loop1_220_var;
 var _opt_var;
 UNUSED(_opt_var);
 var a;
 var b;
 var expression_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,642))
+(_keyword=$B._PyPegen.expect_token(p,656))
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
-(_loop0_215_var=_loop0_215_rule(p))
+(_loop0_219_var=_loop0_219_rule(p))
 &&
-(_loop1_216_var=_loop1_216_rule(p))
+(_loop1_220_var=_loop1_220_rule(p))
 &&
-(a=$B._PyPegen.expect_token(p,655))
+(a=$B._PyPegen.expect_token(p,677))
 &&
 (b=$B._PyPegen.expect_token(p,16))
 &&
 (expression_var=expression_rule(p))
 &&
-(_opt_var=_tmp_217_rule(p),!p.error_indicator)
+(_opt_var=_tmp_221_rule(p),!p.error_indicator)
 &&
 (_literal_1=$B._PyPegen.expect_token(p,11))
 )
@@ -26093,23 +27063,23 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var _literal;
 var _literal_1;
-var _loop0_218_var;
-var _loop1_219_var;
+var _loop0_222_var;
+var _loop1_223_var;
 var _opt_var;
 UNUSED(_opt_var);
 var a;
 if(
-(_keyword=$B._PyPegen.expect_token(p,642))
+(_keyword=$B._PyPegen.expect_token(p,656))
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
-(_loop0_218_var=_loop0_218_rule(p))
+(_loop0_222_var=_loop0_222_rule(p))
 &&
-(_loop1_219_var=_loop1_219_rule(p))
+(_loop1_223_var=_loop1_223_rule(p))
 &&
-(a=$B._PyPegen.expect_token(p,655))
+(a=$B._PyPegen.expect_token(p,677))
 &&
-(_opt_var=_tmp_220_rule(p),!p.error_indicator)
+(_opt_var=_tmp_224_rule(p),!p.error_indicator)
 &&
 (_literal_1=$B._PyPegen.expect_token(p,11))
 )
@@ -26126,18 +27096,14 @@ var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
 var _keyword;
+var _keyword_1;
 var _literal;
 var _literal_1;
-var _opt_var;
-UNUSED(_opt_var);
-var _opt_var_1;
-UNUSED(_opt_var_1);
 var a;
 var expressions_var;
+var name_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,655))
-&&
-(_opt_var=$B._PyPegen.expect_token(p,16),!p.error_indicator)
+(_keyword=$B._PyPegen.expect_token(p,677))
 &&
 (a=expression_rule(p))
 &&
@@ -26145,30 +27111,28 @@ if(
 &&
 (expressions_var=expressions_rule(p))
 &&
-(_opt_var_1=_tmp_221_rule(p),!p.error_indicator)
+(_keyword_1=$B._PyPegen.expect_token(p,680))
+&&
+(name_var=$B._PyPegen.name_token(p))
 &&
 (_literal_1=$B._PyPegen.expect_token(p,11))
 )
-{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_STARTING_FROM(p,a,"multiple exception types must be parenthesized");
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_STARTING_FROM(p,a,"multiple exception types must be parenthesized when using 'as'");
 break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var _opt_var;
 UNUSED(_opt_var);
-var _opt_var_1;
-UNUSED(_opt_var_1);
 var a;
 var expression_var;
 var newline_var;
 if(
-(a=$B._PyPegen.expect_token(p,655))
-&&
-(_opt_var=$B._PyPegen.expect_token(p,16),!p.error_indicator)
+(a=$B._PyPegen.expect_token(p,677))
 &&
 (expression_var=expression_rule(p))
 &&
-(_opt_var_1=_tmp_222_rule(p),!p.error_indicator)
+(_opt_var=_tmp_225_rule(p),!p.error_indicator)
 &&
 (newline_var=$B._PyPegen.expect_token(p,NEWLINE))
 )
@@ -26180,7 +27144,90 @@ if(p.error_indicator){return NULL;}
 var a;
 var newline_var;
 if(
-(a=$B._PyPegen.expect_token(p,655))
+(a=$B._PyPegen.expect_token(p,677))
+&&
+(newline_var=$B._PyPegen.expect_token(p,NEWLINE))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR(p,"expected ':'");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+var _keyword_1;
+var _literal;
+var a;
+var block_var;
+var expression_var;
+if(
+(_keyword=$B._PyPegen.expect_token(p,677))
+&&
+(expression_var=expression_rule(p))
+&&
+(_keyword_1=$B._PyPegen.expect_token(p,680))
+&&
+(a=expression_rule(p))
+&&
+(_literal=$B._PyPegen.expect_token(p,11))
+&&
+(block_var=block_rule(p))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"cannot use except statement with %s",$B._PyPegen.get_expr_name(a ));
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function invalid_except_star_stmt_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+var _keyword_1;
+var _literal;
+var _literal_1;
+var _literal_2;
+var a;
+var expressions_var;
+var name_var;
+if(
+(_keyword=$B._PyPegen.expect_token(p,677))
+&&
+(_literal=$B._PyPegen.expect_token(p,16))
+&&
+(a=expression_rule(p))
+&&
+(_literal_1=$B._PyPegen.expect_token(p,12))
+&&
+(expressions_var=expressions_rule(p))
+&&
+(_keyword_1=$B._PyPegen.expect_token(p,680))
+&&
+(name_var=$B._PyPegen.name_token(p))
+&&
+(_literal_2=$B._PyPegen.expect_token(p,11))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_STARTING_FROM(p,a,"multiple exception types must be parenthesized when using 'as'");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var _opt_var;
+UNUSED(_opt_var);
+var a;
+var expression_var;
+var newline_var;
+if(
+(a=$B._PyPegen.expect_token(p,677))
+&&
+(_literal=$B._PyPegen.expect_token(p,16))
+&&
+(expression_var=expression_rule(p))
+&&
+(_opt_var=_tmp_226_rule(p),!p.error_indicator)
 &&
 (newline_var=$B._PyPegen.expect_token(p,NEWLINE))
 )
@@ -26190,16 +27237,43 @@ p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
-var _tmp_223_var;
+var _tmp_227_var;
 var a;
 if(
-(a=$B._PyPegen.expect_token(p,655))
+(a=$B._PyPegen.expect_token(p,677))
 &&
 (_literal=$B._PyPegen.expect_token(p,16))
 &&
-(_tmp_223_var=_tmp_223_rule(p))
+(_tmp_227_var=_tmp_227_rule(p))
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR(p,"expected one or more exception types");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+var _keyword_1;
+var _literal;
+var _literal_1;
+var a;
+var block_var;
+var expression_var;
+if(
+(_keyword=$B._PyPegen.expect_token(p,677))
+&&
+(_literal=$B._PyPegen.expect_token(p,16))
+&&
+(expression_var=expression_rule(p))
+&&
+(_keyword_1=$B._PyPegen.expect_token(p,680))
+&&
+(a=expression_rule(p))
+&&
+(_literal_1=$B._PyPegen.expect_token(p,11))
+&&
+(block_var=block_rule(p))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"cannot use except* statement with %s",$B._PyPegen.get_expr_name(a ));
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -26215,7 +27289,7 @@ var _literal;
 var a;
 var newline_var;
 if(
-(a=$B._PyPegen.expect_token(p,651))
+(a=$B._PyPegen.expect_token(p,673))
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
@@ -26242,11 +27316,11 @@ var a;
 var expression_var;
 var newline_var;
 if(
-(a=$B._PyPegen.expect_token(p,655))
+(a=$B._PyPegen.expect_token(p,677))
 &&
 (expression_var=expression_rule(p))
 &&
-(_opt_var=_tmp_224_rule(p),!p.error_indicator)
+(_opt_var=_tmp_228_rule(p),!p.error_indicator)
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
@@ -26263,7 +27337,7 @@ var _literal;
 var a;
 var newline_var;
 if(
-(a=$B._PyPegen.expect_token(p,655))
+(a=$B._PyPegen.expect_token(p,677))
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
@@ -26291,13 +27365,13 @@ var a;
 var expression_var;
 var newline_var;
 if(
-(a=$B._PyPegen.expect_token(p,655))
+(a=$B._PyPegen.expect_token(p,677))
 &&
 (_literal=$B._PyPegen.expect_token(p,16))
 &&
 (expression_var=expression_rule(p))
 &&
-(_opt_var=_tmp_225_rule(p),!p.error_indicator)
+(_opt_var=_tmp_229_rule(p),!p.error_indicator)
 &&
 (_literal_1=$B._PyPegen.expect_token(p,11))
 &&
@@ -26327,7 +27401,7 @@ if(
 &&
 (newline_var=$B._PyPegen.expect_token(p,NEWLINE))
 )
-{_res=$B.helper_functions.CHECK_VERSION(NULL,10,"Pattern matching is",$B.helper_functions.RAISE_SYNTAX_ERROR(p,"expected ':'" ));
+{_res=$B.helper_functions.CHECK_VERSION(NULL,10,"expected ':'",$B.helper_functions.RAISE_SYNTAX_ERROR(p,"Pattern matching is" ));
 break;}
 p.mark=_mark;}
 {
@@ -26415,7 +27489,7 @@ var or_pattern_var;
 if(
 (or_pattern_var=or_pattern_rule(p))
 &&
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (a=$B._PyPegen.expect_soft_keyword(p,"_"))
 )
@@ -26430,13 +27504,11 @@ var or_pattern_var;
 if(
 (or_pattern_var=or_pattern_rule(p))
 &&
-(_keyword=$B._PyPegen.expect_token(p,658))
-&&
-$B._PyPegen.lookahead_with_name(0,$B._PyPegen.name_token,p)
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (a=expression_rule(p))
 )
-{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"invalid pattern target");
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"cannot use %s as pattern target",$B._PyPegen.get_expr_name(a ));
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -26476,7 +27548,7 @@ UNUSED(_opt_var);
 var a;
 var keyword_patterns_var;
 if(
-(_opt_var=_tmp_226_rule(p),!p.error_indicator)
+(_opt_var=_tmp_230_rule(p),!p.error_indicator)
 &&
 (keyword_patterns_var=keyword_patterns_rule(p))
 &&
@@ -26500,7 +27572,7 @@ var _keyword;
 var named_expression_var;
 var newline_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,660))
+(_keyword=$B._PyPegen.expect_token(p,682))
 &&
 (named_expression_var=named_expression_rule(p))
 &&
@@ -26516,7 +27588,7 @@ var a;
 var a_1;
 var newline_var;
 if(
-(a=$B._PyPegen.expect_token(p,660))
+(a=$B._PyPegen.expect_token(p,682))
 &&
 (a_1=named_expression_rule(p))
 &&
@@ -26542,7 +27614,7 @@ var _keyword;
 var named_expression_var;
 var newline_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,662))
+(_keyword=$B._PyPegen.expect_token(p,687))
 &&
 (named_expression_var=named_expression_rule(p))
 &&
@@ -26558,7 +27630,7 @@ var a;
 var named_expression_var;
 var newline_var;
 if(
-(a=$B._PyPegen.expect_token(p,662))
+(a=$B._PyPegen.expect_token(p,687))
 &&
 (named_expression_var=named_expression_rule(p))
 &&
@@ -26584,7 +27656,7 @@ var _literal;
 var a;
 var newline_var;
 if(
-(a=$B._PyPegen.expect_token(p,663))
+(a=$B._PyPegen.expect_token(p,686))
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
@@ -26593,6 +27665,24 @@ if(
 $B._PyPegen.lookahead_with_int(0,$B._PyPegen.expect_token,p,INDENT)
 )
 {_res=$B.helper_functions.RAISE_INDENTATION_ERROR(p,"expected an indented block after 'else' statement on line %d",a.lineno);
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+var _keyword_1;
+var _literal;
+var block_var;
+if(
+(_keyword=$B._PyPegen.expect_token(p,686))
+&&
+(_literal=$B._PyPegen.expect_token(p,11))
+&&
+(block_var=block_rule(p))
+&&
+(_keyword_1=$B._PyPegen.expect_token(p,687))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR(p,"'elif' block follows an 'else' block");
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -26608,7 +27698,7 @@ var _keyword;
 var named_expression_var;
 var newline_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,665))
+(_keyword=$B._PyPegen.expect_token(p,689))
 &&
 (named_expression_var=named_expression_rule(p))
 &&
@@ -26624,7 +27714,7 @@ var a;
 var named_expression_var;
 var newline_var;
 if(
-(a=$B._PyPegen.expect_token(p,665))
+(a=$B._PyPegen.expect_token(p,689))
 &&
 (named_expression_var=named_expression_rule(p))
 &&
@@ -26654,13 +27744,13 @@ var newline_var;
 var star_expressions_var;
 var star_targets_var;
 if(
-(_opt_var=$B._PyPegen.expect_token(p,674),!p.error_indicator)
+(_opt_var=$B._PyPegen.expect_token(p,698),!p.error_indicator)
 &&
-(_keyword=$B._PyPegen.expect_token(p,670))
+(_keyword=$B._PyPegen.expect_token(p,694))
 &&
 (star_targets_var=star_targets_rule(p))
 &&
-(_keyword_1=$B._PyPegen.expect_token(p,671))
+(_keyword_1=$B._PyPegen.expect_token(p,695))
 &&
 (star_expressions_var=star_expressions_rule(p))
 &&
@@ -26680,13 +27770,13 @@ var newline_var;
 var star_expressions_var;
 var star_targets_var;
 if(
-(_opt_var=$B._PyPegen.expect_token(p,674),!p.error_indicator)
+(_opt_var=$B._PyPegen.expect_token(p,698),!p.error_indicator)
 &&
-(a=$B._PyPegen.expect_token(p,670))
+(a=$B._PyPegen.expect_token(p,694))
 &&
 (star_targets_var=star_targets_rule(p))
 &&
-(_keyword=$B._PyPegen.expect_token(p,671))
+(_keyword=$B._PyPegen.expect_token(p,695))
 &&
 (star_expressions_var=star_expressions_rule(p))
 &&
@@ -26723,9 +27813,9 @@ var a;
 var name_var;
 var newline_var;
 if(
-(_opt_var=$B._PyPegen.expect_token(p,674),!p.error_indicator)
+(_opt_var=$B._PyPegen.expect_token(p,698),!p.error_indicator)
 &&
-(a=$B._PyPegen.expect_token(p,675))
+(a=$B._PyPegen.expect_token(p,699))
 &&
 (name_var=$B._PyPegen.name_token(p))
 &&
@@ -26737,7 +27827,7 @@ if(
 &&
 (_literal_1=$B._PyPegen.expect_token(p,8))
 &&
-(_opt_var_3=_tmp_227_rule(p),!p.error_indicator)
+(_opt_var_3=_tmp_231_rule(p),!p.error_indicator)
 &&
 (_literal_2=$B._PyPegen.expect_token(p,11))
 &&
@@ -26767,9 +27857,9 @@ UNUSED(_opt_var_4);
 var block_var;
 var name_var;
 if(
-(_opt_var=$B._PyPegen.expect_token(p,674),!p.error_indicator)
+(_opt_var=$B._PyPegen.expect_token(p,698),!p.error_indicator)
 &&
-(_keyword=$B._PyPegen.expect_token(p,675))
+(_keyword=$B._PyPegen.expect_token(p,699))
 &&
 (name_var=$B._PyPegen.name_token(p))
 &&
@@ -26781,7 +27871,7 @@ if(
 &&
 (_literal_1=$B._PyPegen.expect_token(p,8))
 &&
-(_opt_var_3=_tmp_228_rule(p),!p.error_indicator)
+(_opt_var_3=_tmp_232_rule(p),!p.error_indicator)
 &&
 (_literal_2=$B._PyPegen.expect_forced_token(p,11,":"))
 &&
@@ -26809,13 +27899,13 @@ UNUSED(_opt_var_1);
 var name_var;
 var newline_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,677))
+(_keyword=$B._PyPegen.expect_token(p,701))
 &&
 (name_var=$B._PyPegen.name_token(p))
 &&
 (_opt_var=type_params_rule(p),!p.error_indicator)
 &&
-(_opt_var_1=_tmp_229_rule(p),!p.error_indicator)
+(_opt_var_1=_tmp_233_rule(p),!p.error_indicator)
 &&
 (newline_var=$B._PyPegen.expect_token(p,NEWLINE))
 )
@@ -26833,13 +27923,13 @@ var a;
 var name_var;
 var newline_var;
 if(
-(a=$B._PyPegen.expect_token(p,677))
+(a=$B._PyPegen.expect_token(p,701))
 &&
 (name_var=$B._PyPegen.name_token(p))
 &&
 (_opt_var=type_params_rule(p),!p.error_indicator)
 &&
-(_opt_var_1=_tmp_230_rule(p),!p.error_indicator)
+(_opt_var_1=_tmp_234_rule(p),!p.error_indicator)
 &&
 (_literal=$B._PyPegen.expect_token(p,11))
 &&
@@ -26859,17 +27949,17 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _gather_231_var;
+var _gather_235_var;
 var _literal;
 var invalid_kvpair_var;
 if(
-(_gather_231_var=_gather_231_rule(p))
+(_gather_235_var=_gather_235_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
 (invalid_kvpair_var=invalid_kvpair_rule(p))
 )
-{_res=$B._PyPegen.dummy_name(p,_gather_231_var,_literal,invalid_kvpair_var);
+{_res=$B._PyPegen.dummy_name(p,_gather_235_var,_literal,invalid_kvpair_var);
 break;}
 p.mark=_mark;}
 {
@@ -26899,7 +27989,7 @@ if(
 &&
 (a=$B._PyPegen.expect_token(p,11))
 &&
-$B._PyPegen.lookahead(1,_tmp_233_rule,p)
+$B._PyPegen.lookahead(1,_tmp_237_rule,p)
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"expression expected after dictionary key and ':'");
 break;}
@@ -26949,7 +28039,7 @@ if(
 &&
 (a=$B._PyPegen.expect_token(p,11))
 &&
-$B._PyPegen.lookahead(1,_tmp_234_rule,p)
+$B._PyPegen.lookahead(1,_tmp_238_rule,p)
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"expression expected after dictionary key and ':'");
 break;}
@@ -26957,7 +28047,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function invalid_starred_expression_rule(p)
+function invalid_starred_expression_unpacking_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -26982,7 +28072,23 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function invalid_replacement_field_rule(p)
+function invalid_starred_expression_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,16))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR(p,"Invalid star expression");
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function invalid_fstring_replacement_field_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -27054,9 +28160,9 @@ if(
 &&
 (annotated_rhs_var=annotated_rhs_rule(p))
 &&
-$B._PyPegen.lookahead(0,_tmp_235_rule,p)
+$B._PyPegen.lookahead(0,_tmp_239_rule,p)
 )
-{_res=PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"f-string: expecting '=', or '!', or ':', or '}'");
+{_res=$B.helper_functions.$B._PyPegen.PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"f-string: expecting '=', or '!', or ':', or '}'");
 break;}
 p.mark=_mark;}
 {
@@ -27071,9 +28177,9 @@ if(
 &&
 (_literal_1=$B._PyPegen.expect_token(p,22))
 &&
-$B._PyPegen.lookahead(0,_tmp_236_rule,p)
+$B._PyPegen.lookahead(0,_tmp_240_rule,p)
 )
-{_res=PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"f-string: expecting '!', or ':', or '}'");
+{_res=$B.helper_functions.$B._PyPegen.PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"f-string: expecting '!', or ':', or '}'");
 break;}
 p.mark=_mark;}
 {
@@ -27082,7 +28188,7 @@ var _literal;
 var _opt_var;
 UNUSED(_opt_var);
 var annotated_rhs_var;
-var invalid_conversion_character_var;
+var invalid_fstring_conversion_character_var;
 if(
 (_literal=$B._PyPegen.expect_token(p,25))
 &&
@@ -27090,59 +28196,9 @@ if(
 &&
 (_opt_var=$B._PyPegen.expect_token(p,22),!p.error_indicator)
 &&
-(invalid_conversion_character_var=invalid_conversion_character_rule(p))
+(invalid_fstring_conversion_character_var=invalid_fstring_conversion_character_rule(p))
 )
-{_res=$B._PyPegen.dummy_name(p,_literal,annotated_rhs_var,_opt_var,invalid_conversion_character_var);
-break;}
-p.mark=_mark;}
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-var _opt_var;
-UNUSED(_opt_var);
-var _opt_var_1;
-UNUSED(_opt_var_1);
-var annotated_rhs_var;
-if(
-(_literal=$B._PyPegen.expect_token(p,25))
-&&
-(annotated_rhs_var=annotated_rhs_rule(p))
-&&
-(_opt_var=$B._PyPegen.expect_token(p,22),!p.error_indicator)
-&&
-(_opt_var_1=_tmp_237_rule(p),!p.error_indicator)
-&&
-$B._PyPegen.lookahead(0,_tmp_238_rule,p)
-)
-{_res=PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"f-string: expecting ':' or '}'");
-break;}
-p.mark=_mark;}
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-var _literal_1;
-var _loop0_240_var;
-var _opt_var;
-UNUSED(_opt_var);
-var _opt_var_1;
-UNUSED(_opt_var_1);
-var annotated_rhs_var;
-if(
-(_literal=$B._PyPegen.expect_token(p,25))
-&&
-(annotated_rhs_var=annotated_rhs_rule(p))
-&&
-(_opt_var=$B._PyPegen.expect_token(p,22),!p.error_indicator)
-&&
-(_opt_var_1=_tmp_239_rule(p),!p.error_indicator)
-&&
-(_literal_1=$B._PyPegen.expect_token(p,11))
-&&
-(_loop0_240_var=_loop0_240_rule(p))
-&&
-$B._PyPegen.lookahead_with_int(0,$B._PyPegen.expect_token,p,26)
-)
-{_res=PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"f-string: expecting '}', or format specs");
+{_res=$B._PyPegen.dummy_name(p,_literal,annotated_rhs_var,_opt_var,invalid_fstring_conversion_character_var);
 break;}
 p.mark=_mark;}
 {
@@ -27162,15 +28218,65 @@ if(
 &&
 (_opt_var_1=_tmp_241_rule(p),!p.error_indicator)
 &&
+$B._PyPegen.lookahead(0,_tmp_242_rule,p)
+)
+{_res=$B.helper_functions.$B._PyPegen.PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"f-string: expecting ':' or '}'");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var _literal_1;
+var _loop0_244_var;
+var _opt_var;
+UNUSED(_opt_var);
+var _opt_var_1;
+UNUSED(_opt_var_1);
+var annotated_rhs_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(annotated_rhs_var=annotated_rhs_rule(p))
+&&
+(_opt_var=$B._PyPegen.expect_token(p,22),!p.error_indicator)
+&&
+(_opt_var_1=_tmp_243_rule(p),!p.error_indicator)
+&&
+(_literal_1=$B._PyPegen.expect_token(p,11))
+&&
+(_loop0_244_var=_loop0_244_rule(p))
+&&
 $B._PyPegen.lookahead_with_int(0,$B._PyPegen.expect_token,p,26)
 )
-{_res=PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"f-string: expecting '}'");
+{_res=$B.helper_functions.$B._PyPegen.PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"f-string: expecting '}', or format specs");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var _opt_var;
+UNUSED(_opt_var);
+var _opt_var_1;
+UNUSED(_opt_var_1);
+var annotated_rhs_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(annotated_rhs_var=annotated_rhs_rule(p))
+&&
+(_opt_var=$B._PyPegen.expect_token(p,22),!p.error_indicator)
+&&
+(_opt_var_1=_tmp_245_rule(p),!p.error_indicator)
+&&
+$B._PyPegen.lookahead_with_int(0,$B._PyPegen.expect_token,p,26)
+)
+{_res=$B.helper_functions.$B._PyPegen.PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"f-string: expecting '}'");
 break;}
 p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function invalid_conversion_character_rule(p)
+function invalid_fstring_conversion_character_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -27180,7 +28286,7 @@ var _literal;
 if(
 (_literal=$B._PyPegen.expect_token(p,54))
 &&
-$B._PyPegen.lookahead(1,_tmp_242_rule,p)
+$B._PyPegen.lookahead(1,_tmp_246_rule,p)
 )
 {_res=$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"f-string: missing conversion character");
 break;}
@@ -27199,22 +28305,270 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
+function invalid_tstring_replacement_field_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var a;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(a=$B._PyPegen.expect_token(p,22))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"t-string: valid expression required before '='");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var a;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(a=$B._PyPegen.expect_token(p,54))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"t-string: valid expression required before '!'");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var a;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(a=$B._PyPegen.expect_token(p,11))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"t-string: valid expression required before ':'");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var a;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(a=$B._PyPegen.expect_token(p,26))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_LOCATION(p,a,"t-string: valid expression required before '}'");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+$B._PyPegen.lookahead(0,annotated_rhs_rule,p)
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"t-string: expecting a valid expression after '{'");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var annotated_rhs_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(annotated_rhs_var=annotated_rhs_rule(p))
+&&
+$B._PyPegen.lookahead(0,_tmp_247_rule,p)
+)
+{_res=$B.helper_functions.$B._PyPegen.PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"t-string: expecting '=', or '!', or ':', or '}'");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var _literal_1;
+var annotated_rhs_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(annotated_rhs_var=annotated_rhs_rule(p))
+&&
+(_literal_1=$B._PyPegen.expect_token(p,22))
+&&
+$B._PyPegen.lookahead(0,_tmp_248_rule,p)
+)
+{_res=$B.helper_functions.$B._PyPegen.PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"t-string: expecting '!', or ':', or '}'");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var _opt_var;
+UNUSED(_opt_var);
+var annotated_rhs_var;
+var invalid_tstring_conversion_character_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(annotated_rhs_var=annotated_rhs_rule(p))
+&&
+(_opt_var=$B._PyPegen.expect_token(p,22),!p.error_indicator)
+&&
+(invalid_tstring_conversion_character_var=invalid_tstring_conversion_character_rule(p))
+)
+{_res=$B._PyPegen.dummy_name(p,_literal,annotated_rhs_var,_opt_var,invalid_tstring_conversion_character_var);
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var _opt_var;
+UNUSED(_opt_var);
+var _opt_var_1;
+UNUSED(_opt_var_1);
+var annotated_rhs_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(annotated_rhs_var=annotated_rhs_rule(p))
+&&
+(_opt_var=$B._PyPegen.expect_token(p,22),!p.error_indicator)
+&&
+(_opt_var_1=_tmp_249_rule(p),!p.error_indicator)
+&&
+$B._PyPegen.lookahead(0,_tmp_250_rule,p)
+)
+{_res=$B.helper_functions.$B._PyPegen.PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"t-string: expecting ':' or '}'");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var _literal_1;
+var _loop0_252_var;
+var _opt_var;
+UNUSED(_opt_var);
+var _opt_var_1;
+UNUSED(_opt_var_1);
+var annotated_rhs_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(annotated_rhs_var=annotated_rhs_rule(p))
+&&
+(_opt_var=$B._PyPegen.expect_token(p,22),!p.error_indicator)
+&&
+(_opt_var_1=_tmp_251_rule(p),!p.error_indicator)
+&&
+(_literal_1=$B._PyPegen.expect_token(p,11))
+&&
+(_loop0_252_var=_loop0_252_rule(p))
+&&
+$B._PyPegen.lookahead_with_int(0,$B._PyPegen.expect_token,p,26)
+)
+{_res=$B.helper_functions.$B._PyPegen.PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"t-string: expecting '}', or format specs");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var _opt_var;
+UNUSED(_opt_var);
+var _opt_var_1;
+UNUSED(_opt_var_1);
+var annotated_rhs_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+&&
+(annotated_rhs_var=annotated_rhs_rule(p))
+&&
+(_opt_var=$B._PyPegen.expect_token(p,22),!p.error_indicator)
+&&
+(_opt_var_1=_tmp_253_rule(p),!p.error_indicator)
+&&
+$B._PyPegen.lookahead_with_int(0,$B._PyPegen.expect_token,p,26)
+)
+{_res=$B.helper_functions.$B._PyPegen.PyErr_Occurred()? $B.parser_constants.NULL :$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"t-string: expecting '}'");
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function invalid_tstring_conversion_character_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,54))
+&&
+$B._PyPegen.lookahead(1,_tmp_254_rule,p)
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"t-string: missing conversion character");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,54))
+&&
+$B._PyPegen.lookahead_with_name(0,$B._PyPegen.name_token,p)
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN(p,"t-string: invalid conversion character");
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function invalid_string_tstring_concat_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var a;
+var b;
+if(
+(a=_loop1_255_rule(p))
+&&
+(b=tstring_rule(p))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_RANGE(p,$B.PyPegen.last_item(a,$B.ast.expr ),b,"cannot mix t-string literals with string or bytes literals");
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var a;
+var b;
+if(
+(a=_loop1_256_rule(p))
+&&
+(b=_tmp_257_rule(p))
+)
+{_res=$B.helper_functions.RAISE_SYNTAX_ERROR_KNOWN_RANGE(p,$B.PyPegen.last_item(a,$B.ast.expr ),b,"cannot mix t-string literals with string or bytes literals");
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
 function invalid_arithmetic_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_243_var;
+var _tmp_258_var;
 var a;
 var b;
 var sum_var;
 if(
 (sum_var=sum_rule(p))
 &&
-(_tmp_243_var=_tmp_243_rule(p))
+(_tmp_258_var=_tmp_258_rule(p))
 &&
-(a=$B._PyPegen.expect_token(p,679))
+(a=$B._PyPegen.expect_token(p,703))
 &&
 (b=inversion_rule(p))
 )
@@ -27230,13 +28584,13 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_244_var;
+var _tmp_259_var;
 var a;
 var b;
 if(
-(_tmp_244_var=_tmp_244_rule(p))
+(_tmp_259_var=_tmp_259_rule(p))
 &&
-(a=$B._PyPegen.expect_token(p,679))
+(a=$B._PyPegen.expect_token(p,703))
 &&
 (b=factor_rule(p))
 )
@@ -27372,7 +28726,7 @@ var _mark=p.mark;
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,622))
+(_keyword=$B._PyPegen.expect_token(p,634))
 )
 {_res=_keyword;
 break;}
@@ -27381,7 +28735,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,621))
+(_keyword=$B._PyPegen.expect_token(p,633))
 )
 {_res=_keyword;
 break;}
@@ -27397,7 +28751,7 @@ var _mark=p.mark;
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,675))
+(_keyword=$B._PyPegen.expect_token(p,699))
 )
 {_res=_keyword;
 break;}
@@ -27415,7 +28769,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,674))
+(_keyword=$B._PyPegen.expect_token(p,698))
 )
 {_res=_keyword;
 break;}
@@ -27431,7 +28785,7 @@ var _mark=p.mark;
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,677))
+(_keyword=$B._PyPegen.expect_token(p,701))
 )
 {_res=_keyword;
 break;}
@@ -27456,7 +28810,7 @@ var _mark=p.mark;
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,633))
+(_keyword=$B._PyPegen.expect_token(p,647))
 )
 {_res=_keyword;
 break;}
@@ -27465,7 +28819,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,674))
+(_keyword=$B._PyPegen.expect_token(p,698))
 )
 {_res=_keyword;
 break;}
@@ -27481,7 +28835,7 @@ var _mark=p.mark;
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,670))
+(_keyword=$B._PyPegen.expect_token(p,694))
 )
 {_res=_keyword;
 break;}
@@ -27490,7 +28844,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,674))
+(_keyword=$B._PyPegen.expect_token(p,698))
 )
 {_res=_keyword;
 break;}
@@ -27577,11 +28931,11 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_245_var;
+var _tmp_260_var;
 while(
-(_tmp_245_var=_tmp_245_rule(p))
+(_tmp_260_var=_tmp_260_rule(p))
 )
-{_res=_tmp_245_var;
+{_res=_tmp_260_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
@@ -27593,64 +28947,55 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var yield_expr_var;
-if(
-(yield_expr_var=yield_expr_rule(p))
-)
-{_res=yield_expr_var;
-break;}
-p.mark=_mark;}
-{
-if(p.error_indicator){return NULL;}
-var star_expressions_var;
-if(
-(star_expressions_var=star_expressions_rule(p))
-)
-{_res=star_expressions_var;
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _tmp_16_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var yield_expr_var;
-if(
-(yield_expr_var=yield_expr_rule(p))
-)
-{_res=yield_expr_var;
-break;}
-p.mark=_mark;}
-{
-if(p.error_indicator){return NULL;}
-var star_expressions_var;
-if(
-(star_expressions_var=star_expressions_rule(p))
-)
-{_res=star_expressions_var;
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _tmp_17_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
 var _keyword;
 var z;
 if(
-(_keyword=$B._PyPegen.expect_token(p,621))
+(_keyword=$B._PyPegen.expect_token(p,633))
 &&
 (z=expression_rule(p))
 )
 {_res=z;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _loop0_17_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var elem;
+while(
+(_literal=$B._PyPegen.expect_token(p,12))
+&&
+(elem=$B._PyPegen.name_token(p))
+)
+{_res=elem;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _gather_16_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var elem;
+var seq;
+if(
+(elem=$B._PyPegen.name_token(p))
+&&
+(seq=_loop0_17_rule(p))
+)
+{_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -27697,48 +29042,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_21_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-var elem;
-while(
-(_literal=$B._PyPegen.expect_token(p,12))
-&&
-(elem=$B._PyPegen.name_token(p))
-)
-{_res=elem;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
-function _gather_20_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var elem;
-var seq;
-if(
-(elem=$B._PyPegen.name_token(p))
-&&
-(seq=_loop0_21_rule(p))
-)
-{_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _tmp_22_rule(p)
+function _tmp_20_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -27763,7 +29067,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_23_rule(p)
+function _tmp_21_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -27782,7 +29086,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_24_rule(p)
+function _loop0_22_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -27792,16 +29096,16 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_246_var;
+var _tmp_261_var;
 while(
-(_tmp_246_var=_tmp_246_rule(p))
+(_tmp_261_var=_tmp_261_rule(p))
 )
-{_res=_tmp_246_var;
+{_res=_tmp_261_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop1_25_rule(p)
+function _loop1_23_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -27811,17 +29115,17 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_247_var;
+var _tmp_262_var;
 while(
-(_tmp_247_var=_tmp_247_rule(p))
+(_tmp_262_var=_tmp_262_rule(p))
 )
-{_res=_tmp_247_var;
+{_res=_tmp_262_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _loop0_27_rule(p)
+function _loop0_25_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -27843,7 +29147,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_26_rule(p)
+function _gather_24_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -27854,7 +29158,7 @@ var seq;
 if(
 (elem=import_from_as_name_rule(p))
 &&
-(seq=_loop0_27_rule(p))
+(seq=_loop0_25_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -27862,7 +29166,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_28_rule(p)
+function _tmp_26_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -27871,7 +29175,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var z;
 if(
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (z=$B._PyPegen.name_token(p))
 )
@@ -27881,7 +29185,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_30_rule(p)
+function _loop0_28_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -27903,7 +29207,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_29_rule(p)
+function _gather_27_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -27914,7 +29218,7 @@ var seq;
 if(
 (elem=dotted_as_name_rule(p))
 &&
-(seq=_loop0_30_rule(p))
+(seq=_loop0_28_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -27922,46 +29226,46 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
+function _tmp_29_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _keyword;
+var z;
+if(
+(_keyword=$B._PyPegen.expect_token(p,680))
+&&
+(z=$B._PyPegen.name_token(p))
+)
+{_res=z;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _loop1_30_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var _tmp_263_var;
+while(
+(_tmp_263_var=_tmp_263_rule(p))
+)
+{_res=_tmp_263_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+if(_n==0 ||p.error_indicator){return NULL;}
+return _children;}
 function _tmp_31_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var _keyword;
-var z;
-if(
-(_keyword=$B._PyPegen.expect_token(p,658))
-&&
-(z=$B._PyPegen.name_token(p))
-)
-{_res=z;
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _loop1_32_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var _tmp_248_var;
-while(
-(_tmp_248_var=_tmp_248_rule(p))
-)
-{_res=_tmp_248_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-if(_n==0 ||p.error_indicator){return NULL;}
-return _children;}
-function _tmp_33_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -27983,7 +29287,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_34_rule(p)
+function _tmp_32_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -28002,7 +29306,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_35_rule(p)
+function _tmp_33_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -28021,7 +29325,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_36_rule(p)
+function _loop0_34_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28040,7 +29344,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop0_37_rule(p)
+function _loop0_35_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28058,6 +29362,45 @@ while(
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
+return _children;}
+function _loop0_36_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var param_with_default_var;
+while(
+(param_with_default_var=param_with_default_rule(p))
+)
+{_res=param_with_default_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _loop1_37_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var param_no_default_var;
+while(
+(param_no_default_var=param_no_default_rule(p))
+)
+{_res=param_no_default_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
 function _loop0_38_rule(p)
 {if(p.error_indicator){return NULL;}
@@ -28088,17 +29431,17 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var param_no_default_var;
+var param_with_default_var;
 while(
-(param_no_default_var=param_no_default_rule(p))
+(param_with_default_var=param_with_default_rule(p))
 )
-{_res=param_no_default_var;
+{_res=param_with_default_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _loop0_40_rule(p)
+function _loop1_40_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28108,14 +29451,15 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var param_with_default_var;
+var param_no_default_var;
 while(
-(param_with_default_var=param_with_default_rule(p))
+(param_no_default_var=param_no_default_rule(p))
 )
-{_res=param_with_default_var;
+{_res=param_no_default_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
+if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
 function _loop1_41_rule(p)
 {if(p.error_indicator){return NULL;}
@@ -28127,17 +29471,17 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var param_with_default_var;
+var param_no_default_var;
 while(
-(param_with_default_var=param_with_default_rule(p))
+(param_no_default_var=param_no_default_rule(p))
 )
-{_res=param_with_default_var;
+{_res=param_no_default_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _loop1_42_rule(p)
+function _loop0_42_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28155,7 +29499,6 @@ while(
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
-if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
 function _loop1_43_rule(p)
 {if(p.error_indicator){return NULL;}
@@ -28167,11 +29510,11 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var param_no_default_var;
+var param_with_default_var;
 while(
-(param_no_default_var=param_no_default_rule(p))
+(param_with_default_var=param_with_default_rule(p))
 )
-{_res=param_no_default_var;
+{_res=param_with_default_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
@@ -28226,36 +29569,16 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var param_no_default_var;
+var param_maybe_default_var;
 while(
-(param_no_default_var=param_no_default_rule(p))
+(param_maybe_default_var=param_maybe_default_rule(p))
 )
-{_res=param_no_default_var;
+{_res=param_maybe_default_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop1_47_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var param_with_default_var;
-while(
-(param_with_default_var=param_with_default_rule(p))
-)
-{_res=param_with_default_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-if(_n==0 ||p.error_indicator){return NULL;}
-return _children;}
-function _loop0_48_rule(p)
+function _loop0_47_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28274,26 +29597,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop0_49_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var param_maybe_default_var;
-while(
-(param_maybe_default_var=param_maybe_default_rule(p))
-)
-{_res=param_maybe_default_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
-function _loop1_50_rule(p)
+function _loop1_48_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28313,6 +29617,47 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
+function _loop0_50_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var elem;
+while(
+(_literal=$B._PyPegen.expect_token(p,12))
+&&
+(elem=with_item_rule(p))
+)
+{_res=elem;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _gather_49_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var elem;
+var seq;
+if(
+(elem=with_item_rule(p))
+&&
+(seq=_loop0_50_rule(p))
+)
+{_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
 function _loop0_52_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
@@ -28436,48 +29781,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_58_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-var elem;
-while(
-(_literal=$B._PyPegen.expect_token(p,12))
-&&
-(elem=with_item_rule(p))
-)
-{_res=elem;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
-function _gather_57_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var elem;
-var seq;
-if(
-(elem=with_item_rule(p))
-&&
-(seq=_loop0_58_rule(p))
-)
-{_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _tmp_59_rule(p)
+function _tmp_57_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -28511,7 +29815,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop1_60_rule(p)
+function _loop1_58_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28531,7 +29835,7 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _loop1_61_rule(p)
+function _loop1_59_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28551,45 +29855,7 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _tmp_62_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var _keyword;
-var z;
-if(
-(_keyword=$B._PyPegen.expect_token(p,658))
-&&
-(z=$B._PyPegen.name_token(p))
-)
-{_res=z;
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _tmp_63_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var _keyword;
-var z;
-if(
-(_keyword=$B._PyPegen.expect_token(p,658))
-&&
-(z=$B._PyPegen.name_token(p))
-)
-{_res=z;
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _loop1_64_rule(p)
+function _loop1_60_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28609,7 +29875,7 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _loop0_66_rule(p)
+function _loop0_62_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28631,7 +29897,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_65_rule(p)
+function _gather_61_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -28642,9 +29908,127 @@ var seq;
 if(
 (elem=closed_pattern_rule(p))
 &&
-(seq=_loop0_66_rule(p))
+(seq=_loop0_62_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_63_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,14))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,15))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_64_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,14))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,15))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_65_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var string_var;
+if(
+(string_var=$B._PyPegen.string_token(p))
+)
+{_res=string_var;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var fstring_start_var;
+if(
+(fstring_start_var=$B._PyPegen.expect_token(p,FSTRING_START))
+)
+{_res=fstring_start_var;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var tstring_start_var;
+if(
+(tstring_start_var=$B._PyPegen.expect_token(p,TSTRING_START))
+)
+{_res=tstring_start_var;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_66_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,23))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,7))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,22))
+)
+{_res=_literal;
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -28658,56 +30042,6 @@ var _mark=p.mark;
 if(p.error_indicator){return NULL;}
 var _literal;
 if(
-(_literal=$B._PyPegen.expect_token(p,14))
-)
-{_res=_literal;
-break;}
-p.mark=_mark;}
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-if(
-(_literal=$B._PyPegen.expect_token(p,15))
-)
-{_res=_literal;
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _tmp_68_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-if(
-(_literal=$B._PyPegen.expect_token(p,14))
-)
-{_res=_literal;
-break;}
-p.mark=_mark;}
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-if(
-(_literal=$B._PyPegen.expect_token(p,15))
-)
-{_res=_literal;
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _tmp_69_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-if(
 (_literal=$B._PyPegen.expect_token(p,23))
 )
 {_res=_literal;
@@ -28734,41 +30068,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_70_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-if(
-(_literal=$B._PyPegen.expect_token(p,23))
-)
-{_res=_literal;
-break;}
-p.mark=_mark;}
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-if(
-(_literal=$B._PyPegen.expect_token(p,7))
-)
-{_res=_literal;
-break;}
-p.mark=_mark;}
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-if(
-(_literal=$B._PyPegen.expect_token(p,22))
-)
-{_res=_literal;
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _loop0_72_rule(p)
+function _loop0_69_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28790,7 +30090,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_71_rule(p)
+function _gather_68_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -28801,7 +30101,7 @@ var seq;
 if(
 (elem=maybe_star_pattern_rule(p))
 &&
-(seq=_loop0_72_rule(p))
+(seq=_loop0_69_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -28809,7 +30109,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_74_rule(p)
+function _loop0_71_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28831,7 +30131,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_73_rule(p)
+function _gather_70_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -28842,7 +30142,7 @@ var seq;
 if(
 (elem=key_value_pattern_rule(p))
 &&
-(seq=_loop0_74_rule(p))
+(seq=_loop0_71_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -28850,7 +30150,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_75_rule(p)
+function _tmp_72_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -28875,7 +30175,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_77_rule(p)
+function _loop0_74_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28897,7 +30197,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_76_rule(p)
+function _gather_73_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -28908,7 +30208,7 @@ var seq;
 if(
 (elem=pattern_rule(p))
 &&
-(seq=_loop0_77_rule(p))
+(seq=_loop0_74_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -28916,7 +30216,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_79_rule(p)
+function _loop0_76_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28938,7 +30238,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_78_rule(p)
+function _gather_75_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -28949,7 +30249,7 @@ var seq;
 if(
 (elem=keyword_pattern_rule(p))
 &&
-(seq=_loop0_79_rule(p))
+(seq=_loop0_76_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -28957,7 +30257,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_81_rule(p)
+function _loop0_78_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -28979,7 +30279,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_80_rule(p)
+function _gather_77_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -28990,7 +30290,7 @@ var seq;
 if(
 (elem=type_param_rule(p))
 &&
-(seq=_loop0_81_rule(p))
+(seq=_loop0_78_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -28998,7 +30298,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop1_82_rule(p)
+function _loop1_79_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29008,16 +30308,77 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_249_var;
+var _tmp_264_var;
 while(
-(_tmp_249_var=_tmp_249_rule(p))
+(_tmp_264_var=_tmp_264_rule(p))
 )
-{_res=_tmp_249_var;
+{_res=_tmp_264_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
+function _loop1_80_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var _tmp_265_var;
+while(
+(_tmp_265_var=_tmp_265_rule(p))
+)
+{_res=_tmp_265_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+if(_n==0 ||p.error_indicator){return NULL;}
+return _children;}
+function _loop0_82_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var elem;
+while(
+(_literal=$B._PyPegen.expect_token(p,12))
+&&
+(elem=star_named_expression_rule(p))
+)
+{_res=elem;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _gather_81_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var elem;
+var seq;
+if(
+(elem=star_named_expression_rule(p))
+&&
+(seq=_loop0_82_rule(p))
+)
+{_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
 function _loop1_83_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
@@ -29028,17 +30389,17 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_250_var;
+var _tmp_266_var;
 while(
-(_tmp_250_var=_tmp_250_rule(p))
+(_tmp_266_var=_tmp_266_rule(p))
 )
-{_res=_tmp_250_var;
+{_res=_tmp_266_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _loop0_85_rule(p)
+function _loop1_84_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29048,78 +30409,17 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var _literal;
-var elem;
+var _tmp_267_var;
 while(
-(_literal=$B._PyPegen.expect_token(p,12))
-&&
-(elem=star_named_expression_rule(p))
+(_tmp_267_var=_tmp_267_rule(p))
 )
-{_res=elem;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
-function _gather_84_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var elem;
-var seq;
-if(
-(elem=star_named_expression_rule(p))
-&&
-(seq=_loop0_85_rule(p))
-)
-{_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _loop1_86_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var _tmp_251_var;
-while(
-(_tmp_251_var=_tmp_251_rule(p))
-)
-{_res=_tmp_251_var;
+{_res=_tmp_267_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _loop1_87_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var _tmp_252_var;
-while(
-(_tmp_252_var=_tmp_252_rule(p))
-)
-{_res=_tmp_252_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-if(_n==0 ||p.error_indicator){return NULL;}
-return _children;}
-function _loop1_88_rule(p)
+function _loop1_85_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29139,7 +30439,7 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _tmp_89_rule(p)
+function _tmp_86_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -29155,7 +30455,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_91_rule(p)
+function _loop0_88_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29170,14 +30470,14 @@ var elem;
 while(
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
-(elem=_tmp_253_rule(p))
+(elem=_tmp_268_rule(p))
 )
 {_res=elem;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_90_rule(p)
+function _gather_87_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -29186,9 +30486,9 @@ if(p.error_indicator){return NULL;}
 var elem;
 var seq;
 if(
-(elem=_tmp_253_rule(p))
+(elem=_tmp_268_rule(p))
 &&
-(seq=_loop0_91_rule(p))
+(seq=_loop0_88_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -29196,7 +30496,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_92_rule(p)
+function _tmp_89_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -29215,7 +30515,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_93_rule(p)
+function _tmp_90_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -29237,10 +30537,19 @@ if(
 {_res=fstring_start_var;
 break;}
 p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var tstring_start_var;
+if(
+(tstring_start_var=$B._PyPegen.expect_token(p,TSTRING_START))
+)
+{_res=tstring_start_var;
+break;}
+p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_94_rule(p)
+function _tmp_91_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -29274,7 +30583,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_95_rule(p)
+function _tmp_92_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -29299,7 +30608,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_96_rule(p)
+function _tmp_93_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -29342,7 +30651,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_97_rule(p)
+function _tmp_94_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -29367,7 +30676,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_98_rule(p)
+function _loop0_95_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29385,6 +30694,64 @@ while(
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
+return _children;}
+function _loop0_96_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var lambda_param_with_default_var;
+while(
+(lambda_param_with_default_var=lambda_param_with_default_rule(p))
+)
+{_res=lambda_param_with_default_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _loop0_97_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var lambda_param_with_default_var;
+while(
+(lambda_param_with_default_var=lambda_param_with_default_rule(p))
+)
+{_res=lambda_param_with_default_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _loop1_98_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var lambda_param_no_default_var;
+while(
+(lambda_param_no_default_var=lambda_param_no_default_rule(p))
+)
+{_res=lambda_param_no_default_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
 function _loop0_99_rule(p)
 {if(p.error_indicator){return NULL;}
@@ -29405,7 +30772,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop0_100_rule(p)
+function _loop1_100_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29423,6 +30790,7 @@ while(
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
+if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
 function _loop1_101_rule(p)
 {if(p.error_indicator){return NULL;}
@@ -29444,7 +30812,7 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _loop0_102_rule(p)
+function _loop1_102_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29454,34 +30822,34 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var lambda_param_with_default_var;
+var lambda_param_no_default_var;
 while(
-(lambda_param_with_default_var=lambda_param_with_default_rule(p))
+(lambda_param_no_default_var=lambda_param_no_default_rule(p))
 )
-{_res=lambda_param_with_default_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
-function _loop1_103_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var lambda_param_with_default_var;
-while(
-(lambda_param_with_default_var=lambda_param_with_default_rule(p))
-)
-{_res=lambda_param_with_default_var;
+{_res=lambda_param_no_default_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
+return _children;}
+function _loop0_103_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var lambda_param_no_default_var;
+while(
+(lambda_param_no_default_var=lambda_param_no_default_rule(p))
+)
+{_res=lambda_param_no_default_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
 return _children;}
 function _loop1_104_rule(p)
 {if(p.error_indicator){return NULL;}
@@ -29493,37 +30861,17 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var lambda_param_no_default_var;
+var lambda_param_with_default_var;
 while(
-(lambda_param_no_default_var=lambda_param_no_default_rule(p))
+(lambda_param_with_default_var=lambda_param_with_default_rule(p))
 )
-{_res=lambda_param_no_default_var;
+{_res=lambda_param_with_default_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _loop1_105_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var lambda_param_no_default_var;
-while(
-(lambda_param_no_default_var=lambda_param_no_default_rule(p))
-)
-{_res=lambda_param_no_default_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-if(_n==0 ||p.error_indicator){return NULL;}
-return _children;}
-function _loop0_106_rule(p)
+function _loop0_105_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29542,7 +30890,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop1_107_rule(p)
+function _loop1_106_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29562,46 +30910,7 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _loop0_108_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var lambda_param_no_default_var;
-while(
-(lambda_param_no_default_var=lambda_param_no_default_rule(p))
-)
-{_res=lambda_param_no_default_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
-function _loop1_109_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var lambda_param_with_default_var;
-while(
-(lambda_param_with_default_var=lambda_param_with_default_rule(p))
-)
-{_res=lambda_param_with_default_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-if(_n==0 ||p.error_indicator){return NULL;}
-return _children;}
-function _loop0_110_rule(p)
+function _loop0_107_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29620,7 +30929,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop1_111_rule(p)
+function _loop1_108_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29640,7 +30949,7 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _loop0_112_rule(p)
+function _loop0_109_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29659,7 +30968,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop0_113_rule(p)
+function _loop0_110_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29678,6 +30987,64 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
+function _loop0_111_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var tstring_format_spec_var;
+while(
+(tstring_format_spec_var=tstring_format_spec_rule(p))
+)
+{_res=tstring_format_spec_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _loop0_112_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var tstring_middle_var;
+while(
+(tstring_middle_var=tstring_middle_rule(p))
+)
+{_res=tstring_middle_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _loop1_113_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var _tmp_269_var;
+while(
+(_tmp_269_var=_tmp_269_rule(p))
+)
+{_res=_tmp_269_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+if(_n==0 ||p.error_indicator){return NULL;}
+return _children;}
 function _loop1_114_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
@@ -29688,11 +31055,11 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_254_var;
+var tstring_var;
 while(
-(_tmp_254_var=_tmp_254_rule(p))
+(tstring_var=tstring_rule(p))
 )
-{_res=_tmp_254_var;
+{_res=tstring_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
@@ -29791,11 +31158,11 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_255_var;
+var _tmp_270_var;
 while(
-(_tmp_255_var=_tmp_255_rule(p))
+(_tmp_270_var=_tmp_270_rule(p))
 )
-{_res=_tmp_255_var;
+{_res=_tmp_270_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
@@ -29810,39 +31177,16 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_256_var;
+var _tmp_271_var;
 while(
-(_tmp_256_var=_tmp_256_rule(p))
+(_tmp_271_var=_tmp_271_rule(p))
 )
-{_res=_tmp_256_var;
+{_res=_tmp_271_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
 function _tmp_121_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var _loop0_257_var;
-var _opt_var;
-UNUSED(_opt_var);
-var bitwise_or_var;
-if(
-(bitwise_or_var=bitwise_or_rule(p))
-&&
-(_loop0_257_var=_loop0_257_rule(p))
-&&
-(_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
-)
-{_res=$B._PyPegen.dummy_name(p,bitwise_or_var,_loop0_257_var,_opt_var);
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _tmp_122_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -29869,7 +31213,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_124_rule(p)
+function _loop0_123_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29884,14 +31228,14 @@ var elem;
 while(
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
-(elem=_tmp_258_rule(p))
+(elem=_tmp_272_rule(p))
 )
 {_res=elem;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_123_rule(p)
+function _gather_122_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -29900,9 +31244,9 @@ if(p.error_indicator){return NULL;}
 var elem;
 var seq;
 if(
-(elem=_tmp_258_rule(p))
+(elem=_tmp_272_rule(p))
 &&
-(seq=_loop0_124_rule(p))
+(seq=_loop0_123_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -29910,7 +31254,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_125_rule(p)
+function _tmp_124_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -29929,7 +31273,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_127_rule(p)
+function _loop0_126_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29951,7 +31295,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_126_rule(p)
+function _gather_125_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -29962,7 +31306,7 @@ var seq;
 if(
 (elem=kwarg_or_starred_rule(p))
 &&
-(seq=_loop0_127_rule(p))
+(seq=_loop0_126_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -29970,7 +31314,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_129_rule(p)
+function _loop0_128_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -29992,7 +31336,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_128_rule(p)
+function _gather_127_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30003,7 +31347,7 @@ var seq;
 if(
 (elem=kwarg_or_double_starred_rule(p))
 &&
-(seq=_loop0_129_rule(p))
+(seq=_loop0_128_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -30011,7 +31355,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_131_rule(p)
+function _loop0_130_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -30033,7 +31377,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_130_rule(p)
+function _gather_129_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30044,7 +31388,48 @@ var seq;
 if(
 (elem=kwarg_or_starred_rule(p))
 &&
-(seq=_loop0_131_rule(p))
+(seq=_loop0_130_rule(p))
+)
+{_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _loop0_132_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var elem;
+while(
+(_literal=$B._PyPegen.expect_token(p,12))
+&&
+(elem=kwarg_or_double_starred_rule(p))
+)
+{_res=elem;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _gather_131_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var elem;
+var seq;
+if(
+(elem=kwarg_or_double_starred_rule(p))
+&&
+(seq=_loop0_132_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -30062,57 +31447,16 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var _literal;
-var elem;
+var _tmp_273_var;
 while(
-(_literal=$B._PyPegen.expect_token(p,12))
-&&
-(elem=kwarg_or_double_starred_rule(p))
+(_tmp_273_var=_tmp_273_rule(p))
 )
-{_res=elem;
+{_res=_tmp_273_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_132_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var elem;
-var seq;
-if(
-(elem=kwarg_or_double_starred_rule(p))
-&&
-(seq=_loop0_133_rule(p))
-)
-{_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _loop0_134_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var _tmp_259_var;
-while(
-(_tmp_259_var=_tmp_259_rule(p))
-)
-{_res=_tmp_259_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
-function _loop0_136_rule(p)
+function _loop0_135_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -30134,7 +31478,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_135_rule(p)
+function _gather_134_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30145,7 +31489,7 @@ var seq;
 if(
 (elem=star_target_rule(p))
 &&
-(seq=_loop0_136_rule(p))
+(seq=_loop0_135_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -30153,7 +31497,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop1_137_rule(p)
+function _loop1_136_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -30163,17 +31507,17 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_260_var;
+var _tmp_274_var;
 while(
-(_tmp_260_var=_tmp_260_rule(p))
+(_tmp_274_var=_tmp_274_rule(p))
 )
-{_res=_tmp_260_var;
+{_res=_tmp_274_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _tmp_138_rule(p)
+function _tmp_137_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30191,7 +31535,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_140_rule(p)
+function _loop0_139_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -30213,7 +31557,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_139_rule(p)
+function _gather_138_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30224,7 +31568,7 @@ var seq;
 if(
 (elem=del_target_rule(p))
 &&
-(seq=_loop0_140_rule(p))
+(seq=_loop0_139_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -30232,7 +31576,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_142_rule(p)
+function _loop0_141_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -30254,7 +31598,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_141_rule(p)
+function _gather_140_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30265,7 +31609,7 @@ var seq;
 if(
 (elem=expression_rule(p))
 &&
-(seq=_loop0_142_rule(p))
+(seq=_loop0_141_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -30273,7 +31617,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_144_rule(p)
+function _loop0_143_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -30295,7 +31639,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_143_rule(p)
+function _gather_142_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30306,7 +31650,7 @@ var seq;
 if(
 (elem=expression_rule(p))
 &&
-(seq=_loop0_144_rule(p))
+(seq=_loop0_143_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -30314,7 +31658,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_146_rule(p)
+function _loop0_145_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -30336,7 +31680,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_145_rule(p)
+function _gather_144_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30347,7 +31691,7 @@ var seq;
 if(
 (elem=expression_rule(p))
 &&
-(seq=_loop0_146_rule(p))
+(seq=_loop0_145_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -30355,7 +31699,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_148_rule(p)
+function _loop0_147_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -30377,7 +31721,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_147_rule(p)
+function _gather_146_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30388,7 +31732,7 @@ var seq;
 if(
 (elem=expression_rule(p))
 &&
-(seq=_loop0_148_rule(p))
+(seq=_loop0_147_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -30396,7 +31740,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_149_rule(p)
+function _tmp_148_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30415,17 +31759,17 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_150_rule(p)
+function _tmp_149_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_261_var;
+var _tmp_275_var;
 if(
-(_tmp_261_var=_tmp_261_rule(p))
+(_tmp_275_var=_tmp_275_rule(p))
 )
-{_res=_tmp_261_var;
+{_res=_tmp_275_var;
 break;}
 p.mark=_mark;}
 {
@@ -30440,7 +31784,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_152_rule(p)
+function _loop0_151_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -30455,14 +31799,14 @@ var elem;
 while(
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
-(elem=_tmp_262_rule(p))
+(elem=_tmp_276_rule(p))
 )
 {_res=elem;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_151_rule(p)
+function _gather_150_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30471,9 +31815,9 @@ if(p.error_indicator){return NULL;}
 var elem;
 var seq;
 if(
-(elem=_tmp_262_rule(p))
+(elem=_tmp_276_rule(p))
 &&
-(seq=_loop0_152_rule(p))
+(seq=_loop0_151_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -30481,7 +31825,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_153_rule(p)
+function _tmp_152_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30509,7 +31853,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_154_rule(p)
+function _tmp_153_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30528,7 +31872,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_155_rule(p)
+function _tmp_154_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30553,7 +31897,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_156_rule(p)
+function _tmp_155_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30561,7 +31905,7 @@ var _mark=p.mark;
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,613))
+(_keyword=$B._PyPegen.expect_token(p,622))
 )
 {_res=_keyword;
 break;}
@@ -30570,7 +31914,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,615))
+(_keyword=$B._PyPegen.expect_token(p,624))
 )
 {_res=_keyword;
 break;}
@@ -30579,7 +31923,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,614))
+(_keyword=$B._PyPegen.expect_token(p,623))
 )
 {_res=_keyword;
 break;}
@@ -30587,7 +31931,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_157_rule(p)
+function _tmp_156_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30606,6 +31950,26 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
+function _loop1_157_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var _tmp_277_var;
+while(
+(_tmp_277_var=_tmp_277_rule(p))
+)
+{_res=_tmp_277_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+if(_n==0 ||p.error_indicator){return NULL;}
+return _children;}
 function _tmp_158_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
@@ -30642,7 +32006,7 @@ var _mark=p.mark;
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,663))
+(_keyword=$B._PyPegen.expect_token(p,686))
 )
 {_res=_keyword;
 break;}
@@ -30660,6 +32024,40 @@ _res=NULL;
 break;}
 return _res;}
 function _tmp_160_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var pass_stmt_var;
+if(
+(pass_stmt_var=pass_stmt_rule(p))
+)
+{_res=pass_stmt_var;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var break_stmt_var;
+if(
+(break_stmt_var=break_stmt_rule(p))
+)
+{_res=break_stmt_var;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var continue_stmt_var;
+if(
+(continue_stmt_var=continue_stmt_rule(p))
+)
+{_res=continue_stmt_var;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_161_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30684,7 +32082,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_161_rule(p)
+function _tmp_162_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30719,7 +32117,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,613))
+(_keyword=$B._PyPegen.expect_token(p,622))
 )
 {_res=_keyword;
 break;}
@@ -30728,7 +32126,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,614))
+(_keyword=$B._PyPegen.expect_token(p,623))
 )
 {_res=_keyword;
 break;}
@@ -30737,7 +32135,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,615))
+(_keyword=$B._PyPegen.expect_token(p,624))
 )
 {_res=_keyword;
 break;}
@@ -30745,7 +32143,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_162_rule(p)
+function _tmp_163_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30770,7 +32168,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_163_rule(p)
+function _loop0_164_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -30789,25 +32187,6 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop0_164_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var _tmp_263_var;
-while(
-(_tmp_263_var=_tmp_263_rule(p))
-)
-{_res=_tmp_263_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
 function _loop0_165_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
@@ -30818,16 +32197,35 @@ var _children_capacity=1;
 var _n=0;
 {
 if(p.error_indicator){return NULL;}
-var _tmp_264_var;
+var _tmp_278_var;
 while(
-(_tmp_264_var=_tmp_264_rule(p))
+(_tmp_278_var=_tmp_278_rule(p))
 )
-{_res=_tmp_264_var;
+{_res=_tmp_278_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _tmp_166_rule(p)
+function _loop0_166_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var _tmp_279_var;
+while(
+(_tmp_279_var=_tmp_279_rule(p))
+)
+{_res=_tmp_279_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _tmp_167_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -30845,31 +32243,6 @@ if(p.error_indicator){return NULL;}
 var _literal;
 if(
 (_literal=$B._PyPegen.expect_token(p,7))
-)
-{_res=_literal;
-break;}
-p.mark=_mark;}
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-if(
-(_literal=$B._PyPegen.expect_token(p,25))
-)
-{_res=_literal;
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _tmp_167_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-if(
-(_literal=$B._PyPegen.expect_token(p,9))
 )
 {_res=_literal;
 break;}
@@ -30917,6 +32290,31 @@ while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,9))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,25))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_170_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
 var slash_no_default_var;
 if(
 (slash_no_default_var=slash_no_default_rule(p))
@@ -30936,7 +32334,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_170_rule(p)
+function _loop0_171_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -30951,25 +32349,6 @@ while(
 (param_maybe_default_var=param_maybe_default_rule(p))
 )
 {_res=param_maybe_default_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
-function _loop0_171_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var param_no_default_var;
-while(
-(param_no_default_var=param_no_default_rule(p))
-)
-{_res=param_no_default_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
@@ -30993,7 +32372,26 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop1_173_rule(p)
+function _loop0_173_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var param_no_default_var;
+while(
+(param_no_default_var=param_no_default_rule(p))
+)
+{_res=param_no_default_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _loop1_174_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31013,7 +32411,7 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _tmp_174_rule(p)
+function _tmp_175_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31038,7 +32436,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_175_rule(p)
+function _loop0_176_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31057,7 +32455,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _tmp_176_rule(p)
+function _tmp_177_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31082,7 +32480,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_177_rule(p)
+function _loop0_178_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31101,7 +32499,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop1_178_rule(p)
+function _loop1_179_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31121,31 +32519,6 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _tmp_179_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-if(
-(_literal=$B._PyPegen.expect_token(p,8))
-)
-{_res=_literal;
-break;}
-p.mark=_mark;}
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-if(
-(_literal=$B._PyPegen.expect_token(p,12))
-)
-{_res=_literal;
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
 function _tmp_180_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
@@ -31162,19 +32535,44 @@ p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
-var _tmp_265_var;
 if(
 (_literal=$B._PyPegen.expect_token(p,12))
-&&
-(_tmp_265_var=_tmp_265_rule(p))
 )
-{_res=$B._PyPegen.dummy_name(p,_literal,_tmp_265_var);
+{_res=_literal;
 break;}
 p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
 function _tmp_181_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,8))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var _tmp_280_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,12))
+&&
+(_tmp_280_var=_tmp_280_rule(p))
+)
+{_res=$B._PyPegen.dummy_name(p,_literal,_tmp_280_var);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_182_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31199,7 +32597,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_182_rule(p)
+function _loop0_183_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31218,7 +32616,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _tmp_183_rule(p)
+function _tmp_184_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31243,7 +32641,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_184_rule(p)
+function _tmp_185_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31277,7 +32675,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop1_185_rule(p)
+function _loop1_186_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31297,7 +32695,7 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _tmp_186_rule(p)
+function _tmp_187_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31322,7 +32720,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_187_rule(p)
+function _loop0_188_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31337,25 +32735,6 @@ while(
 (lambda_param_maybe_default_var=lambda_param_maybe_default_rule(p))
 )
 {_res=lambda_param_maybe_default_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
-function _loop0_188_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var lambda_param_no_default_var;
-while(
-(lambda_param_no_default_var=lambda_param_no_default_rule(p))
-)
-{_res=lambda_param_no_default_var;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
@@ -31379,7 +32758,26 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop0_191_rule(p)
+function _loop0_190_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var lambda_param_no_default_var;
+while(
+(lambda_param_no_default_var=lambda_param_no_default_rule(p))
+)
+{_res=lambda_param_no_default_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _loop0_192_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31401,7 +32799,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_190_rule(p)
+function _gather_191_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31412,7 +32810,7 @@ var seq;
 if(
 (elem=lambda_param_rule(p))
 &&
-(seq=_loop0_191_rule(p))
+(seq=_loop0_192_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -31420,7 +32818,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_192_rule(p)
+function _tmp_193_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31445,7 +32843,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_193_rule(p)
+function _loop0_194_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31464,7 +32862,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _tmp_194_rule(p)
+function _tmp_195_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31489,7 +32887,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_195_rule(p)
+function _loop0_196_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31508,7 +32906,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop1_196_rule(p)
+function _loop1_197_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31528,7 +32926,7 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _loop1_197_rule(p)
+function _loop1_198_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31548,7 +32946,7 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _tmp_198_rule(p)
+function _tmp_199_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31564,19 +32962,19 @@ p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
 var _literal;
-var _tmp_266_var;
+var _tmp_281_var;
 if(
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
-(_tmp_266_var=_tmp_266_rule(p))
+(_tmp_281_var=_tmp_281_rule(p))
 )
-{_res=$B._PyPegen.dummy_name(p,_literal,_tmp_266_var);
+{_res=$B._PyPegen.dummy_name(p,_literal,_tmp_281_var);
 break;}
 p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_199_rule(p)
+function _tmp_200_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31601,7 +32999,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_200_rule(p)
+function _loop0_201_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31620,7 +33018,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _tmp_201_rule(p)
+function _tmp_202_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31645,7 +33043,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_202_rule(p)
+function _tmp_203_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31679,7 +33077,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_203_rule(p)
+function _tmp_204_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31713,42 +33111,24 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_205_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-var elem;
-while(
-(_literal=$B._PyPegen.expect_token(p,12))
-&&
-(elem=dotted_name_rule(p))
-)
-{_res=elem;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
-function _gather_204_rule(p)
+function _tmp_205_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var elem;
-var seq;
+var _loop0_282_var;
+var _opt_var;
+UNUSED(_opt_var);
+var bitwise_or_var;
 if(
-(elem=dotted_name_rule(p))
+(bitwise_or_var=bitwise_or_rule(p))
 &&
-(seq=_loop0_205_rule(p))
+(_loop0_282_var=_loop0_282_rule(p))
+&&
+(_opt_var=$B._PyPegen.expect_token(p,12),!p.error_indicator)
 )
-{_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
+{_res=$B._PyPegen.dummy_name(p,bitwise_or_var,_loop0_282_var,_opt_var);
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -31769,7 +33149,7 @@ var elem;
 while(
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
-(elem=_tmp_267_rule(p))
+(elem=dotted_name_rule(p))
 )
 {_res=elem;
 _children[_n++]=_res;
@@ -31785,7 +33165,7 @@ if(p.error_indicator){return NULL;}
 var elem;
 var seq;
 if(
-(elem=_tmp_267_rule(p))
+(elem=dotted_name_rule(p))
 &&
 (seq=_loop0_207_rule(p))
 )
@@ -31795,42 +33175,39 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_209_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-var elem;
-while(
-(_literal=$B._PyPegen.expect_token(p,12))
-&&
-(elem=_tmp_268_rule(p))
-)
-{_res=elem;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
-function _gather_208_rule(p)
+function _tmp_208_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var elem;
-var seq;
+var _tmp_283_var;
+var name_var;
 if(
-(elem=_tmp_268_rule(p))
+(name_var=$B._PyPegen.name_token(p))
 &&
-(seq=_loop0_209_rule(p))
+(_tmp_283_var=_tmp_283_rule(p))
 )
-{_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
+{_res=$B._PyPegen.dummy_name(p,name_var,_tmp_283_var);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_209_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _tmp_284_var;
+var name_var;
+if(
+(name_var=$B._PyPegen.name_token(p))
+&&
+(_tmp_284_var=_tmp_284_rule(p))
+)
+{_res=$B._PyPegen.dummy_name(p,name_var,_tmp_284_var);
 break;}
 p.mark=_mark;}
 _res=NULL;
@@ -31851,7 +33228,7 @@ var elem;
 while(
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
-(elem=_tmp_269_rule(p))
+(elem=_tmp_285_rule(p))
 )
 {_res=elem;
 _children[_n++]=_res;
@@ -31867,7 +33244,7 @@ if(p.error_indicator){return NULL;}
 var elem;
 var seq;
 if(
-(elem=_tmp_269_rule(p))
+(elem=_tmp_285_rule(p))
 &&
 (seq=_loop0_211_rule(p))
 )
@@ -31892,7 +33269,7 @@ var elem;
 while(
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
-(elem=_tmp_270_rule(p))
+(elem=_tmp_286_rule(p))
 )
 {_res=elem;
 _children[_n++]=_res;
@@ -31908,7 +33285,7 @@ if(p.error_indicator){return NULL;}
 var elem;
 var seq;
 if(
-(elem=_tmp_270_rule(p))
+(elem=_tmp_286_rule(p))
 &&
 (seq=_loop0_213_rule(p))
 )
@@ -31918,7 +33295,89 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_214_rule(p)
+function _loop0_215_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var elem;
+while(
+(_literal=$B._PyPegen.expect_token(p,12))
+&&
+(elem=_tmp_287_rule(p))
+)
+{_res=elem;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _gather_214_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var elem;
+var seq;
+if(
+(elem=_tmp_287_rule(p))
+&&
+(seq=_loop0_215_rule(p))
+)
+{_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _loop0_217_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var elem;
+while(
+(_literal=$B._PyPegen.expect_token(p,12))
+&&
+(elem=_tmp_288_rule(p))
+)
+{_res=elem;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _gather_216_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var elem;
+var seq;
+if(
+(elem=_tmp_288_rule(p))
+&&
+(seq=_loop0_217_rule(p))
+)
+{_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_218_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31926,7 +33385,7 @@ var _mark=p.mark;
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,655))
+(_keyword=$B._PyPegen.expect_token(p,677))
 )
 {_res=_keyword;
 break;}
@@ -31935,7 +33394,7 @@ p.mark=_mark;}
 if(p.error_indicator){return NULL;}
 var _keyword;
 if(
-(_keyword=$B._PyPegen.expect_token(p,651))
+(_keyword=$B._PyPegen.expect_token(p,673))
 )
 {_res=_keyword;
 break;}
@@ -31943,7 +33402,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_215_rule(p)
+function _loop0_219_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31962,7 +33421,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop1_216_rule(p)
+function _loop1_220_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -31982,7 +33441,7 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _tmp_217_rule(p)
+function _tmp_221_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -31991,7 +33450,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var name_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (name_var=$B._PyPegen.name_token(p))
 )
@@ -32001,7 +33460,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_218_rule(p)
+function _loop0_222_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -32020,7 +33479,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _loop1_219_rule(p)
+function _loop1_223_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -32040,7 +33499,7 @@ _mark=p.mark;}
 p.mark=_mark;}
 if(_n==0 ||p.error_indicator){return NULL;}
 return _children;}
-function _tmp_220_rule(p)
+function _tmp_224_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32052,7 +33511,7 @@ var expression_var;
 if(
 (expression_var=expression_rule(p))
 &&
-(_opt_var=_tmp_271_rule(p),!p.error_indicator)
+(_opt_var=_tmp_289_rule(p),!p.error_indicator)
 )
 {_res=$B._PyPegen.dummy_name(p,expression_var,_opt_var);
 break;}
@@ -32060,7 +33519,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_221_rule(p)
+function _tmp_225_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32069,7 +33528,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var name_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (name_var=$B._PyPegen.name_token(p))
 )
@@ -32079,7 +33538,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_222_rule(p)
+function _tmp_226_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32088,7 +33547,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var name_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (name_var=$B._PyPegen.name_token(p))
 )
@@ -32098,7 +33557,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_223_rule(p)
+function _tmp_227_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32123,7 +33582,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_224_rule(p)
+function _tmp_228_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32132,7 +33591,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var name_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (name_var=$B._PyPegen.name_token(p))
 )
@@ -32142,7 +33601,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_225_rule(p)
+function _tmp_229_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32151,7 +33610,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var name_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (name_var=$B._PyPegen.name_token(p))
 )
@@ -32161,7 +33620,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_226_rule(p)
+function _tmp_230_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32180,7 +33639,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_227_rule(p)
+function _tmp_231_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32199,7 +33658,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_228_rule(p)
+function _tmp_232_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32218,7 +33677,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_229_rule(p)
+function _tmp_233_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32241,7 +33700,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_230_rule(p)
+function _tmp_234_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32264,7 +33723,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_232_rule(p)
+function _loop0_236_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -32286,7 +33745,7 @@ _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_231_rule(p)
+function _gather_235_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32297,7 +33756,7 @@ var seq;
 if(
 (elem=double_starred_kvpair_rule(p))
 &&
-(seq=_loop0_232_rule(p))
+(seq=_loop0_236_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -32305,7 +33764,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_233_rule(p)
+function _tmp_237_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32330,7 +33789,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_234_rule(p)
+function _tmp_238_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32355,7 +33814,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_235_rule(p)
+function _tmp_239_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32398,7 +33857,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_236_rule(p)
+function _tmp_240_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32432,88 +33891,6 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_237_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-var name_var;
-if(
-(_literal=$B._PyPegen.expect_token(p,54))
-&&
-(name_var=$B._PyPegen.name_token(p))
-)
-{_res=$B._PyPegen.dummy_name(p,_literal,name_var);
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _tmp_238_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-if(
-(_literal=$B._PyPegen.expect_token(p,11))
-)
-{_res=_literal;
-break;}
-p.mark=_mark;}
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-if(
-(_literal=$B._PyPegen.expect_token(p,26))
-)
-{_res=_literal;
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _tmp_239_rule(p)
-{if(p.error_indicator){return NULL;}
-while(1){var _res=NULL;
-var _mark=p.mark;
-{
-if(p.error_indicator){return NULL;}
-var _literal;
-var name_var;
-if(
-(_literal=$B._PyPegen.expect_token(p,54))
-&&
-(name_var=$B._PyPegen.name_token(p))
-)
-{_res=$B._PyPegen.dummy_name(p,_literal,name_var);
-break;}
-p.mark=_mark;}
-_res=NULL;
-break;}
-return _res;}
-function _loop0_240_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var fstring_format_spec_var;
-while(
-(fstring_format_spec_var=fstring_format_spec_rule(p))
-)
-{_res=fstring_format_spec_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
 function _tmp_241_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
@@ -32559,6 +33936,356 @@ _res=NULL;
 break;}
 return _res;}
 function _tmp_243_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var name_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,54))
+&&
+(name_var=$B._PyPegen.name_token(p))
+)
+{_res=$B._PyPegen.dummy_name(p,_literal,name_var);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _loop0_244_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var fstring_format_spec_var;
+while(
+(fstring_format_spec_var=fstring_format_spec_rule(p))
+)
+{_res=fstring_format_spec_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _tmp_245_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var name_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,54))
+&&
+(name_var=$B._PyPegen.name_token(p))
+)
+{_res=$B._PyPegen.dummy_name(p,_literal,name_var);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_246_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,11))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,26))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_247_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,22))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,54))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,11))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,26))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_248_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,54))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,11))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,26))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_249_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var name_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,54))
+&&
+(name_var=$B._PyPegen.name_token(p))
+)
+{_res=$B._PyPegen.dummy_name(p,_literal,name_var);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_250_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,11))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,26))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_251_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var name_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,54))
+&&
+(name_var=$B._PyPegen.name_token(p))
+)
+{_res=$B._PyPegen.dummy_name(p,_literal,name_var);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _loop0_252_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var fstring_format_spec_var;
+while(
+(fstring_format_spec_var=fstring_format_spec_rule(p))
+)
+{_res=fstring_format_spec_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _tmp_253_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var name_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,54))
+&&
+(name_var=$B._PyPegen.name_token(p))
+)
+{_res=$B._PyPegen.dummy_name(p,_literal,name_var);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_254_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,11))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,26))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _loop1_255_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var _tmp_290_var;
+while(
+(_tmp_290_var=_tmp_290_rule(p))
+)
+{_res=_tmp_290_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+if(_n==0 ||p.error_indicator){return NULL;}
+return _children;}
+function _loop1_256_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var tstring_var;
+while(
+(tstring_var=tstring_rule(p))
+)
+{_res=tstring_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+if(_n==0 ||p.error_indicator){return NULL;}
+return _children;}
+function _tmp_257_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var fstring_var;
+if(
+(fstring_var=fstring_rule(p))
+)
+{_res=fstring_var;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var string_var;
+if(
+(string_var=string_rule(p))
+)
+{_res=string_var;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_258_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32628,7 +34355,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_244_rule(p)
+function _tmp_259_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32662,7 +34389,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_245_rule(p)
+function _tmp_260_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32681,7 +34408,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_246_rule(p)
+function _tmp_261_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32706,7 +34433,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_247_rule(p)
+function _tmp_262_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32731,7 +34458,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_248_rule(p)
+function _tmp_263_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32753,7 +34480,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_249_rule(p)
+function _tmp_264_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32772,7 +34499,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_250_rule(p)
+function _tmp_265_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32791,7 +34518,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_251_rule(p)
+function _tmp_266_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32800,7 +34527,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var c;
 if(
-(_keyword=$B._PyPegen.expect_token(p,581))
+(_keyword=$B._PyPegen.expect_token(p,588))
 &&
 (c=conjunction_rule(p))
 )
@@ -32810,7 +34537,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_252_rule(p)
+function _tmp_267_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32819,7 +34546,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var c;
 if(
-(_keyword=$B._PyPegen.expect_token(p,582))
+(_keyword=$B._PyPegen.expect_token(p,589))
 &&
 (c=inversion_rule(p))
 )
@@ -32829,7 +34556,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_253_rule(p)
+function _tmp_268_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32854,7 +34581,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_254_rule(p)
+function _tmp_269_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32879,7 +34606,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_255_rule(p)
+function _tmp_270_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32888,7 +34615,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var z;
 if(
-(_keyword=$B._PyPegen.expect_token(p,660))
+(_keyword=$B._PyPegen.expect_token(p,682))
 &&
 (z=disjunction_rule(p))
 )
@@ -32898,7 +34625,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_256_rule(p)
+function _tmp_271_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32907,7 +34634,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var z;
 if(
-(_keyword=$B._PyPegen.expect_token(p,660))
+(_keyword=$B._PyPegen.expect_token(p,682))
 &&
 (z=disjunction_rule(p))
 )
@@ -32917,26 +34644,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_257_rule(p)
-{if(p.error_indicator){return NULL;}
-var _res={value:NULL};
-_res=NULL;
-var _mark=p.mark;
-var _children=[];
-var _children_capacity=1;
-var _n=0;
-{
-if(p.error_indicator){return NULL;}
-var _tmp_272_var;
-while(
-(_tmp_272_var=_tmp_272_rule(p))
-)
-{_res=_tmp_272_var;
-_children[_n++]=_res;
-_mark=p.mark;}
-p.mark=_mark;}
-return _children;}
-function _tmp_258_rule(p)
+function _tmp_272_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32951,19 +34659,19 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _tmp_273_var;
+var _tmp_291_var;
 if(
-(_tmp_273_var=_tmp_273_rule(p))
+(_tmp_291_var=_tmp_291_rule(p))
 &&
 $B._PyPegen.lookahead_with_int(0,$B._PyPegen.expect_token,p,22)
 )
-{_res=_tmp_273_var;
+{_res=_tmp_291_var;
 break;}
 p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_259_rule(p)
+function _tmp_273_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -32982,7 +34690,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_260_rule(p)
+function _tmp_274_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33001,29 +34709,29 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_261_rule(p)
+function _tmp_275_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _gather_274_var;
+var _gather_292_var;
 var _literal;
 var kwargs_var;
 if(
-(_gather_274_var=_gather_274_rule(p))
+(_gather_292_var=_gather_292_rule(p))
 &&
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
 (kwargs_var=kwargs_rule(p))
 )
-{_res=$B._PyPegen.dummy_name(p,_gather_274_var,_literal,kwargs_var);
+{_res=$B._PyPegen.dummy_name(p,_gather_292_var,_literal,kwargs_var);
 break;}
 p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_262_rule(p)
+function _tmp_276_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33041,7 +34749,25 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_263_rule(p)
+function _tmp_277_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var expression_without_invalid_var;
+if(
+$B._PyPegen.lookahead(0,$B._PyPegen.string_token,p)
+&&
+(expression_without_invalid_var=expression_without_invalid_rule(p))
+)
+{_res=expression_without_invalid_var;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_278_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33060,7 +34786,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_264_rule(p)
+function _tmp_279_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33079,7 +34805,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_265_rule(p)
+function _tmp_280_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33104,7 +34830,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_266_rule(p)
+function _tmp_281_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33129,7 +34855,94 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_267_rule(p)
+function _loop0_282_rule(p)
+{if(p.error_indicator){return NULL;}
+var _res={value:NULL};
+_res=NULL;
+var _mark=p.mark;
+var _children=[];
+var _children_capacity=1;
+var _n=0;
+{
+if(p.error_indicator){return NULL;}
+var _tmp_294_var;
+while(
+(_tmp_294_var=_tmp_294_rule(p))
+)
+{_res=_tmp_294_var;
+_children[_n++]=_res;
+_mark=p.mark;}
+p.mark=_mark;}
+return _children;}
+function _tmp_283_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,12))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,8))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var newline_var;
+if(
+(newline_var=$B._PyPegen.expect_token(p,NEWLINE))
+)
+{_res=newline_var;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_284_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,12))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+if(
+(_literal=$B._PyPegen.expect_token(p,8))
+)
+{_res=_literal;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var newline_var;
+if(
+(newline_var=$B._PyPegen.expect_token(p,NEWLINE))
+)
+{_res=newline_var;
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_285_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33141,7 +34954,7 @@ var expression_var;
 if(
 (expression_var=expression_rule(p))
 &&
-(_opt_var=_tmp_276_rule(p),!p.error_indicator)
+(_opt_var=_tmp_295_rule(p),!p.error_indicator)
 )
 {_res=$B._PyPegen.dummy_name(p,expression_var,_opt_var);
 break;}
@@ -33149,7 +34962,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_268_rule(p)
+function _tmp_286_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33161,7 +34974,7 @@ var expressions_var;
 if(
 (expressions_var=expressions_rule(p))
 &&
-(_opt_var=_tmp_277_rule(p),!p.error_indicator)
+(_opt_var=_tmp_296_rule(p),!p.error_indicator)
 )
 {_res=$B._PyPegen.dummy_name(p,expressions_var,_opt_var);
 break;}
@@ -33169,7 +34982,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_269_rule(p)
+function _tmp_287_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33181,7 +34994,7 @@ var expression_var;
 if(
 (expression_var=expression_rule(p))
 &&
-(_opt_var=_tmp_278_rule(p),!p.error_indicator)
+(_opt_var=_tmp_297_rule(p),!p.error_indicator)
 )
 {_res=$B._PyPegen.dummy_name(p,expression_var,_opt_var);
 break;}
@@ -33189,7 +35002,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_270_rule(p)
+function _tmp_288_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33201,7 +35014,7 @@ var expressions_var;
 if(
 (expressions_var=expressions_rule(p))
 &&
-(_opt_var=_tmp_279_rule(p),!p.error_indicator)
+(_opt_var=_tmp_298_rule(p),!p.error_indicator)
 )
 {_res=$B._PyPegen.dummy_name(p,expressions_var,_opt_var);
 break;}
@@ -33209,7 +35022,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_271_rule(p)
+function _tmp_289_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33218,7 +35031,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var name_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (name_var=$B._PyPegen.name_token(p))
 )
@@ -33228,26 +35041,32 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_272_rule(p)
+function _tmp_290_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
 {
 if(p.error_indicator){return NULL;}
-var _literal;
-var bitwise_or_var;
+var fstring_var;
 if(
-(_literal=$B._PyPegen.expect_token(p,12))
-&&
-(bitwise_or_var=bitwise_or_rule(p))
+(fstring_var=fstring_rule(p))
 )
-{_res=$B._PyPegen.dummy_name(p,_literal,bitwise_or_var);
+{_res=fstring_var;
+break;}
+p.mark=_mark;}
+{
+if(p.error_indicator){return NULL;}
+var string_var;
+if(
+(string_var=string_rule(p))
+)
+{_res=string_var;
 break;}
 p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_273_rule(p)
+function _tmp_291_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33274,7 +35093,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _loop0_275_rule(p)
+function _loop0_293_rule(p)
 {if(p.error_indicator){return NULL;}
 var _res={value:NULL};
 _res=NULL;
@@ -33289,14 +35108,14 @@ var elem;
 while(
 (_literal=$B._PyPegen.expect_token(p,12))
 &&
-(elem=_tmp_280_rule(p))
+(elem=_tmp_299_rule(p))
 )
 {_res=elem;
 _children[_n++]=_res;
 _mark=p.mark;}
 p.mark=_mark;}
 return _children;}
-function _gather_274_rule(p)
+function _gather_292_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33305,9 +35124,9 @@ if(p.error_indicator){return NULL;}
 var elem;
 var seq;
 if(
-(elem=_tmp_280_rule(p))
+(elem=_tmp_299_rule(p))
 &&
-(seq=_loop0_275_rule(p))
+(seq=_loop0_293_rule(p))
 )
 {_res=$B._PyPegen.seq_insert_in_front(p,elem,seq);
 break;}
@@ -33315,7 +35134,26 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_276_rule(p)
+function _tmp_294_rule(p)
+{if(p.error_indicator){return NULL;}
+while(1){var _res=NULL;
+var _mark=p.mark;
+{
+if(p.error_indicator){return NULL;}
+var _literal;
+var bitwise_or_var;
+if(
+(_literal=$B._PyPegen.expect_token(p,12))
+&&
+(bitwise_or_var=bitwise_or_rule(p))
+)
+{_res=$B._PyPegen.dummy_name(p,_literal,bitwise_or_var);
+break;}
+p.mark=_mark;}
+_res=NULL;
+break;}
+return _res;}
+function _tmp_295_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33324,7 +35162,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var star_target_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (star_target_var=star_target_rule(p))
 )
@@ -33334,7 +35172,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_277_rule(p)
+function _tmp_296_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33343,7 +35181,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var star_target_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (star_target_var=star_target_rule(p))
 )
@@ -33353,7 +35191,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_278_rule(p)
+function _tmp_297_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33362,7 +35200,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var star_target_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (star_target_var=star_target_rule(p))
 )
@@ -33372,7 +35210,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_279_rule(p)
+function _tmp_298_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33381,7 +35219,7 @@ if(p.error_indicator){return NULL;}
 var _keyword;
 var star_target_var;
 if(
-(_keyword=$B._PyPegen.expect_token(p,658))
+(_keyword=$B._PyPegen.expect_token(p,680))
 &&
 (star_target_var=star_target_rule(p))
 )
@@ -33391,7 +35229,7 @@ p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_280_rule(p)
+function _tmp_299_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33406,19 +35244,19 @@ break;}
 p.mark=_mark;}
 {
 if(p.error_indicator){return NULL;}
-var _tmp_281_var;
+var _tmp_300_var;
 if(
-(_tmp_281_var=_tmp_281_rule(p))
+(_tmp_300_var=_tmp_300_rule(p))
 &&
 $B._PyPegen.lookahead_with_int(0,$B._PyPegen.expect_token,p,22)
 )
-{_res=_tmp_281_var;
+{_res=_tmp_300_var;
 break;}
 p.mark=_mark;}
 _res=NULL;
 break;}
 return _res;}
-function _tmp_281_rule(p)
+function _tmp_300_rule(p)
 {if(p.error_indicator){return NULL;}
 while(1){var _res=NULL;
 var _mark=p.mark;
@@ -33456,7 +35294,7 @@ case 'single':
 return interactive_rule(p)
 default:
 console.log('unknown mode',p.mode)
-alert()}}
+throw Error(`unknown parse mode: ${p.mode}`)}};
 ;
-(function($B){$B.whenReady=new Promise(function(resolve,reject){resolve()})})(__BRYTHON__)
+(function($B){$B.whenReady=new Promise(function(resolve,reject){resolve()})})(__BRYTHON__);
 ;

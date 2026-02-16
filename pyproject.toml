@@ -31,3 +31,8 @@ urls = { "Download" = "https://github.com/dunderlab/python-radiant-runtime-bridg
 
 [tool.setuptools]
 include-package-data = true
+
+[project.optional-dependencies]
+dev = [
+    "brython>=3.14"
+]

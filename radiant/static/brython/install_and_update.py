@@ -1,6 +1,7 @@
 import os
 import subprocess
 from typing import List
+import shutil
 
 
 def dist_name() -> str:
@@ -38,12 +39,13 @@ def run_command_on_dir(command: List[str], dir_name: str) -> None:
     original_dir = os.getcwd()
     try:
         os.chdir(dir_name)
-        subprocess.run(command, check=True)
+        result = subprocess.run(command, capture_output=True, text=True)
+        print(result.stdout)
     finally:
         os.chdir(original_dir)
 
 
-def ensure_brython_dist(dir_name: str, update: bool = False) -> None:
+def install_brython_dist(dir_name: str) -> None:
     """
     Ensure a Brython distribution directory exists and is populated.
 
@@ -54,20 +56,15 @@ def ensure_brython_dist(dir_name: str, update: bool = False) -> None:
     update : bool, optional
         Whether to update an existing distribution.
     """
-    if not os.path.exists(dir_name):
-        os.mkdir(dir_name)
+    if os.path.exists(dir_name):
+        shutil.rmtree(dir_name)
 
-        run_command_on_dir(
-            ["brython-cli", "--install"],
-            dir_name,
-        )
-        return
+    os.mkdir(dir_name)
 
-    if update:
-        run_command_on_dir(
-            ["brython-cli", "--update"],
-            dir_name,
-        )
+    run_command_on_dir(
+        ["brython-cli", "install"],
+        dir_name,
+    )
 
 
 def main() -> None:
@@ -75,10 +72,8 @@ def main() -> None:
     Prepare Brython distribution directories.
     """
     versioned_dir = dist_name()
-    ensure_brython_dist(versioned_dir)
-
-    latest_dir = "Brython-latest"
-    ensure_brython_dist(latest_dir, update=True)
+    install_brython_dist(versioned_dir)
+    install_brython_dist("Brython-latest")
 
 
 if __name__ == "__main__":
