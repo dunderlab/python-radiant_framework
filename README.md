@@ -26,9 +26,9 @@ Radiant is a framework that bridges Python on the server (CPython) with Python i
 
 ## Installation
 
-```bash
+~~~bash
 pip install radiant-runtime-bridge
-```
+~~~
 
 ## Quick Start
 
@@ -36,7 +36,7 @@ pip install radiant-runtime-bridge
 
 Create a simple web application with just a few lines of code:
 
-```python
+~~~python
 # Base class that binds the Python server with the Brython frontend
 from radiant import BrythonServer
 
@@ -59,13 +59,13 @@ if __name__ == "__main__":
 
     # Alternative explicit binding
     # App.serve(ip="127.0.0.1", port=8080)
-```
+~~~
 
 Run the application:
 
-```bash
+~~~bash
 python main.py
-```
+~~~
 
 Then open your browser to http://localhost:5050 (default port).
 
@@ -73,7 +73,7 @@ Then open your browser to http://localhost:5050 (default port).
 
 ### Creating API Endpoints
 
-```python
+~~~python
 from radiant import BrythonServer, json_response
 
 
@@ -100,11 +100,11 @@ class App(BrythonServer):
 
 if __name__ == "__main__":
     App.serve()
-```
+~~~
 
 ### Creating Multiple Views
 
-```python
+~~~python
 # Core Radiant runtime and optional JSON utilities
 from radiant import BrythonServer, json_response
 
@@ -146,18 +146,52 @@ class App(BrythonServer):
 if __name__ == "__main__":
     # Start the application using default server settings
     App.serve()
-```
+~~~
 
-## Documentation
+## Brython Enhancement
 
-### BrythonServer Class
+### `select`
+The `select` method enables batch operations on multiple DOM elements. Functions can be applied to all selected elements at once:
 
-The main class for creating Radiant applications. Inherit from this class to create your application.
+~~~ python
+selection = self.select('.my-class')
+selection.bind('mouseover', lambda evt: print(evt))
+selection.style.color = 'cyan'
+selection.style = {'background-color': 'red'}
+~~~
 
+### `html`
+The `html` module offers a Pythonic way to create and manipulate HTML elements:
 
-### Helper Functions
+~~~ python
+# Create elements with CSS classes
+title = self.html.H1('My Title', Class='header')
 
-- `json_response(data, status=200)`: Create a JSON response
+# Dynamic class management
+title.classes.append('active')
+title.classes.extend(['large', 'visible'])
+
+# Python-style CSS properties
+title.styles.background_color = 'blue'
+title.styles.font_size = '16px'
+
+# Context-based nesting
+with self.html.DIV().context as container:
+    with self.html.UL().context as list:
+        with self.html.LI().context:
+            html.SPAN("List item")
+~~~
+
+A complete working example of context managers can be found in `examples/html_context_manager/main.py`.
+
+### `styles`
+The `styles` object provides a cleaner syntax for managing CSS properties:
+
+~~~ python
+selection = self.select('.my-class')
+selection.styles.background_color = 'red'
+selection.styles.color = 'white'
+~~~
 
 ## Important Notes
 
