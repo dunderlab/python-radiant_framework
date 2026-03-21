@@ -1,6 +1,5 @@
-# Radiant: A single-file Python runtime bridge (CPython ↔ Brython)
-
-A lightweight and Python-first runtime bridge for building web applications with Brython.
+# Radiant: Unified Python and Brython Runtime
+Build web apps in 100% pure Python. No JavaScript. Single-file execution.
 
 ![GitHub top language](https://img.shields.io/github/languages/top/dunderlab/radiant-runtime-bridge?)
 ![PyPI - License](https://img.shields.io/pypi/l/radiant-runtime-bridge?)
@@ -12,7 +11,7 @@ A lightweight and Python-first runtime bridge for building web applications with
 
 ## Overview
 
-Radiant is a framework that bridges Python on the server (CPython) with Python in the browser (Brython). It allows developers to write web applications entirely in Python, without needing to write JavaScript code.
+Radiant is a single-file runtime bridge that blurs the line between server and browser. It encapsulates your entire stack into a single Python script, allowing you to write frontend logic with Brython as if it were running natively in the browser, while maintaining a transparent connection to the backend.
 
 ## Features
 
@@ -46,13 +45,15 @@ class App(BrythonServer):
     # Inherits the Radiant runtime that exposes HTML primitives and the browser document.
 
     def __init__(self):
+        # This code runs in the browser via Brython, 
+        # but is defined in the same script as your server logic.
         self.document <= self.html.H1("Radiant · Python Runtime Bridge")
         self.document <= self.html.P(
             "This application connects a Python backend with a Brython-powered frontend "
             "through a unified runtime."
         )
 
-
+        
 if __name__ == "__main__":
     # Start the embedded HTTP server with default address and port
     App.serve()
@@ -179,7 +180,7 @@ title.styles.font_size = '16px'
 with self.html.DIV().context as container:
     with self.html.UL().context as list:
         with self.html.LI().context:
-            html.SPAN("List item")
+            self.html.SPAN("List item")
 ~~~
 
 A complete working example of context managers can be found in `examples/html_context_manager/main.py`.
@@ -205,7 +206,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the BSD-2-Clause License - see the LICENSE.md file for details.
+This project is licensed under the BSD-2-Clause License. See the LICENSE.md file for details.
 
 ## Links
 
