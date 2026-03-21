@@ -1,17 +1,6 @@
 from browser import document, timer
 
 
-# def autoiframe(id_, parent):
-#     """"""
-#     if iframe := document.select_one(f"#{id_}"):
-#         if iframe.contentWindow.document.select_one(parent):
-#             iframe.style.height = (
-#                 f"{iframe.contentWindow.document.documentElement.scrollHeight}px"
-#             )
-#             return timer.set_timeout(lambda: autoiframe(id_, parent), 2000)
-#     timer.set_timeout(lambda: autoiframe(id_, parent), 500)
-
-
 def autoiframe(
     iframe_id: str,
     parent_selector: str,
