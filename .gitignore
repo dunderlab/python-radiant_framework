@@ -141,3 +141,6 @@ dmypy.json
 test/my_theme.xml
 sandbox
 .apk
+
+.DS_Store
+**/.DS_Store
