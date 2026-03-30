@@ -200,15 +200,10 @@ selection.styles.color = 'white'
 - Not recommended for production use without additional security measures
 - No built-in authentication or authorization
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 ## License
 
 This project is licensed under the BSD-2-Clause License. See the LICENSE.md file for details.
 
 ## Links
 
-- [GitHub Repository](https://github.com/dunderlab/radiant-runtime-bridge)
 - [PyPI Package](https://pypi.org/project/radiant-runtime-bridge/)
