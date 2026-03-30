@@ -8,6 +8,8 @@ class App(BrythonServer):
         self.document <= self.html.H1("Minimal Interface App")
         self.document <= self.html.P("This is a single-page app using Radiant.")
 
+        self.document <= self.html.P("Check the console output")
+
         self.test_get.call(a=1).then(lambda data: print(dict(data)))
         self.test_post.call(b=1).then(lambda data: print(dict(data)))
 
