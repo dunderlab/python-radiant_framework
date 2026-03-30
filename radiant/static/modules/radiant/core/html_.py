@@ -435,6 +435,11 @@ class Element:
             except AttributeError:
                 html_element.styles = None
 
+            for attr_ in attrs:
+                print(attr_)
+                if attr_.startswith("on-"):
+                    html_element.bind(attr_.lstrip('on-'), attrs[attr_])
+
             return html_element
 
         return factory
