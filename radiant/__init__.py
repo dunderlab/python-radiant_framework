@@ -40,11 +40,16 @@ class BrythonServer:
         if ":" in ip:
             ip = f"[{ip}]"
 
+        if ip in ['[::1]', '127.0.0.1']:
+            localhost = f'(http://localhost:{port}/)'
+        else:
+            localhost = ''
+
         print("=" * 70)
         print(f"[{ts}] SERVER BOOT")
         print(f" PID        : {pid}")
         print(f" Class      : {cls.__module__}.{cls.__name__}")
-        print(f" Address    : http://{ip}:{port}")
+        print(f" Address    : http://{ip}:{port} {localhost}")
         print()
         print(" MODE       : DEVELOPMENT / TEST SERVER")
         print(" WARNING    : NOT FOR PRODUCTION USE")
